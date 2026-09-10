@@ -1,0 +1,17 @@
+{
+  "issues": [
+    {
+      "key": "DEV-102",
+      "fields": {
+        "summary": "Migrar endpoint legado",
+        "status": { "name": "Done" },
+        "assignee": { "displayName": "Persona A" },
+        "issuetype": { "name": "Historia" },
+        "created": "2026-01-06T09:00:00.000+0100",
+        "resolutiondate": "2026-01-10T12:00:00.000+0100",
+        "parent": null
+      },
+      "changelog": { "total": 1, "histories": [] }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "values": [
+    { "created": "2026-01-06T10:00:00.000+0100", "items": [{ "field": "status", "fromString": "To Do", "toString": "In Progress" }] },
+    { "created": "2026-01-07T10:00:00.000+0100", "items": [{ "field": "status", "fromString": "In Progress", "toString": "In Review" }] },
+    { "created": "2026-01-08T10:00:00.000+0100", "items": [{ "field": "assignee", "fromString": null, "toString": "Persona A" }] },
+    { "created": "2026-01-09T10:00:00.000+0100", "items": [{ "field": "status", "fromString": "In Review", "toString": "Done" }] }
+  ],
+  "startAt": 0,
+  "maxResults": 1000,
+  "total": 4,
+  "isLast": true
+}
