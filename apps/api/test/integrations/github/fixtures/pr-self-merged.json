@@ -1,0 +1,20 @@
+{
+  "number": 303,
+  "title": "Self merged PROJ-77 without approvals",
+  "url": "https://github.com/acme/svc-a/pull/303",
+  "state": "MERGED",
+  "isDraft": false,
+  "createdAt": "2025-03-01T08:00:00Z",
+  "mergedAt": "2025-03-01T09:00:00Z",
+  "closedAt": "2025-03-01T09:00:00Z",
+  "updatedAt": "2025-03-01T09:00:00Z",
+  "additions": 3,
+  "deletions": 0,
+  "changedFiles": 1,
+  "headRefName": "chore/PROJ-77-cleanup",
+  "repository": { "name": "svc-a" },
+  "author": { "login": "user1" },
+  "mergedBy": { "login": "user1" },
+  "reviews": { "nodes": [] },
+  "timelineItems": { "nodes": [] }
+}

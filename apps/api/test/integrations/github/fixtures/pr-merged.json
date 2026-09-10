@@ -1,0 +1,32 @@
+{
+  "number": 101,
+  "title": "Add checkout retry logic",
+  "url": "https://github.com/acme/svc-a/pull/101",
+  "state": "MERGED",
+  "isDraft": false,
+  "createdAt": "2025-01-05T09:00:00Z",
+  "mergedAt": "2025-01-07T15:30:00Z",
+  "closedAt": "2025-01-07T15:30:00Z",
+  "updatedAt": "2025-01-07T15:30:00Z",
+  "additions": 42,
+  "deletions": 10,
+  "changedFiles": 3,
+  "headRefName": "feature/PROJ-123-retry",
+  "repository": { "name": "svc-a" },
+  "author": { "login": "user1" },
+  "mergedBy": { "login": "user2" },
+  "reviews": {
+    "nodes": [
+      { "author": { "login": "user2" }, "state": "APPROVED", "submittedAt": "2025-01-06T10:00:00Z" },
+      { "author": { "login": "user1" }, "state": "APPROVED", "submittedAt": "2025-01-06T11:00:00Z" },
+      { "author": { "login": "dependabot[bot]" }, "state": "COMMENTED", "submittedAt": "2025-01-06T09:00:00Z" },
+      { "author": { "login": "user3" }, "state": "PENDING", "submittedAt": null }
+    ]
+  },
+  "timelineItems": {
+    "nodes": [
+      { "__typename": "ReviewRequestedEvent", "createdAt": "2025-01-05T09:05:00Z", "requestedReviewer": { "login": "user2" } },
+      { "__typename": "ReadyForReviewEvent", "createdAt": "2025-01-05T12:00:00Z" }
+    ]
+  }
+}

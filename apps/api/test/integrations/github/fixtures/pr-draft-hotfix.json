@@ -1,0 +1,20 @@
+{
+  "number": 202,
+  "title": "HF: fix payment webhook crash",
+  "url": "https://github.com/acme/svc-a/pull/202",
+  "state": "OPEN",
+  "isDraft": true,
+  "createdAt": "2025-02-01T08:00:00Z",
+  "mergedAt": null,
+  "closedAt": null,
+  "updatedAt": "2025-02-01T08:00:00Z",
+  "additions": 5,
+  "deletions": 1,
+  "changedFiles": 1,
+  "headRefName": "hotfix/payments",
+  "repository": { "name": "svc-a" },
+  "author": { "login": "user3" },
+  "mergedBy": null,
+  "reviews": { "nodes": [] },
+  "timelineItems": { "nodes": [] }
+}

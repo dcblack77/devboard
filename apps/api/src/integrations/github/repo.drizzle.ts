@@ -1,0 +1,88 @@
+/**
+ * Implementación Drizzle/Postgres de GithubRepo. Recibe una instancia de
+ * NodePgDatabase ya conectada (no abre conexión propia), igual que
+ * DrizzleJiraRepo.
+ */
+import { eq } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { pullRequests, prReviews, prReviewRequests } from '../../db/schema.js';
+import type { GithubRepo, PrUpsertInput, ReviewUpsertInput, ReviewRequestUpsertInput } from './repo.js';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDb = NodePgDatabase<any>;
+
+export class DrizzleGithubRepo implements GithubRepo {
+  constructor(private readonly db: AnyDb) {}
+
+  async upsertPrs(items: PrUpsertInput[]): Promise<void> {
+    for (const it of items) {
+      await this.db
+        .insert(pullRequests)
+        .values({
+          id: it.id,
+          repo: it.repo,
+          number: it.number,
+          title: it.title,
+          url: it.url,
+          state: it.state,
+          isDraft: it.isDraft,
+          authorLogin: it.authorLogin,
+          createdAt: it.createdAt,
+          readyAt: it.readyAt,
+          mergedAt: it.mergedAt,
+          closedAt: it.closedAt,
+          mergedByLogin: it.mergedByLogin,
+          additions: it.additions,
+          deletions: it.deletions,
+          changedFiles: it.changedFiles,
+          headRef: it.headRef,
+          erfKeys: it.erfKeys,
+          hotfix: it.hotfix,
+          raw: it.raw as object,
+        })
+        .onConflictDoUpdate({
+          target: pullRequests.id,
+          set: {
+            title: it.title,
+            url: it.url,
+            state: it.state,
+            isDraft: it.isDraft,
+            authorLogin: it.authorLogin,
+            readyAt: it.readyAt,
+            mergedAt: it.mergedAt,
+            closedAt: it.closedAt,
+            mergedByLogin: it.mergedByLogin,
+            additions: it.additions,
+            deletions: it.deletions,
+            changedFiles: it.changedFiles,
+            headRef: it.headRef,
+            erfKeys: it.erfKeys,
+            hotfix: it.hotfix,
+            raw: it.raw as object,
+          },
+        });
+    }
+  }
+
+  async replaceReviews(prId: string, reviews: ReviewUpsertInput[]): Promise<void> {
+    await this.db.delete(prReviews).where(eq(prReviews.prId, prId));
+    if (reviews.length === 0) return;
+    await this.db.insert(prReviews).values(
+      reviews.map((r) => ({
+        prId,
+        reviewerLogin: r.reviewerLogin,
+        state: r.state,
+        submittedAt: r.submittedAt,
+        isBot: r.isBot,
+      })),
+    );
+  }
+
+  async replaceRequests(prId: string, requests: ReviewRequestUpsertInput[]): Promise<void> {
+    await this.db.delete(prReviewRequests).where(eq(prReviewRequests.prId, prId));
+    if (requests.length === 0) return;
+    await this.db.insert(prReviewRequests).values(
+      requests.map((r) => ({ prId, at: r.at, requestedLogin: r.requestedLogin })),
+    );
+  }
+}
