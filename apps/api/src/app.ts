@@ -16,6 +16,9 @@ import { DataController } from './modules/data/data.controller.js';
 import { TeamController } from './modules/team/team.controller.js';
 import { AuthController } from './modules/auth/auth.controller.js';
 import { SyncController } from './modules/sync/sync.controller.js';
+import { SettingsController } from './modules/settings/settings.controller.js';
+import { ExportController } from './modules/export/export.controller.js';
+import { SnapshotsController } from './modules/snapshots/snapshots.controller.js';
 import { resolveSession } from './middleware/auth.middleware.js';
 import { startScheduler } from './jobs/scheduler.js';
 import { registerRealSources } from './modules/sync/register-sources.js';
@@ -39,6 +42,9 @@ export class App extends AppExpress {
       EpicsController,
       DataController,
       TeamController,
+      SettingsController,
+      ExportController,
+      SnapshotsController,
     ]),
   ]);
 

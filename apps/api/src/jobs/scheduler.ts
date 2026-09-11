@@ -1,9 +1,12 @@
 import cron from 'node-cron';
+import { SnapshotKind } from '@devboard/shared';
 import { loadEnv } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { SyncService } from '../modules/sync/sync.service.js';
+import { takeSnapshot } from '../modules/snapshots/snapshots.controller.js';
 
 let task: cron.ScheduledTask | undefined;
+let weeklySnapshotTask: cron.ScheduledTask | undefined;
 
 /**
  * Arranca el cron interno que llama a `SyncService.runAll()` cada `SYNC_MINUTES`.
@@ -26,6 +29,17 @@ export function startScheduler(): cron.ScheduledTask {
   });
 
   logger.info({ expression }, 'scheduler iniciado');
+
+  if (!weeklySnapshotTask) {
+    // Lunes 06:00 (hora del servidor): snapshot semanal automático de {home, teamSummary}.
+    weeklySnapshotTask = cron.schedule('0 6 * * 1', () => {
+      logger.info('scheduler: tomando snapshot semanal');
+      takeSnapshot(SnapshotKind.Weekly).catch((err) => {
+        logger.error({ err }, 'scheduler: snapshot semanal falló');
+      });
+    });
+  }
+
   return task;
 }
 
@@ -33,4 +47,6 @@ export function startScheduler(): cron.ScheduledTask {
 export function stopScheduler(): void {
   task?.stop();
   task = undefined;
+  weeklySnapshotTask?.stop();
+  weeklySnapshotTask = undefined;
 }
