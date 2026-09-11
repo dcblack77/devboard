@@ -198,7 +198,10 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
   const normStatus = (s: string): string => aliases[s] ?? s;
   const renormalizedIssues = issueRows.map((i) => {
     const statusNorm = normStatus(i.status);
-    return { ...i, statusNorm, macro: settingsDto.macroMap[statusNorm] ?? i.macro };
+    // El assignee crudo de Jira se canoniza aquí (mapa `people.jiraNames`), igual que los logins
+    // de GitHub en analyzePullRequests: así ambos mundos comparten el mismo nombre mostrado.
+    const assigneeRaw = i.assigneeRaw ? canon(i.assigneeRaw) : i.assigneeRaw;
+    return { ...i, statusNorm, assigneeRaw, macro: settingsDto.macroMap[statusNorm] ?? i.macro };
   });
   const renormalizedSegments = segmentRows.map((s) => ({ ...s, status: normStatus(s.status) }));
 

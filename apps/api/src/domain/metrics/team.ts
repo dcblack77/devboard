@@ -78,9 +78,9 @@ export function personMetrics(d: DevStat, ctx: PersonMetricsContext): PersonMetr
     changesRequested: p.changesRequested ?? 0,
     authorsReviewed: p.authorsReviewed ?? 0,
     ratio: prs ? Math.round((revs / prs) * 100) / 100 : null,
-    responseH: p.hResponseMean ?? null,
-    firstReviewH: p.hFirstReviewMean ?? null,
-    toMergeH: p.hToMergeMean ?? null,
+    responseH: round1(p.hResponseMean),
+    firstReviewH: round1(p.hFirstReviewMean),
+    toMergeH: round1(p.hToMergeMean),
     noApproval: p.selfMergedNoApproval ?? 0,
     open7d: p.open7d ?? 0,
     hotfix: p.hotfix ?? 0,
@@ -104,11 +104,22 @@ const MEDIAN_KEYS = [
 
 export type TeamMedians = Record<(typeof MEDIAN_KEYS)[number], number | null>;
 
+function round1(v: number | null | undefined): number | null {
+  return v === null || v === undefined ? null : Math.round(v * 10) / 10;
+}
+
+/** Horas en llano para tarjetas: '3.6 h' o '2.1 d'; '—' si no hay dato. */
+function fmtHoursPlain(h: number | null): string {
+  if (h === null || h === undefined || Number.isNaN(h)) return '—';
+  return h < 24 ? `${h.toFixed(1)} h` : `${(h / 24).toFixed(1)} d`;
+}
+
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+  const m = sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+  return Math.round(m * 100) / 100;
 }
 
 /** Medianas del equipo para cada métrica clave, usadas como referencia en el ranking. */
@@ -219,9 +230,9 @@ export function personSummary(m: PersonMetrics, meds: TeamMedians | null): Perso
     { label: 'Entregadas', value: m.delivered, sub: `${m.delivered4w} en 4 sem`, color: '' },
     { label: 'PRs mergeadas', value: m.prsMerged, sub: `${m.prs4w} en 4 sem · ${m.hotfix} hotfix`, color: '' },
     { label: 'Reviews hechas', value: m.reviews, sub: `en ${m.prsReviewed} PRs · pide cambios ${m.changesRequested}`, color: '' },
-    { label: 'Responde a una PR en', value: m.responseH, sub: 'media', color: semaphore(m.responseH, 8, 48) },
-    { label: 'Sus PRs: 1ª review', value: m.firstReviewH, sub: 'media', color: semaphore(m.firstReviewH, 24, 48) },
-    { label: 'Sus PRs: merge', value: m.toMergeH, sub: 'media', color: '' },
+    { label: 'Responde a una PR en', value: fmtHoursPlain(m.responseH), sub: 'media', color: semaphore(m.responseH, 8, 48) },
+    { label: 'Sus PRs: 1ª review', value: fmtHoursPlain(m.firstReviewH), sub: 'media', color: semaphore(m.firstReviewH, 24, 48) },
+    { label: 'Sus PRs: merge', value: fmtHoursPlain(m.toMergeH), sub: 'media', color: '' },
     { label: 'Sin aprobación', value: m.noApproval, sub: 'PRs mergeadas sin approve', color: m.noApproval ? 'r' : 'g' },
     { label: 'Bloqueadas / atención', value: `${m.blocked} / ${m.attention}`, sub: 'ahora', color: m.blocked ? 'r' : '' },
     { label: 'Días para entregar', value: m.cycleDays, sub: 'media', color: '' },
