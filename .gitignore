@@ -6,3 +6,5 @@ build/
 .env.local
 coverage/
 .DS_Store
+*.tsbuildinfo
+cookies.txt

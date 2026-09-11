@@ -6,10 +6,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-devboard}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devboard}
       POSTGRES_DB: ${POSTGRES_DB:-devboard}
-    ports:
-      - '5433:5432'
+    # La BD no se expone al host. Para acceder: docker compose exec db psql -U devboard devboard
     volumes:
       - devboard_pgdata:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5439:5432'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-devboard} -d ${POSTGRES_DB:-devboard}']
       interval: 5s

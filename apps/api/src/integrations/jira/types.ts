@@ -6,6 +6,8 @@ export interface JiraConfig {
   baseUrl: string;
   email: string;
   apiToken: string;
+  /** 'basic' (email:token, por defecto) o 'bearer' (token OAuth 2.0/3LO). */
+  authMode?: 'basic' | 'bearer';
   /** Timeout por petición en ms (default 60000). */
   timeoutMs?: number;
   /** Número de reintentos en 429/5xx (default 3). */

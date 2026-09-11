@@ -1,21 +1,15 @@
 /**
  * Orquesta la sincronización de Jira: descarga ventana + épicas, parsea
  * segmentos, y hace upsert en Postgres vía JiraRepo.
- *
- * TODO(orquestador): sustituir esta interfaz local por la de
- * `src/modules/sync/registry.ts` en cuanto exista (debe ser idéntica:
- * `{ name: string; run(): Promise<{ counts: Record<string, number> }> }`).
  */
 import { JiraClient } from './client.js';
 import { parseIssue } from './parse.js';
 import { toIssueUpsertInput, toEpicUpsertInput } from './repo.js';
 import type { JiraRepo } from './repo.js';
 import type { JiraConfig, StatusAliasMap } from './types.js';
+import type { SourceSync } from '../../modules/sync/registry.js';
 
-export interface SourceSync {
-  name: string;
-  run(): Promise<{ counts: Record<string, number> }>;
-}
+export type { SourceSync };
 
 export interface JiraSyncSettings {
   project: string;

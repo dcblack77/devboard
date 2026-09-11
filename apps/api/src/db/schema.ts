@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * Fila singleton de configuración del equipo. Se siembra al arrancar desde variables de
@@ -48,35 +48,46 @@ export const initiativeEpics = pgTable('initiative_epics', {
 });
 
 /** Issue de Jira (historia, tarea, error, subtarea...). Clave = key de Jira (p.ej. `PROJ-123`). */
-export const issues = pgTable('issues', {
-  key: text('key').primaryKey(),
-  summary: text('summary').notNull(),
-  type: text('type').notNull(),
-  status: text('status').notNull(),
-  statusNorm: text('status_norm').notNull(),
-  macro: text('macro').notNull(),
-  assigneeRaw: text('assignee_raw'),
-  personId: integer('person_id').references(() => people.id, { onDelete: 'set null' }),
-  parentKey: text('parent_key'),
-  parentType: text('parent_type'),
-  epicKey: text('epic_key'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
-  raw: jsonb('raw').notNull().default({}),
-});
+export const issues = pgTable(
+  'issues',
+  {
+    key: text('key').primaryKey(),
+    summary: text('summary').notNull(),
+    type: text('type').notNull(),
+    status: text('status').notNull(),
+    statusNorm: text('status_norm').notNull(),
+    macro: text('macro').notNull(),
+    assigneeRaw: text('assignee_raw'),
+    personId: integer('person_id').references(() => people.id, { onDelete: 'set null' }),
+    parentKey: text('parent_key'),
+    parentType: text('parent_type'),
+    epicKey: text('epic_key'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    raw: jsonb('raw').notNull().default({}),
+  },
+  (table) => [
+    index('issues_person_id_idx').on(table.personId),
+    index('issues_epic_key_idx').on(table.epicKey),
+  ],
+);
 
 /** Tramo de tiempo que un issue pasó en un estado (recalculado en cada sync desde el changelog). */
-export const issueStatusSegments = pgTable('issue_status_segments', {
-  id: serial('id').primaryKey(),
-  issueKey: text('issue_key')
-    .notNull()
-    .references(() => issues.key, { onDelete: 'cascade' }),
-  status: text('status').notNull(),
-  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
-  endedAt: timestamp('ended_at', { withTimezone: true }),
-  seq: integer('seq').notNull(),
-});
+export const issueStatusSegments = pgTable(
+  'issue_status_segments',
+  {
+    id: serial('id').primaryKey(),
+    issueKey: text('issue_key')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade' }),
+    status: text('status').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    seq: integer('seq').notNull(),
+  },
+  (table) => [index('issue_status_segments_issue_key_idx').on(table.issueKey)],
+);
 
 /** Historial de cambios de asignado de un issue. */
 export const issueAssigneeChanges = pgTable('issue_assignee_changes', {
@@ -98,46 +109,56 @@ export const epics = pgTable('epics', {
 });
 
 /** Pull request de GitHub. `id` = `repo#number` para evitar colisiones entre repos. */
-export const pullRequests = pgTable('pull_requests', {
-  id: text('id').primaryKey(),
-  repo: text('repo').notNull(),
-  number: integer('number').notNull(),
-  title: text('title').notNull(),
-  url: text('url').notNull(),
-  state: text('state').notNull(),
-  isDraft: boolean('is_draft').notNull().default(false),
-  authorLogin: text('author_login'),
-  authorPersonId: integer('author_person_id').references(() => people.id, {
-    onDelete: 'set null',
-  }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-  readyAt: timestamp('ready_at', { withTimezone: true }),
-  mergedAt: timestamp('merged_at', { withTimezone: true }),
-  closedAt: timestamp('closed_at', { withTimezone: true }),
-  mergedByLogin: text('merged_by_login'),
-  additions: integer('additions').notNull().default(0),
-  deletions: integer('deletions').notNull().default(0),
-  changedFiles: integer('changed_files').notNull().default(0),
-  headRef: text('head_ref'),
-  erfKeys: text('erf_keys').array().notNull().default([]),
-  hotfix: boolean('hotfix').notNull().default(false),
-  raw: jsonb('raw').notNull().default({}),
-});
+export const pullRequests = pgTable(
+  'pull_requests',
+  {
+    id: text('id').primaryKey(),
+    repo: text('repo').notNull(),
+    number: integer('number').notNull(),
+    title: text('title').notNull(),
+    url: text('url').notNull(),
+    state: text('state').notNull(),
+    isDraft: boolean('is_draft').notNull().default(false),
+    authorLogin: text('author_login'),
+    authorPersonId: integer('author_person_id').references(() => people.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    readyAt: timestamp('ready_at', { withTimezone: true }),
+    mergedAt: timestamp('merged_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    mergedByLogin: text('merged_by_login'),
+    additions: integer('additions').notNull().default(0),
+    deletions: integer('deletions').notNull().default(0),
+    changedFiles: integer('changed_files').notNull().default(0),
+    headRef: text('head_ref'),
+    erfKeys: text('erf_keys').array().notNull().default([]),
+    hotfix: boolean('hotfix').notNull().default(false),
+    raw: jsonb('raw').notNull().default({}),
+  },
+  (table) => [
+    index('pull_requests_author_login_merged_at_idx').on(table.authorLogin, table.mergedAt),
+  ],
+);
 
 /** Review de un PR (aprobación, cambios solicitados, comentario). */
-export const prReviews = pgTable('pr_reviews', {
-  id: serial('id').primaryKey(),
-  prId: text('pr_id')
-    .notNull()
-    .references(() => pullRequests.id, { onDelete: 'cascade' }),
-  reviewerLogin: text('reviewer_login').notNull(),
-  reviewerPersonId: integer('reviewer_person_id').references(() => people.id, {
-    onDelete: 'set null',
-  }),
-  state: text('state').notNull(),
-  submittedAt: timestamp('submitted_at', { withTimezone: true }),
-  isBot: boolean('is_bot').notNull().default(false),
-});
+export const prReviews = pgTable(
+  'pr_reviews',
+  {
+    id: serial('id').primaryKey(),
+    prId: text('pr_id')
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: 'cascade' }),
+    reviewerLogin: text('reviewer_login').notNull(),
+    reviewerPersonId: integer('reviewer_person_id').references(() => people.id, {
+      onDelete: 'set null',
+    }),
+    state: text('state').notNull(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    isBot: boolean('is_bot').notNull().default(false),
+  },
+  (table) => [index('pr_reviews_pr_id_reviewer_login_idx').on(table.prId, table.reviewerLogin)],
+);
 
 /** Solicitud explícita de review sobre un PR. */
 export const prReviewRequests = pgTable('pr_review_requests', {

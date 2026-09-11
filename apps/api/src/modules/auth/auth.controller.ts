@@ -1,11 +1,10 @@
 import { controller, Get, Post, body, request, response } from '@expressots/adapter-express';
-import { injectable } from '@expressots/core';
 import type { Request, Response } from 'express';
 import { Role, type LoginRequest, type LoginResponse, type MeResponse } from '@devboard/shared';
 import { loadEnv } from '../../config/env.js';
 import { createSessionCookieValue, SESSION_COOKIE_NAME, SESSION_MAX_AGE_MS } from './session.js';
 
-@injectable()
+// `@controller()` ya aplica `@injectable()` internamente; no lo dupliquemos aquí.
 @controller('/api/auth')
 export class AuthController {
   @Post('/login')

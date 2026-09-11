@@ -1,11 +1,10 @@
 import { controller, Get, Post, request, response } from '@expressots/adapter-express';
-import { injectable } from '@expressots/core';
 import type { Request, Response } from 'express';
 import { Role, type SyncRunDto } from '@devboard/shared';
 import { SyncService } from './sync.service.js';
 import { requireRole } from '../../middleware/auth.middleware.js';
 
-@injectable()
+// `@controller()` ya aplica `@injectable()` internamente; no lo dupliquemos aquí.
 @controller('/api/sync')
 export class SyncController {
   private readonly syncService = new SyncService();

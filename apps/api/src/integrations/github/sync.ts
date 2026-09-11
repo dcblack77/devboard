@@ -1,9 +1,6 @@
 /**
  * Sincronización incremental de GitHub → Postgres. Implementa `SourceSync`
- * (interfaz esperada en `src/modules/sync/registry.ts`, creada por otro
- * subagente en paralelo; declarada aquí localmente hasta que exista —
- * TODO(orquestador): sustituir este import por el de `modules/sync/registry.js`
- * si la forma coincide, o adaptar).
+ * (interfaz canónica en `src/modules/sync/registry.ts`).
  */
 import { GithubClient } from './client.js';
 import { fetchRepoPrs } from './fetch.js';
@@ -11,12 +8,9 @@ import { toPullRequest, DEFAULT_BOT_PATTERNS, DEFAULT_HOTFIX_REGEX } from './par
 import { toPrUpsertInput } from './repo.js';
 import type { GithubRepo } from './repo.js';
 import type { GithubConfig } from './types.js';
+import type { SourceSync } from '../../modules/sync/registry.js';
 
-/** TODO(orquestador): reemplazar por la interfaz real de modules/sync/registry.ts cuando exista. */
-export interface SourceSync {
-  name: string;
-  run(): Promise<{ counts: Record<string, number> }>;
-}
+export type { SourceSync };
 
 /** Último sync ok de una fuente, para calcular `lastFetchedAt` incremental. */
 export interface LastSyncLookup {

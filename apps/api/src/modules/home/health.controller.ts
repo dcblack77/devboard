@@ -1,11 +1,12 @@
 import { controller, Get, response } from '@expressots/adapter-express';
-import { injectable } from '@expressots/core';
 import type { Response } from 'express';
 import type { HealthResponse } from '@devboard/shared';
 import { pingDb } from '../../db/client.js';
 import { getPackageVersion } from '../../utils/package-info.js';
 
-@injectable()
+// `@controller()` de @expressots/adapter-express ya aplica `@injectable()` internamente
+// (decorate(injectable(), target)); añadirlo aquí de nuevo revienta el arranque con
+// "Cannot apply @injectable decorator multiple times".
 @controller('/api')
 export class HealthController {
   @Get('/health')

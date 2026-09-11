@@ -39,7 +39,10 @@ export class JiraClient {
 
   constructor(config: JiraConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
-    this.authHeader = 'Basic ' + Buffer.from(`${config.email}:${config.apiToken}`).toString('base64');
+    this.authHeader =
+      config.authMode === 'bearer'
+        ? `Bearer ${config.apiToken}`
+        : 'Basic ' + Buffer.from(`${config.email}:${config.apiToken}`).toString('base64');
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.fetchImpl = config.fetchImpl ?? fetch;

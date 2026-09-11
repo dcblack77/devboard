@@ -15,8 +15,15 @@ const envSchema = z.object({
   JIRA_EMAIL: z.string().optional(),
   JIRA_API_TOKEN: z.string().optional(),
   JIRA_PROJECT: z.string().optional(),
+  // 'basic' (por defecto): Authorization Basic email:token, estándar para self-hosted con un
+  // API token clásico de Atlassian. 'bearer': Authorization Bearer <token>, para despliegues
+  // que autentican vía OAuth 2.0 (3LO) en vez de un API token de usuario.
+  JIRA_AUTH_MODE: z.enum(['basic', 'bearer']).default('basic'),
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_ORG: z.string().optional(),
+  // Lista de repos separados por coma, p.ej. "svc-a,svc-b". Sin esto, la sync de GitHub no
+  // hace nada aunque haya token+org (ver módulo settings/discover en fases posteriores).
+  GITHUB_REPOS: z.string().optional(),
   SYNC_MINUTES: z.coerce.number().int().positive().default(30),
   SINCE_DATE: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
