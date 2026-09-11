@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
 import { FilterTable, type Column } from '../components/FilterTable';
+import { fmtDateTime } from '../lib/format';
 
 interface IssueItem {
   key: string;
@@ -63,7 +64,7 @@ export function Data() {
     { key: 'macro', header: 'Macro', accessor: (r) => r.macro, filterOptions: macros },
     { key: 'epicKey', header: 'Épica', accessor: (r) => r.epicKey ?? '—' },
     { key: 'assigneeRaw', header: 'Persona', accessor: (r) => r.assigneeRaw ?? '(sin asignar)' },
-    { key: 'created', header: 'Creada', accessor: (r) => r.created },
+    { key: 'created', header: 'Creada', accessor: (r) => r.created, render: (r) => fmtDateTime(r.created) },
   ];
 
   const repos = [...new Set(prs.map((p) => p.repo))].sort();
@@ -77,8 +78,8 @@ export function Data() {
     { key: 'title', header: 'Título', accessor: (r) => r.title },
     { key: 'author', header: 'Autor', accessor: (r) => r.author },
     { key: 'state', header: 'Estado', accessor: (r) => r.state, filterOptions: states, render: (r) => <Tag value={r.state} /> },
-    { key: 'created', header: 'Creada', accessor: (r) => r.created },
-    { key: 'merged', header: 'Mergeada', accessor: (r) => r.merged ?? '—' },
+    { key: 'created', header: 'Creada', accessor: (r) => r.created, render: (r) => fmtDateTime(r.created) },
+    { key: 'merged', header: 'Completada', accessor: (r) => r.merged ?? '—', render: (r) => fmtDateTime(r.merged) },
   ];
 
   return (

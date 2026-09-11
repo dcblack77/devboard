@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtHours, isoWeekKey, weeklyCounts } from '../src/lib/format';
+import { fmtDateTime, fmtHours, isoWeekKey, weeklyCounts } from '../src/lib/format';
 
 describe('fmtHours', () => {
   it('muestra horas con un decimal cuando son menos de 24', () => {
@@ -13,6 +13,18 @@ describe('fmtHours', () => {
   it('devuelve raya si no hay dato', () => {
     expect(fmtHours(null)).toBe('—');
     expect(fmtHours(undefined)).toBe('—');
+  });
+});
+
+describe('fmtDateTime', () => {
+  it('convierte ISO a fecha y hora breve en español', () => {
+    const formatted = fmtDateTime('2024-01-02T10:05:00Z');
+    expect(formatted).toMatch(/^02\/01\/2024, \d{2}:\d{2}$/);
+  });
+
+  it('devuelve raya cuando falta la fecha o no es válida', () => {
+    expect(fmtDateTime(null)).toBe('—');
+    expect(fmtDateTime('no-es-una-fecha')).toBe('—');
   });
 });
 

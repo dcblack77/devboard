@@ -49,7 +49,7 @@ export function Initiatives() {
   return (
     <main>
       <h1>Iniciativas</h1>
-      <p className="lead">Agrupación de épicas para reporting de negocio.</p>
+      <p className="lead">Agrupación de épicas para el seguimiento de negocio.</p>
       <PrintButton />
 
       <Block title="Avance">

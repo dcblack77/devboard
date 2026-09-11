@@ -1,10 +1,13 @@
 import { FilterTable, type Column } from './FilterTable';
+import { BarChart } from './charts/BarChart';
 import { Kpi } from './Kpi';
 import { Tag } from './Tag';
 import type { RagColor } from './Rag';
 
 type SemColor = 'g' | 'a' | 'r' | '';
 const RAG_MAP: Record<Exclude<SemColor, ''>, RagColor> = { g: 'green', a: 'amber', r: 'red' };
+/** Semanas mostradas en la gráfica de actividad (el resto queda fuera para que se lea). */
+const LAST_WEEKS = 13;
 
 interface PersonKpi {
   label: string;
@@ -101,6 +104,7 @@ function fmtH(h: number | null): string {
  */
 export function PersonDetail({ data, shareUrl }: { data: PersonDetailData; shareUrl?: string }) {
   const { metrics, summary, devStat } = data;
+  const lastWeeks = (devStat?.weekly ?? []).slice(-LAST_WEEKS);
 
   const attentionColumns: Column<AttentionIssue>[] = [
     { key: 'key', header: 'Issue', accessor: (r) => r.key },
@@ -224,22 +228,13 @@ export function PersonDetail({ data, shareUrl }: { data: PersonDetailData; share
       {devStat && devStat.weekly.length > 0 ? (
         <section>
           <h2>Actividad semanal</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Semana</th>
-                <th className="n">Entregadas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devStat.weekly.map((w) => (
-                <tr key={w.week}>
-                  <td>{w.week}</td>
-                  <td className="n">{w.completed}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <p className="lead">Issues entregadas por semana (últimas {LAST_WEEKS} semanas).</p>
+          <BarChart
+            data={{
+              labels: lastWeeks.map((w) => w.week),
+              datasets: [{ label: 'Entregadas', data: lastWeeks.map((w) => w.completed), backgroundColor: '#2563eb' }],
+            }}
+          />
         </section>
       ) : null}
 

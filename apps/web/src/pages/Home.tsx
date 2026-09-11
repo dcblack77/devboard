@@ -140,7 +140,7 @@ export function Home() {
           <>
             <Kpi
               value={`${numbers.github.pctNoApproval.toFixed(0)}%`}
-              label="Fusionado sin aprobación"
+              label="PRs sin aprobación"
               rag={numbers.github.pctNoApproval > 0 ? 'amber' : 'green'}
             />
             <Kpi value={numbers.github.hotfix4w} label="Hotfixes (4 sem.)" />

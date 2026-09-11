@@ -326,7 +326,7 @@ function IniciativasTab() {
   }
 
   return (
-    <Block plain title="Iniciativas" lead="Agrupación manual de épicas de Jira para reporting de negocio.">
+    <Block plain title="Iniciativas" lead="Agrupación manual de épicas de Jira para el seguimiento de negocio.">
       {error ? <p className="error-msg">{error}</p> : null}
       <div className="grid">
         {initiatives.map((i) => (

@@ -13,6 +13,20 @@ export function fmtPct(n: number | null | undefined): string {
   return `${Math.round(n)}%`;
 }
 
+/** Formatea fecha/hora ISO para lectura humana estable en español; '—' si no hay dato válido. */
+export function fmtDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
 /**
  * Clave de semana ISO ("YYYY-Www") de una fecha, igual que el cálculo del
  * backend (`weekKeyOf` en apps/api), para que las gráficas semanales del
