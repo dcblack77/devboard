@@ -3,8 +3,9 @@
 /** Formatea horas como horas (&lt;24h) o días (&gt;=24h), con un decimal; '—' si no hay dato. */
 export function fmtHours(h: number | null | undefined): string {
   if (h === null || h === undefined || Number.isNaN(h)) return '—';
-  if (h < 24) return `${h.toFixed(1)} h`;
-  return `${(h / 24).toFixed(1)} d`;
+  const value = Math.abs(h) < 0.05 ? 0 : h;
+  if (value < 24) return `${value.toFixed(1)} h`;
+  return `${(value / 24).toFixed(1)} d`;
 }
 
 /** Formatea un porcentaje entero con signo '%'; '—' si no hay dato. */

@@ -10,6 +10,11 @@ describe('fmtHours', () => {
     expect(fmtHours(48)).toBe('2.0 d');
   });
 
+  it('normaliza el cero negativo para evitar mostrar -0.0 h', () => {
+    expect(fmtHours(-0)).toBe('0.0 h');
+    expect(fmtHours(-0.01)).toBe('0.0 h');
+  });
+
   it('devuelve raya si no hay dato', () => {
     expect(fmtHours(null)).toBe('—');
     expect(fmtHours(undefined)).toBe('—');

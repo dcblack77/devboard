@@ -1,5 +1,6 @@
 import { FilterTable, type Column } from './FilterTable';
 import { BarChart } from './charts/BarChart';
+import { fmtHours } from '../lib/format';
 import { Kpi } from './Kpi';
 import { Tag } from './Tag';
 import type { RagColor } from './Rag';
@@ -92,11 +93,6 @@ export interface PersonDetailData {
   devStat?: DevStat;
 }
 
-function fmtH(h: number | null): string {
-  if (h === null) return '—';
-  return h < 24 ? `${h.toFixed(1)} h` : `${(h / 24).toFixed(1)} d`;
-}
-
 /**
  * Vista de detalle de una persona, compartida por `/team/:slug` (con enlace
  * "Versión para compartir") y `/me/:slug` (sin ese enlace: ya es la vista compartida).
@@ -165,8 +161,8 @@ export function PersonDetail({ data, shareUrl }: { data: PersonDetailData; share
                   {Object.entries(byStatus).map(([status, e]) => (
                     <tr key={status}>
                       <td>{status}</td>
-                      <td className="n">{fmtH(e.media)}</td>
-                      <td className="n">{fmtH(e.max)}</td>
+                      <td className="n">{fmtHours(e.media)}</td>
+                      <td className="n">{fmtHours(e.max)}</td>
                       <td className="n">{e.n}</td>
                     </tr>
                   ))}
