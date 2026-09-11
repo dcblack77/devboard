@@ -191,7 +191,18 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
     waitReviewHours: settingsDto.waitReviewHours,
   };
 
-  const epicIndex = buildEpicIndex(epicRows, issueRows);
+  // Re-normalización al leer: el sync guardó `statusNorm`/`macro` con los alias vigentes en ese
+  // momento; si el flujo se edita en Ajustes, aplicamos los alias actuales sobre el estado crudo
+  // (issues) y sobre cada tramo (segments) para no depender de una resincronización.
+  const aliases = settingsDto.statusAliases ?? {};
+  const normStatus = (s: string): string => aliases[s] ?? s;
+  const renormalizedIssues = issueRows.map((i) => {
+    const statusNorm = normStatus(i.status);
+    return { ...i, statusNorm, macro: settingsDto.macroMap[statusNorm] ?? i.macro };
+  });
+  const renormalizedSegments = segmentRows.map((s) => ({ ...s, status: normStatus(s.status) }));
+
+  const epicIndex = buildEpicIndex(epicRows, renormalizedIssues);
 
   const since = settingsDto.sinceDate ? new Date(settingsDto.sinceDate) : null;
   const weeks = weekLabels(now, since);
@@ -199,10 +210,11 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
   // La ventana temporal recorta issues/PRs por fecha de creación; las épicas y sus hijos
   // (epicIndex) se mantienen completos para que pctDone no mienta.
   const windowedIssues = windowFilter(
-    issueRows.filter((i) => i.type !== 'Epic'),
+    renormalizedIssues.filter((i) => i.type !== 'Epic'),
     settingsDto.sinceDate,
   );
-  const windowedSegments = segmentRows.filter((s) => windowedIssues.some((i) => i.key === s.issueKey));
+  const windowedKeys = new Set(windowedIssues.map((i) => i.key));
+  const windowedSegments = renormalizedSegments.filter((s) => windowedKeys.has(s.issueKey));
 
   const rows = analyzeIssues(windowedIssues, windowedSegments, issueSettings, now);
   const dstats = devStats(rows, epicIndex, issueSettings, now, weeks);

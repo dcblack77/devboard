@@ -29,10 +29,16 @@ describe('statusStats', () => {
       makeIssue({ key: 'PROJ-1', status: 'Finalizada', statusNorm: 'Finalizada' }),
       makeIssue({ key: 'PROJ-2', status: 'Backlog', statusNorm: 'Backlog' }),
     ];
-    const rows = analyzeIssues(issues, [], baseSettings(), NOW);
+    // PROJ-1 pasó por 'En curso' antes de Finalizada: el tramo abierto en Finalizada no suma tiempo.
+    const segments = [
+      makeSegment({ issueKey: 'PROJ-1', status: 'En curso', startedAt: new Date('2026-01-01T00:00:00Z'), endedAt: new Date('2026-01-05T00:00:00Z'), seq: 0 }),
+      makeSegment({ issueKey: 'PROJ-1', status: 'Finalizada', startedAt: new Date('2026-01-05T00:00:00Z'), endedAt: null, seq: 1 }),
+    ];
+    const rows = analyzeIssues(issues, segments, baseSettings(), NOW);
     const stats = statusStats(rows, NOW, STATUS_FLOW);
     const order = stats.map((s) => s.status);
-    expect(order.indexOf('Backlog')).toBeLessThan(order.indexOf('Finalizada'));
+    expect(order.indexOf('Backlog')).toBeLessThan(order.indexOf('En curso'));
+    expect(order).not.toContain('Finalizada'); // sin tiempo acumulado, no aparece
   });
 });
 

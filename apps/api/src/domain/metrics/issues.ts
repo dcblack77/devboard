@@ -128,8 +128,13 @@ export function analyzeIssues(
     const visits: Record<string, number> = {};
     const timeInStatus: Record<string, number> = {};
     for (const seg of closed) {
+      // Un tramo abierto en un estado "cerrada" (p.ej. Finalizada) no acumula tiempo: el issue ya
+      // terminó; contarlo hasta `now` inflaría la media de ese estado (igual que el board original).
+      const openInClosed = seg.endedAt === now && macroOf(seg.status, settings) === MacroStatus.Closed;
       visits[seg.status] = (visits[seg.status] ?? 0) + 1;
-      timeInStatus[seg.status] = (timeInStatus[seg.status] ?? 0) + hours(seg.startedAt, seg.endedAt);
+      if (!openInClosed) {
+        timeInStatus[seg.status] = (timeInStatus[seg.status] ?? 0) + hours(seg.startedAt, seg.endedAt);
+      }
     }
 
     const last = closed[closed.length - 1];
