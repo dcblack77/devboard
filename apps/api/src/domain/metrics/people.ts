@@ -9,7 +9,7 @@ import { mean, slugify, weekKey } from './time.js';
 import { daysByStateType, type DaysByStateType } from './status.js';
 import type { AnalyzedIssue, IssueMetricsSettings } from './issues.js';
 
-const UNASSIGNED = '(sin asignar)';
+export const UNASSIGNED = '(sin asignar)';
 
 function macroOf(status: string, settings: IssueMetricsSettings): MacroStatus | string {
   return settings.macroMap[status] ?? MacroStatus.Pending;

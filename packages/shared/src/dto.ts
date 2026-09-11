@@ -93,3 +93,60 @@ export interface SnapshotDto {
   kind: SnapshotKind | string;
   payload: unknown;
 }
+
+/** Respuesta de `GET /api/home`: cifras de portada (Compromiso/Entrega/Riesgo/Calidad). */
+export interface HomeResponse {
+  numbers: unknown;
+  trend: unknown;
+  rag: unknown;
+  ragCounts: { green: number; amber: number; red: number };
+}
+
+/** Respuesta de `GET /api/jira`. */
+export interface JiraResponse {
+  statuses: string[];
+  statusStats: unknown;
+  daysByStateType: unknown;
+  issues: unknown;
+}
+
+/** Respuesta de `GET /api/github`. */
+export interface GithubResponse {
+  reviewStats: unknown;
+  prs: unknown;
+}
+
+/** Respuesta de `GET /api/people`: vista RRHH por persona, sin comparativas entre ellas. */
+export interface PeopleResponse {
+  people: unknown;
+}
+
+/** Respuesta de `GET /api/initiatives` y `GET /api/initiatives/:slug`. */
+export interface InitiativesResponse {
+  initiatives: unknown;
+}
+
+/** Respuesta de `GET /api/epics`. */
+export interface EpicsResponse {
+  epics: unknown;
+}
+
+/** Respuesta de `GET /api/data/issues` y `GET /api/data/prs`. */
+export interface DataResponse {
+  items: unknown;
+}
+
+/** Respuesta de `GET /api/team`: ranking + medianas + resúmenes por persona. */
+export interface TeamResponse {
+  rank: unknown;
+  medians: unknown;
+  summaries: unknown;
+}
+
+/** Respuesta de `GET /api/team/:slug` y `GET /api/me/:slug`. */
+export interface PersonDetailResponse {
+  metrics: unknown;
+  summary: unknown;
+  devStat?: unknown;
+}
+

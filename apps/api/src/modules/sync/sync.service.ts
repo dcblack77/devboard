@@ -4,6 +4,7 @@ import { getDb } from '../../db/client.js';
 import { syncRuns } from '../../db/schema.js';
 import { logger } from '../../config/logger.js';
 import { getRegisteredSources } from './registry.js';
+import { invalidateMetricsContext } from '../../domain/context.js';
 
 /** Fuentes placeholder usadas mientras no haya integraciones reales registradas (Fase 1). */
 const PLACEHOLDER_SOURCE_NAMES: string[] = [SyncSource.Jira, SyncSource.GitHub];
@@ -15,20 +16,26 @@ const PLACEHOLDER_SOURCE_NAMES: string[] = [SyncSource.Jira, SyncSource.GitHub];
  */
 export class SyncService {
   async runAll(): Promise<void> {
-    const registered = getRegisteredSources();
-    const sources = registered.length > 0 ? registered : null;
+    try {
+      const registered = getRegisteredSources();
+      const sources = registered.length > 0 ? registered : null;
 
-    if (sources) {
-      for (const source of sources) {
-        await this.runOne(source.name, () => source.run());
+      if (sources) {
+        for (const source of sources) {
+          await this.runOne(source.name, () => source.run());
+        }
+        return;
       }
-      return;
-    }
 
-    // Esqueleto Fase 1: sin integraciones reales todavía, solo dejamos constancia de la
-    // ejecución para que `/api/sync/status` tenga datos y el scheduler quede verificable.
-    for (const name of PLACEHOLDER_SOURCE_NAMES) {
-      await this.runOne(name, async () => ({ counts: {} }));
+      // Esqueleto Fase 1: sin integraciones reales todavía, solo dejamos constancia de la
+      // ejecución para que `/api/sync/status` tenga datos y el scheduler quede verificable.
+      for (const name of PLACEHOLDER_SOURCE_NAMES) {
+        await this.runOne(name, async () => ({ counts: {} }));
+      }
+    } finally {
+      // El contexto de métricas cacheado (Fase 2) queda obsoleto tras cualquier sync,
+      // haya tenido éxito o no (los datos de las fuentes que sí funcionaron ya están en DB).
+      invalidateMetricsContext();
     }
   }
 

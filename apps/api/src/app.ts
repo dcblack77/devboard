@@ -6,6 +6,14 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HealthController } from './modules/home/health.controller.js';
+import { HomeController } from './modules/home/home.controller.js';
+import { JiraController } from './modules/jira/jira.controller.js';
+import { GithubController } from './modules/github/github.controller.js';
+import { PeopleController } from './modules/people/people.controller.js';
+import { InitiativesController } from './modules/initiatives/initiatives.controller.js';
+import { EpicsController } from './modules/epics/epics.controller.js';
+import { DataController } from './modules/data/data.controller.js';
+import { TeamController } from './modules/team/team.controller.js';
 import { AuthController } from './modules/auth/auth.controller.js';
 import { SyncController } from './modules/sync/sync.controller.js';
 import { resolveSession } from './middleware/auth.middleware.js';
@@ -19,7 +27,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class App extends AppExpress {
   private readonly container: AppContainer = this.configContainer([
-    CreateModule([HealthController, AuthController, SyncController]),
+    CreateModule([
+      HealthController,
+      AuthController,
+      SyncController,
+      HomeController,
+      JiraController,
+      GithubController,
+      PeopleController,
+      InitiativesController,
+      EpicsController,
+      DataController,
+      TeamController,
+    ]),
   ]);
 
   override globalConfiguration(): void {
