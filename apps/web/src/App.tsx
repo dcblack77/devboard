@@ -6,7 +6,17 @@ import { Nav } from './components/Nav';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 import { Corporate } from './pages/Corporate';
-import { Pendiente } from './pages/Pendiente';
+import { Team } from './pages/Team';
+import { TeamPerson } from './pages/TeamPerson';
+import { Me } from './pages/Me';
+import { Settings } from './pages/Settings';
+import { Jira } from './pages/Jira';
+import { Github } from './pages/Github';
+import { People } from './pages/People';
+import { Initiatives } from './pages/Initiatives';
+import { Initiative } from './pages/Initiative';
+import { Epics } from './pages/Epics';
+import { Data } from './pages/Data';
 
 /** Layout público con cabecera y navegación; se omite en `/login` y `/me/:slug`. */
 function Layout({
@@ -46,17 +56,17 @@ function AppRoutes({ role, setRole }: { role: Role | null; setRole: (r: Role | n
         <Route path="/login" element={<Login onLogin={() => api.me().then((m) => setRole(m.role))} />} />
         <Route path="/" element={<Home />} />
         <Route path="/corporate" element={<Corporate />} />
-        <Route path="/jira" element={<Pendiente title="Entrega" />} />
-        <Route path="/github" element={<Pendiente title="Code review" />} />
-        <Route path="/people" element={<Pendiente title="Personas" />} />
-        <Route path="/initiatives" element={<Pendiente title="Iniciativas" />} />
-        <Route path="/initiatives/:slug" element={<Pendiente title="Iniciativa" />} />
-        <Route path="/epics" element={<Pendiente title="Épicas" />} />
-        <Route path="/data" element={<Pendiente title="Datos" />} />
-        <Route path="/team" element={<Pendiente title="Team" />} />
-        <Route path="/team/:slug" element={<Pendiente title="Persona (team)" />} />
-        <Route path="/me/:slug" element={<Pendiente title="Mi vista" />} />
-        <Route path="/settings" element={<Pendiente title="Ajustes" />} />
+        <Route path="/jira" element={<Jira />} />
+        <Route path="/github" element={<Github />} />
+        <Route path="/people" element={<People />} />
+        <Route path="/initiatives" element={<Initiatives />} />
+        <Route path="/initiatives/:slug" element={<Initiative />} />
+        <Route path="/epics" element={<Epics />} />
+        <Route path="/data" element={<Data />} />
+        <Route path="/team" element={<Team />} />
+        <Route path="/team/:slug" element={<TeamPerson />} />
+        <Route path="/me/:slug" element={<Me />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
