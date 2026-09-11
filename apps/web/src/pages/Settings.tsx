@@ -113,7 +113,7 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
   }
 
   return (
-    <Block title="General" lead="Parámetros del equipo y umbrales de semáforos.">
+    <Block plain title="General" lead="Parámetros del equipo y umbrales de semáforos.">
       <div className="grid">
         <div className="card">
           <h4>Ventanas y plazos</h4>
@@ -179,11 +179,13 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
           <textarea rows={8} style={{ width: '100%' }} value={macroMapText} onChange={(e) => setMacroMapText(e.target.value)} />
         </div>
       </div>
-      {error ? <p className="error-msg">{error}</p> : null}
-      {ok ? <p className="small">Guardado correctamente.</p> : null}
-      <button type="button" className="btn" disabled={saving} onClick={save}>
-        {saving ? 'Guardando…' : 'Guardar'}
-      </button>
+      <div className="form-actions">
+        <button type="button" className="btn" disabled={saving} onClick={save}>
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+        {error ? <span className="error-msg">{error}</span> : null}
+        {ok ? <span className="small">Guardado correctamente.</span> : null}
+      </div>
     </Block>
   );
 }
@@ -221,7 +223,7 @@ function PersonasTab() {
   }
 
   return (
-    <Block title="Personas" lead="Agrupa nombres de Jira y logins de GitHub bajo una identidad canónica.">
+    <Block plain title="Personas" lead="Agrupa nombres de Jira y logins de GitHub bajo una identidad canónica.">
       {error ? <p className="error-msg">{error}</p> : null}
       <table>
         <thead>
@@ -324,7 +326,7 @@ function IniciativasTab() {
   }
 
   return (
-    <Block title="Iniciativas" lead="Agrupación manual de épicas de Jira para reporting de negocio.">
+    <Block plain title="Iniciativas" lead="Agrupación manual de épicas de Jira para reporting de negocio.">
       {error ? <p className="error-msg">{error}</p> : null}
       <div className="grid">
         {initiatives.map((i) => (
@@ -406,7 +408,7 @@ function SincronizacionTab() {
   }
 
   return (
-    <Block title="Sincronización" lead="Estado de las últimas ejecuciones de sincronización con Jira y GitHub.">
+    <Block plain title="Sincronización" lead="Estado de las últimas ejecuciones de sincronización con Jira y GitHub.">
       {error ? <p className="error-msg">{error}</p> : null}
       <button type="button" className="btn" disabled={launching} onClick={launch}>
         {launching ? 'Lanzando…' : 'Sincronizar ahora'}
@@ -460,7 +462,7 @@ function SnapshotsTab() {
   }
 
   return (
-    <Block title="Snapshots" lead="Fotos históricas de portada y ranking del equipo, para comparativas en el tiempo.">
+    <Block plain title="Snapshots" lead="Fotos históricas de portada y ranking del equipo, para comparativas en el tiempo.">
       {error ? <p className="error-msg">{error}</p> : null}
       <button type="button" className="btn" onClick={createNow}>
         Guardar foto ahora

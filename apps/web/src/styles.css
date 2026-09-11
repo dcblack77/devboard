@@ -118,3 +118,12 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   a { color: inherit; }
 }
+
+/* Formularios de Ajustes */
+.form-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.card label { display: block; margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.card label input, .card label select { display: block; width: 100%; margin-top: 3px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; color: var(--ink); }
+.card textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); resize: vertical; }
+.btn { display: inline-block; border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 7px 14px; cursor: pointer; font: inherit; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.secondary { background: #fff; color: var(--accent); }

@@ -5,16 +5,19 @@ export function Block({
   title,
   lead,
   children,
+  plain = false,
 }: {
   title: string;
   lead?: string;
   children: ReactNode;
+  /** true = contenido libre (formularios, tablas) en vez de una fila de KPIs. */
+  plain?: boolean;
 }) {
   return (
     <section>
       <h2>{title}</h2>
       {lead ? <p className="lead">{lead}</p> : null}
-      <div className="kpis">{children}</div>
+      {plain ? children : <div className="kpis">{children}</div>}
     </section>
   );
 }
