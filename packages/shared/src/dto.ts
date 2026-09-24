@@ -10,6 +10,8 @@ export interface HealthResponse {
 /** Respuesta de `GET /api/auth/me`. */
 export interface MeResponse {
   role: Role | null;
+  /** `true` si el servidor no tiene contraseña (todo el mundo entra como TL). */
+  authDisabled?: boolean;
 }
 
 /** Cuerpo de `POST /api/auth/login`. */

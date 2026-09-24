@@ -27,9 +27,11 @@ const TL_LINKS: NavLinkDef[] = [
 export function Nav({
   role,
   onLogout,
+  authDisabled = false,
 }: {
   role: Role | null;
   onLogout?: () => void;
+  authDisabled?: boolean;
 }) {
   const links = role === 'tl' ? [...PUBLIC_LINKS, ...TL_LINKS] : PUBLIC_LINKS;
   return (
@@ -39,7 +41,7 @@ export function Nav({
           {link.label}
         </NavLink>
       ))}
-      {role ? (
+      {role && !authDisabled ? (
         <button type="button" className="btn sec noprint" onClick={onLogout}>
           Salir
         </button>

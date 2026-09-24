@@ -13,7 +13,7 @@ export class AuthController {
     const password = payload?.password ?? '';
 
     let role: Role | null = null;
-    if (password.length > 0 && password === env.TL_PASSWORD) {
+    if (!env.TL_PASSWORD || (password.length > 0 && password === env.TL_PASSWORD)) {
       role = Role.TeamLead;
     } else if (env.VIEWER_PASSWORD && password.length > 0 && password === env.VIEWER_PASSWORD) {
       role = Role.Viewer;
@@ -44,7 +44,10 @@ export class AuthController {
 
   @Get('/me')
   me(@request() req: Request, @response() res: Response) {
-    const body_: MeResponse = { role: (req.role as Role | null) ?? null };
+    const body_: MeResponse = {
+      role: (req.role as Role | null) ?? null,
+      authDisabled: !loadEnv().TL_PASSWORD,
+    };
     res.status(200).json(body_);
   }
 }

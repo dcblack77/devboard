@@ -6,7 +6,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
   PORT: z.coerce.number().int().positive().default(8092),
   SESSION_SECRET: z.string().min(16, 'SESSION_SECRET debe tener al menos 16 caracteres'),
-  TL_PASSWORD: z.string().min(1, 'TL_PASSWORD es obligatoria'),
+  // Vacía = sin contraseña: todo el que llegue al puerto entra como TL. Pensado para uso
+  // personal en local/LAN; no exponer así a Internet.
+  TL_PASSWORD: z
+    .string()
+    .optional()
+    .transform((v) => boolFromEmpty(v)),
   VIEWER_PASSWORD: z
     .string()
     .optional()

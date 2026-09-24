@@ -25,11 +25,13 @@ function Layout({
   role,
   onLogout,
   onDataUpdated,
+  authDisabled,
   children,
 }: {
   role: Role | null;
   onLogout: () => void;
   onDataUpdated: () => void;
+  authDisabled: boolean;
   children: React.ReactNode;
 }) {
   const location = useLocation();
@@ -47,14 +49,22 @@ function Layout({
         ) : null}
         <span className="sp" />
         <SyncButton role={role} onUpdated={onDataUpdated} />
-        <Nav role={role} onLogout={onLogout} />
+        <Nav role={role} onLogout={onLogout} authDisabled={authDisabled} />
       </header>
       {children}
     </>
   );
 }
 
-function AppRoutes({ role, setRole }: { role: Role | null; setRole: (r: Role | null) => void }) {
+function AppRoutes({
+  role,
+  setRole,
+  authDisabled,
+}: {
+  role: Role | null;
+  setRole: (r: Role | null) => void;
+  authDisabled: boolean;
+}) {
   async function handleLogout() {
     await api.logout().catch(() => undefined);
     setRole(null);
@@ -66,9 +76,18 @@ function AppRoutes({ role, setRole }: { role: Role | null; setRole: (r: Role | n
   const handleDataUpdated = useCallback(() => setDataVersion((v) => v + 1), []);
 
   return (
-    <Layout role={role} onLogout={handleLogout} onDataUpdated={handleDataUpdated}>
+    <Layout role={role} onLogout={handleLogout} onDataUpdated={handleDataUpdated} authDisabled={authDisabled}>
       <Routes key={dataVersion}>
-        <Route path="/login" element={<Login onLogin={() => api.me().then((m) => setRole(m.role))} />} />
+        <Route
+          path="/login"
+          element={
+            authDisabled ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Login onLogin={() => api.me().then((m) => setRole(m.role))} />
+            )
+          }
+        />
         <Route path="/" element={<Home />} />
         <Route path="/corporate" element={<Corporate />} />
         <Route path="/jira" element={<Jira />} />
@@ -92,11 +111,15 @@ function AppRoutes({ role, setRole }: { role: Role | null; setRole: (r: Role | n
 export default function App() {
   const [role, setRole] = useState<Role | null>(null);
   const [checked, setChecked] = useState(false);
+  const [authDisabled, setAuthDisabled] = useState(false);
 
   useEffect(() => {
     api
       .me()
-      .then((m) => setRole(m.role))
+      .then((m) => {
+        setRole(m.role);
+        setAuthDisabled(m.authDisabled ?? false);
+      })
       .catch(() => setRole(null))
       .finally(() => setChecked(true));
   }, []);
@@ -105,7 +128,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AppRoutes role={role} setRole={setRole} />
+      <AppRoutes role={role} setRole={setRole} authDisabled={authDisabled} />
     </BrowserRouter>
   );
 }

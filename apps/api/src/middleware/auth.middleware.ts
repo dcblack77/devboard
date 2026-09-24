@@ -19,6 +19,12 @@ declare global {
  * `requireRole`.
  */
 export function resolveSession(req: Request, _res: Response, next: NextFunction): void {
+  // Sin TL_PASSWORD no hay login: todo el mundo es TL.
+  if (!loadEnv().TL_PASSWORD) {
+    req.role = Role.TeamLead;
+    next();
+    return;
+  }
   const raw = req.cookies?.[SESSION_COOKIE_NAME] as string | undefined;
   const payload = verifySessionCookieValue(raw);
   req.role = payload?.role ?? null;
