@@ -5,6 +5,7 @@ import { Kpi } from '../components/Kpi';
 import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
 import { BarChart } from '../components/charts/BarChart';
+import { IssueKey } from '../components/IssueLinks';
 import { FilterTable, type Column } from '../components/FilterTable';
 import { fmtHours, weeklyCounts } from '../lib/format';
 
@@ -86,7 +87,7 @@ export function Jira() {
   ].sort();
 
   const columns: Column<IssueRow>[] = [
-    { key: 'key', header: 'Clave', accessor: (r) => r.key },
+    { key: 'key', header: 'Clave', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },
     { key: 'summary', header: 'Resumen', accessor: (r) => r.summary },
     { key: 'type', header: 'Tipo', accessor: (r) => r.type, filterOptions: types },
     {
@@ -97,7 +98,7 @@ export function Jira() {
       render: (r) => <Tag value={r.macro} label={r.status} />,
     },
     { key: 'macro', header: 'Macro', accessor: (r) => r.macro, filterOptions: macros },
-    { key: 'epicKey', header: 'Épica', accessor: (r) => r.epicKey ?? '—', filterOptions: epics },
+    { key: 'epicKey', header: 'Épica', accessor: (r) => r.epicKey ?? '—', filterOptions: epics, render: (r) => (r.epicKey ? <IssueKey issueKey={r.epicKey} /> : '—') },
     {
       key: 'assigneeRaw',
       header: 'Persona',

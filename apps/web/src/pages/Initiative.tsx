@@ -5,6 +5,7 @@ import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { Rag } from '../components/Rag';
 import { Tag } from '../components/Tag';
+import { IssueKey, IssuePrs } from '../components/IssueLinks';
 import { PrintButton } from '../components/PrintButton';
 import { BarChart } from '../components/charts/BarChart';
 import { fmtHours } from '../lib/format';
@@ -126,7 +127,7 @@ export function Initiative() {
           <tbody>
             {data.epics.map((e) => (
               <tr key={e.key}>
-                <td>{e.key}</td>
+                <td><IssueKey issueKey={e.key} /></td>
                 <td>{e.summary}</td>
                 <td><Tag value={e.status} /></td>
                 <td className="n">{e.pctDone}%</td>
@@ -169,19 +170,21 @@ export function Initiative() {
               <th>Resumen</th>
               <th>Estado</th>
               <th>Motivo</th>
+              <th>PR</th>
             </tr>
           </thead>
           <tbody>
             {data.attention.map((a) => (
               <tr key={a.key}>
-                <td>{a.key}</td>
+                <td><IssueKey issueKey={a.key} /></td>
                 <td>{a.summary}</td>
                 <td><Tag value={a.status} /></td>
                 <td className="why">{a.why.join(' · ')}</td>
+                <td><IssuePrs issueKey={a.key} /></td>
               </tr>
             ))}
             {data.attention.length === 0 ? (
-              <tr><td colSpan={4} className="muted">Ninguna.</td></tr>
+              <tr><td colSpan={5} className="muted">Ninguna.</td></tr>
             ) : null}
           </tbody>
         </table>

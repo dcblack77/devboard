@@ -51,6 +51,22 @@ export interface SyncStateDto {
   sources: SyncSourceStateDto[];
 }
 
+/** PR de GitHub enlazada a una issue (por clave en título o rama). */
+export interface LinkedPrDto {
+  repo: string;
+  number: number;
+  url: string;
+  state: 'open' | 'draft' | 'merged' | 'closed';
+}
+
+/** Respuesta de `GET /api/links`. */
+export interface IssueLinksResponse {
+  /** Prefijo para abrir una issue en Jira (`<url>/browse/`); `null` si no se puede derivar. */
+  jiraBrowseUrl: string | null;
+  /** PRs por clave de issue (en mayúsculas), más recientes primero. */
+  prsByIssue: Record<string, LinkedPrDto[]>;
+}
+
 /** Umbrales de semáforos configurables (ver PLAN.md § Semáforos). */
 export interface Thresholds {
   balanceRed: number;

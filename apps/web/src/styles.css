@@ -95,6 +95,10 @@ td.warn { color: var(--warn); font-weight: 600; }
 .rag-dot.green { background: var(--ok); }
 
 .why { color: var(--warn); font-size: 12px; }
+.pr-links { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+.pr-link small { color: var(--muted); }
+.pr-link.pr-open small, .pr-link.pr-draft small { color: #b45309; font-weight: 600; }
+@media print { a[href]::after { content: none !important; } }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 

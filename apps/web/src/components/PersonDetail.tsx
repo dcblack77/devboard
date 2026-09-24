@@ -3,6 +3,7 @@ import { BarChart } from './charts/BarChart';
 import { fmtHours } from '../lib/format';
 import { Kpi } from './Kpi';
 import { Tag } from './Tag';
+import { IssueKey, IssuePrs, prsText, useIssueLinks } from './IssueLinks';
 import type { RagColor } from './Rag';
 
 type SemColor = 'g' | 'a' | 'r' | '';
@@ -101,21 +102,24 @@ export interface PersonDetailData {
 export function PersonDetail({ data, shareUrl }: { data: PersonDetailData; shareUrl?: string }) {
   const { metrics, summary, devStat } = data;
   const lastWeeks = (devStat?.weekly ?? []).slice(-LAST_WEEKS);
+  const links = useIssueLinks();
 
   const attentionColumns: Column<AttentionIssue>[] = [
-    { key: 'key', header: 'Issue', accessor: (r) => r.key },
+    { key: 'key', header: 'Issue', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },
     { key: 'summary', header: 'Resumen', accessor: (r) => r.summary },
     { key: 'type', header: 'Tipo', accessor: (r) => r.type },
     { key: 'status', header: 'Estado', accessor: (r) => r.status, render: (r) => <Tag value={r.macro} label={r.status} /> },
     { key: 'why', header: 'Motivo', accessor: (r) => r.why.join('; '), render: (r) => <span className="why">{r.why.join('; ')}</span> },
+    { key: 'prs', header: 'PR', accessor: (r) => prsText(links, r.key), render: (r) => <IssuePrs issueKey={r.key} /> },
   ];
 
   const issueColumns: Column<AnalyzedIssueRow>[] = [
-    { key: 'key', header: 'Issue', accessor: (r) => r.key },
+    { key: 'key', header: 'Issue', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },
     { key: 'summary', header: 'Resumen', accessor: (r) => r.summary },
     { key: 'type', header: 'Tipo', accessor: (r) => r.type, filterOptions: [...new Set((devStat?.issues ?? []).map((i) => i.type))] },
     { key: 'status', header: 'Estado', accessor: (r) => r.status, render: (r) => <Tag value={r.macro} label={r.status} /> },
     { key: 'done', header: '¿Entregada?', accessor: (r) => (r.done ? 'sí' : 'no') },
+    { key: 'prs', header: 'PR', accessor: (r) => prsText(links, r.key), render: (r) => <IssuePrs issueKey={r.key} /> },
   ];
 
   return (
@@ -191,7 +195,7 @@ export function PersonDetail({ data, shareUrl }: { data: PersonDetailData; share
             {devStat.epics.map((e) => (
               <div className="card" key={e.key}>
                 <h4>
-                  {e.key} — {e.summary}
+                  <IssueKey issueKey={e.key} /> — {e.summary}
                 </h4>
                 <p className="q">
                   {e.pctDone}% completada · {e.mine.length} issues suyas de {e.childrenTotal} totales
@@ -201,7 +205,7 @@ export function PersonDetail({ data, shareUrl }: { data: PersonDetailData; share
                   <ul className="small">
                     {e.mine.map((m) => (
                       <li key={m.key}>
-                        {m.key} — {m.summary} ({m.status})
+                        <IssueKey issueKey={m.key} /> — {m.summary} ({m.status})
                       </li>
                     ))}
                   </ul>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
+import { IssueKey } from '../components/IssueLinks';
 import { FilterTable, type Column } from '../components/FilterTable';
 import { fmtDateTime } from '../lib/format';
 
@@ -57,12 +58,12 @@ export function Data() {
   const macros = [...new Set(issues.map((i) => i.macro))].sort();
 
   const issueColumns: Column<IssueItem>[] = [
-    { key: 'key', header: 'Clave', accessor: (r) => r.key },
+    { key: 'key', header: 'Clave', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },
     { key: 'type', header: 'Tipo', accessor: (r) => r.type, filterOptions: types },
     { key: 'summary', header: 'Resumen', accessor: (r) => r.summary },
     { key: 'status', header: 'Estado', accessor: (r) => r.status, filterOptions: statuses, render: (r) => <Tag value={r.macro} label={r.status} /> },
     { key: 'macro', header: 'Macro', accessor: (r) => r.macro, filterOptions: macros },
-    { key: 'epicKey', header: 'Épica', accessor: (r) => r.epicKey ?? '—' },
+    { key: 'epicKey', header: 'Épica', accessor: (r) => r.epicKey ?? '—', render: (r) => (r.epicKey ? <IssueKey issueKey={r.epicKey} /> : '—') },
     { key: 'assigneeRaw', header: 'Persona', accessor: (r) => r.assigneeRaw ?? '(sin asignar)' },
     { key: 'created', header: 'Creada', accessor: (r) => r.created, render: (r) => fmtDateTime(r.created) },
   ];

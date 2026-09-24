@@ -4,6 +4,7 @@ import type { Role } from '@devboard/shared';
 import { api } from './api/client';
 import { Nav } from './components/Nav';
 import { SyncButton } from './components/SyncButton';
+import { LinksProvider } from './components/IssueLinks';
 import { FEATURES } from './config/features';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
@@ -76,6 +77,7 @@ function AppRoutes({
   const handleDataUpdated = useCallback(() => setDataVersion((v) => v + 1), []);
 
   return (
+    <LinksProvider version={dataVersion}>
     <Layout role={role} onLogout={handleLogout} onDataUpdated={handleDataUpdated} authDisabled={authDisabled}>
       <Routes key={dataVersion}>
         <Route
@@ -104,6 +106,7 @@ function AppRoutes({
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
+    </LinksProvider>
   );
 }
 

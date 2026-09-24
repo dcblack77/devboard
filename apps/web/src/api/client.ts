@@ -4,6 +4,7 @@ import type {
   GithubResponse,
   HealthResponse,
   HomeResponse,
+  IssueLinksResponse,
   InitiativesResponse,
   JiraResponse,
   LoginRequest,
@@ -87,6 +88,7 @@ export const api = {
   syncStatus: () => request<SyncRunDto[]>('/sync/status'),
   syncRun: () => request<void>('/sync/run', { method: 'POST' }),
   syncState: () => request<SyncStateDto>('/sync/state'),
+  links: () => request<IssueLinksResponse>('/links'),
 
   settings: () => request<SettingsDto>('/settings'),
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
+import { IssueKey } from '../components/IssueLinks';
 import { FilterTable, type Column } from '../components/FilterTable';
 
 interface EpicItem {
@@ -37,7 +38,7 @@ export function Epics() {
   const statuses = [...new Set(epics.map((e) => e.status))].sort();
 
   const columns: Column<EpicItem>[] = [
-    { key: 'key', header: 'Clave', accessor: (r) => r.key },
+    { key: 'key', header: 'Clave', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },
     { key: 'summary', header: 'Resumen', accessor: (r) => r.summary },
     { key: 'status', header: 'Estado', accessor: (r) => r.status, filterOptions: statuses, render: (r) => <Tag value={r.status} /> },
     { key: 'childrenTotal', header: 'Elementos', accessor: (r) => r.childrenTotal, numeric: true },
