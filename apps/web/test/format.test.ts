@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { fmtDateTime, fmtHours, isoWeekKey, weeklyCounts } from '../src/lib/format';
+import { fmtAgo, fmtDateTime, fmtHours, isoWeekKey, weeklyCounts } from '../src/lib/format';
+
+describe('fmtAgo', () => {
+  const now = new Date('2026-09-24T10:00:00Z');
+  it('usa minutos, horas y días en lenguaje llano', () => {
+    expect(fmtAgo('2026-09-24T09:59:40Z', now)).toBe('ahora mismo');
+    expect(fmtAgo('2026-09-24T09:55:00Z', now)).toBe('hace 5 min');
+    expect(fmtAgo('2026-09-24T07:00:00Z', now)).toBe('hace 3 h');
+    expect(fmtAgo('2026-09-23T09:00:00Z', now)).toBe('hace 1 día');
+    expect(fmtAgo('2026-09-11T13:00:00Z', now)).toBe('hace 12 días');
+  });
+  it('no muestra tiempos negativos ni fechas inválidas', () => {
+    expect(fmtAgo('2026-09-24T10:05:00Z', now)).toBe('ahora mismo');
+    expect(fmtAgo('x', now)).toBe('—');
+    expect(fmtAgo(null, now)).toBe('—');
+  });
+});
 
 describe('fmtHours', () => {
   it('muestra horas con un decimal cuando son menos de 24', () => {

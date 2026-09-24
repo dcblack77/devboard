@@ -13,6 +13,7 @@ import type {
   PersonDetailResponse,
   SettingsDto,
   SyncRunDto,
+  SyncStateDto,
   TeamResponse,
 } from '@devboard/shared';
 
@@ -43,7 +44,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (res.status === 401) {
     if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.location.href = '/login';
+      const next = encodeURIComponent(window.location.pathname);
+      window.location.href = `/login?next=${next}`;
     }
     throw new ApiError(401, 'No autenticado');
   }
@@ -84,6 +86,7 @@ export const api = {
 
   syncStatus: () => request<SyncRunDto[]>('/sync/status'),
   syncRun: () => request<void>('/sync/run', { method: 'POST' }),
+  syncState: () => request<SyncStateDto>('/sync/state'),
 
   settings: () => request<SettingsDto>('/settings'),
 };

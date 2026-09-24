@@ -1,5 +1,5 @@
-import { desc, eq } from 'drizzle-orm';
-import { SyncSource } from '@devboard/shared';
+import { and, desc, eq } from 'drizzle-orm';
+import { SyncSource, type SyncStateDto } from '@devboard/shared';
 import { getDb } from '../../db/client.js';
 import { syncRuns } from '../../db/schema.js';
 import { logger } from '../../config/logger.js';
@@ -14,8 +14,21 @@ const PLACEHOLDER_SOURCE_NAMES: string[] = [SyncSource.Jira, SyncSource.GitHub];
  * Cada fuente se ejecuta de forma independiente: un fallo en una no aborta las demás.
  * Cada ejecución (éxito o error) deja una fila en `sync_runs`.
  */
+/** Evita dos sincronizaciones solapadas (botón + cron, o dos clics). Por proceso. */
+let running = false;
+
+/** `true` mientras hay una sincronización en curso en este proceso. */
+export function isSyncRunning(): boolean {
+  return running;
+}
+
 export class SyncService {
-  async runAll(): Promise<void> {
+  /**
+   * Sincroniza todas las fuentes. Devuelve `false` sin hacer nada si ya había una en curso.
+   */
+  async runAll(): Promise<boolean> {
+    if (running) return false;
+    running = true;
     try {
       const registered = getRegisteredSources();
       const sources = registered.length > 0 ? registered : null;
@@ -24,7 +37,7 @@ export class SyncService {
         for (const source of sources) {
           await this.runOne(source.name, () => source.run());
         }
-        return;
+        return true;
       }
 
       // Esqueleto Fase 1: sin integraciones reales todavía, solo dejamos constancia de la
@@ -32,7 +45,9 @@ export class SyncService {
       for (const name of PLACEHOLDER_SOURCE_NAMES) {
         await this.runOne(name, async () => ({ counts: {} }));
       }
+      return true;
     } finally {
+      running = false;
       // El contexto de métricas cacheado (Fase 2) queda obsoleto tras cualquier sync,
       // haya tenido éxito o no (los datos de las fuentes que sí funcionaron ya están en DB).
       invalidateMetricsContext();
@@ -70,5 +85,38 @@ export class SyncService {
   async latestRuns(limit = 20) {
     const db = getDb();
     return db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(limit);
+  }
+
+  /**
+   * Frescura por fuente: fin de la última sync correcta y resultado de la última ejecución.
+   * Las fuentes salen de las registradas (o las placeholder si no hay ninguna).
+   */
+  async state(): Promise<SyncStateDto> {
+    const db = getDb();
+    const registered = getRegisteredSources().map((s) => s.name);
+    const names = registered.length > 0 ? registered : PLACEHOLDER_SOURCE_NAMES;
+    const sources = await Promise.all(
+      names.map(async (source) => {
+        const [lastOk] = await db
+          .select({ finishedAt: syncRuns.finishedAt })
+          .from(syncRuns)
+          .where(and(eq(syncRuns.source, source), eq(syncRuns.ok, true)))
+          .orderBy(desc(syncRuns.startedAt))
+          .limit(1);
+        const [last] = await db
+          .select({ ok: syncRuns.ok, error: syncRuns.error })
+          .from(syncRuns)
+          .where(eq(syncRuns.source, source))
+          .orderBy(desc(syncRuns.startedAt))
+          .limit(1);
+        return {
+          source,
+          lastOkAt: lastOk?.finishedAt ? lastOk.finishedAt.toISOString() : null,
+          lastRunOk: last?.ok ?? null,
+          lastError: last?.error ?? null,
+        };
+      }),
+    );
+    return { running: isSyncRunning(), sources };
   }
 }

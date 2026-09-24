@@ -15,6 +15,23 @@ export function fmtPct(n: number | null | undefined): string {
 }
 
 /** Formatea fecha/hora ISO para lectura humana estable en español; '—' si no hay dato válido. */
+/**
+ * Tiempo transcurrido en lenguaje llano: "ahora mismo", "hace 5 min", "hace 3 h", "hace 2 días".
+ * `now` es inyectable para tests.
+ */
+export function fmtAgo(value: string | null | undefined, now: Date = new Date()): string {
+  if (!value) return '—';
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return '—';
+  const min = Math.max(0, Math.floor((now.getTime() - t) / 60_000));
+  if (min < 1) return 'ahora mismo';
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? 'hace 1 día' : `hace ${d} días`;
+}
+
 export function fmtDateTime(value: string | null | undefined): string {
   if (!value) return '—';
   const date = new Date(value);

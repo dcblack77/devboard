@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 
 /** Página de login: pide la contraseña y llama a `POST /api/auth/login`. */
@@ -8,6 +8,10 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Solo rutas internas: evita redirecciones abiertas a otros dominios.
+  const nextRaw = params.get('next') ?? '/';
+  const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -16,7 +20,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     try {
       await api.login({ password });
       onLogin();
-      navigate('/');
+      navigate(next);
     } catch (err) {
       if (err instanceof ApiError) {
         setError('Contraseña incorrecta o error de conexión.');

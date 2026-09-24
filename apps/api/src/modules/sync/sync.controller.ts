@@ -1,7 +1,7 @@
 import { controller, Get, Post, request, response } from '@expressots/adapter-express';
 import type { Request, Response } from 'express';
-import { Role, type SyncRunDto } from '@devboard/shared';
-import { SyncService } from './sync.service.js';
+import { Role, type SyncRunDto, type SyncStateDto } from '@devboard/shared';
+import { SyncService, isSyncRunning } from './sync.service.js';
 import { requireRole } from '../../middleware/auth.middleware.js';
 
 // `@controller()` ya aplica `@injectable()` internamente; no lo dupliquemos aquí.
@@ -24,10 +24,21 @@ export class SyncController {
     res.status(200).json(body);
   }
 
+  /** Frescura de los datos por fuente y si hay una actualización en curso (público). */
+  @Get('/state')
+  async state(@response() res: Response) {
+    const body: SyncStateDto = await this.syncService.state();
+    res.status(200).json(body);
+  }
+
   @Post('/run', requireRole(Role.TeamLead))
   async run(@request() _req: Request, @response() res: Response) {
     // Se lanza en segundo plano: la sincronización real puede tardar; el cliente consulta
-    // el progreso vía /api/sync/status.
+    // el progreso vía /api/sync/state. Si ya hay una en curso, no se lanza otra.
+    if (isSyncRunning()) {
+      res.status(409).json({ ok: false, message: 'Ya hay una actualización en curso' });
+      return;
+    }
     this.syncService.runAll().catch(() => undefined);
     res.status(202).json({ ok: true, message: 'Sincronización lanzada' });
   }

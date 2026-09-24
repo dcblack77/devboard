@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { Role } from '@devboard/shared';
 import { api } from './api/client';
 import { Nav } from './components/Nav';
+import { SyncButton } from './components/SyncButton';
+import { FEATURES } from './config/features';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 import { Corporate } from './pages/Corporate';
@@ -22,10 +24,12 @@ import { Data } from './pages/Data';
 function Layout({
   role,
   onLogout,
+  onDataUpdated,
   children,
 }: {
   role: Role | null;
   onLogout: () => void;
+  onDataUpdated: () => void;
   children: React.ReactNode;
 }) {
   const location = useLocation();
@@ -36,7 +40,13 @@ function Layout({
       <header>
         <h1>DevBoard</h1>
         <span className="sub">Métricas del equipo</span>
+        {FEATURES.teamShortcut ? (
+          <Link to="/team" className="btn team-shortcut noprint">
+            Equipo
+          </Link>
+        ) : null}
         <span className="sp" />
+        <SyncButton role={role} onUpdated={onDataUpdated} />
         <Nav role={role} onLogout={onLogout} />
       </header>
       {children}
@@ -50,9 +60,14 @@ function AppRoutes({ role, setRole }: { role: Role | null; setRole: (r: Role | n
     setRole(null);
   }
 
+  // Al terminar una actualización de datos se incrementa y las páginas se vuelven a montar,
+  // pidiendo de nuevo sus datos a la API.
+  const [dataVersion, setDataVersion] = useState(0);
+  const handleDataUpdated = useCallback(() => setDataVersion((v) => v + 1), []);
+
   return (
-    <Layout role={role} onLogout={handleLogout}>
-      <Routes>
+    <Layout role={role} onLogout={handleLogout} onDataUpdated={handleDataUpdated}>
+      <Routes key={dataVersion}>
         <Route path="/login" element={<Login onLogin={() => api.me().then((m) => setRole(m.role))} />} />
         <Route path="/" element={<Home />} />
         <Route path="/corporate" element={<Corporate />} />

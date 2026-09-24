@@ -33,6 +33,22 @@ export interface SyncRunDto {
   counts: Record<string, number>;
 }
 
+/** Estado de una fuente en `GET /api/sync/state`. */
+export interface SyncSourceStateDto {
+  source: SyncSource | string;
+  /** Fin de la última sincronización correcta: los datos están al día hasta aquí. */
+  lastOkAt: string | null;
+  /** Resultado de la última ejecución (null si está en curso o no hubo ninguna). */
+  lastRunOk: boolean | null;
+  lastError: string | null;
+}
+
+/** Respuesta de `GET /api/sync/state`: frescura de los datos y si hay una actualización en curso. */
+export interface SyncStateDto {
+  running: boolean;
+  sources: SyncSourceStateDto[];
+}
+
 /** Umbrales de semáforos configurables (ver PLAN.md § Semáforos). */
 export interface Thresholds {
   balanceRed: number;
