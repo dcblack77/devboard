@@ -217,3 +217,69 @@ export interface PersonDetailResponse {
   devStat?: unknown;
 }
 
+
+// ---- Vista "Sistema" (DORA + práctica de PRs + flujo Kanban) ----
+
+export interface DoraRepoDto {
+  repo: string;
+  deploys: number;
+  deploysPerWeek: number;
+  cfr: number | null;
+  hotfixPct: number | null;
+  leadTimeH: { p50: number | null; p85: number | null };
+  codingH: number | null;
+  pickupH: number | null;
+  reviewH: number | null;
+  mergeToProdH: number | null;
+  recoveryH: number | null;
+}
+
+export interface PracticeDto {
+  period: string;
+  prs: number;
+  sizeP50: number | null;
+  pctOver400: number | null;
+  pickupP50H: number | null;
+  firstReviewToMergeP50H: number | null;
+  humanReviewsPerPr: number | null;
+  pctMergedWithoutHumanApproval: number | null;
+}
+
+export interface KanbanStateDto {
+  status: string;
+  p50H: number | null;
+  pctOfTickets: number | null;
+}
+
+export interface KanbanFlowDto {
+  tickets: number;
+  cycleKanbanH: number | null;
+  engineeringH: number | null;
+  waitingH: number | null;
+  flowEfficiency: number | null;
+  states: KanbanStateDto[];
+  reworkPct: number | null;
+  closedBeforeDeliveredPct: number | null;
+}
+
+export interface ClosureDayDto {
+  date: string;
+  closed: number;
+  viaQaNegocio: number;
+}
+
+export interface BatchesDto {
+  days: ClosureDayDto[];
+  batches: ClosureDayDto[];
+  weekdayHistogram: number[];
+  hourHistogram: number[];
+}
+
+export interface SystemResponse {
+  window: { from: string; to: string };
+  repos: DoraRepoDto[];
+  practice: { byQuarter: PracticeDto[]; byMonth: PracticeDto[] };
+  flow: KanbanFlowDto;
+  batches: BatchesDto;
+  definitions: Record<string, string>;
+}

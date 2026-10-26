@@ -308,3 +308,79 @@ export function kanbanCycle(issues: SystemIssue[], window: Window): KanbanFlow {
     closedBeforeDeliveredPct: pct(closedBefore, n),
   };
 }
+
+export interface ClosureDay {
+  date: string;
+  closed: number;
+  viaQaNegocio: number;
+}
+
+export interface ClosureBatches {
+  days: ClosureDay[];
+  batches: ClosureDay[];
+  weekdayHistogram: number[];
+  hourHistogram: number[];
+}
+
+export const BATCH_MIN_CLOSED = 5;
+
+/** Lotes de cierre: cierres por día (UTC), días con ≥5 cierres, histogramas por día de semana (0=domingo) y hora. */
+export function closureBatches(issues: SystemIssue[], window: Window): ClosureBatches {
+  const byDay = new Map<string, ClosureDay>();
+  const weekdayHistogram = new Array<number>(7).fill(0);
+  const hourHistogram = new Array<number>(24).fill(0);
+  for (const i of issues) {
+    if (!inWindow(i.resolvedAt, window)) continue;
+    const r = i.resolvedAt;
+    const date = r.toISOString().slice(0, 10);
+    const day = byDay.get(date) ?? { date, closed: 0, viaQaNegocio: 0 };
+    day.closed += 1;
+    if (i.segments.some((s) => s.status === KANBAN_STATUSES.qaBusiness)) day.viaQaNegocio += 1;
+    byDay.set(date, day);
+    weekdayHistogram[r.getUTCDay()] += 1;
+    hourHistogram[r.getUTCHours()] += 1;
+  }
+  const days = [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return { days, batches: days.filter((d) => d.closed >= BATCH_MIN_CLOSED), weekdayHistogram, hourHistogram };
+}
+
+export const SYSTEM_DEFINITIONS: Record<string, string> = {
+  deploysPerWeek: 'Despliegues a producción con éxito por semana (workflow de deploy en ramas de producción).',
+  cfr: 'Change failure rate: runs de despliegue fallidos sobre el total de runs de despliegue.',
+  hotfixPct: '% de despliegues desde ramas hotfix/revert.',
+  leadTimeH: 'Lead time: horas del primer commit al primer despliegue con éxito posterior al merge (p50/p85).',
+  codingH: 'Horas del primer commit a la apertura del PR.',
+  pickupH: 'Horas de la apertura del PR a la primera review humana.',
+  reviewH: 'Horas de la primera review humana al merge.',
+  mergeToProdH: 'Horas del merge al primer despliegue con éxito.',
+  recoveryH: 'Horas de un despliegue fallido al siguiente con éxito.',
+  sizeP50: 'Tamaño mediano del PR (líneas añadidas + borradas).',
+  pctOver400: '% de PRs con más de 400 líneas cambiadas.',
+  pctMergedWithoutHumanApproval: '% de PRs mergeados sin aprobación humana.',
+  cycleKanbanH: 'Ciclo Kanban: horas desde el primer "En curso" hasta Done (entregado o resuelto).',
+  engineeringH: 'Tiempo de ingeniería: horas en "En curso" + "In review".',
+  waitingH: 'Tiempo de espera: horas en "Blocked" + "Desplegado en DEV" + "QA Negocio".',
+  flowEfficiency: 'Flow efficiency: ingeniería / (ingeniería + espera).',
+  reworkPct: '% de tickets que volvieron a "En curso" (≥2 visitas).',
+  closedBeforeDeliveredPct: '% de tickets resueltos antes de su fecha de entrega.',
+  batches: 'Días con 5 o más cierres: señal de cierre en lote.',
+};
+
+export interface SystemInput {
+  prs: SystemPr[];
+  runs: SystemRun[];
+  issues: SystemIssue[];
+  settings: SystemSettings;
+}
+
+/** Compone A–D en la respuesta de la vista "Sistema". */
+export function systemSummary(input: SystemInput, window: Window) {
+  return {
+    window: { from: window.from.toISOString(), to: window.to.toISOString() },
+    repos: doraPerRepo(input.prs, input.runs, input.settings, window),
+    practice: prPractice(input.prs, input.settings, window),
+    flow: kanbanCycle(input.issues, window),
+    batches: closureBatches(input.issues, window),
+    definitions: SYSTEM_DEFINITIONS,
+  };
+}
