@@ -104,6 +104,10 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
         macroMap: macro.value as Record<string, string>,
         countedTypes: form.countedTypes,
         hotfixRegex: form.hotfixRegex,
+        deployWorkflow: form.deployWorkflow,
+        deployBranches: form.deployBranches,
+        ciWorkflowRegex: form.ciWorkflowRegex,
+        featureBase: form.featureBase,
       });
       onSaved(res.settings);
       setOk(true);
@@ -162,6 +166,25 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
           <label className="small">
             Regex de hotfix
             <input value={form.hotfixRegex ?? ''} onChange={(e) => setForm({ ...form, hotfixRegex: e.target.value || null })} />
+          </label>
+        </div>
+        <div className="card">
+          <h4>Sistema (DORA)</h4>
+          <label className="small">
+            Workflow de despliegue a producción
+            <input value={form.deployWorkflow} onChange={(e) => setForm({ ...form, deployWorkflow: e.target.value })} />
+          </label>
+          <label className="small">
+            Regex de ramas de despliegue (head_branch)
+            <input value={form.deployBranches} onChange={(e) => setForm({ ...form, deployBranches: e.target.value })} />
+          </label>
+          <label className="small">
+            Regex de workflows de CI
+            <input value={form.ciWorkflowRegex} onChange={(e) => setForm({ ...form, ciWorkflowRegex: e.target.value })} />
+          </label>
+          <label className="small">
+            Rama base de feature PRs
+            <input value={form.featureBase} onChange={(e) => setForm({ ...form, featureBase: e.target.value })} />
           </label>
         </div>
         <div className="card">

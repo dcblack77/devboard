@@ -5,12 +5,15 @@
 import { GithubClient } from './client.js';
 import { fetchRepoPrs } from './fetch.js';
 import { toPullRequest, DEFAULT_BOT_PATTERNS, DEFAULT_HOTFIX_REGEX } from './parse.js';
-import { toPrUpsertInput } from './repo.js';
+import { listWorkflowRuns } from './rest.js';
+import { toPrUpsertInput, toWorkflowRunUpsertInput } from './repo.js';
 import type { GithubRepo } from './repo.js';
 import type { GithubConfig } from './types.js';
 import type { SourceSync } from '../../modules/sync/registry.js';
 
 export type { SourceSync };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Último sync ok de una fuente, para calcular `lastFetchedAt` incremental. */
 export interface LastSyncLookup {
@@ -45,7 +48,7 @@ export class GithubSync implements SourceSync {
 
   constructor(private readonly deps: GithubSyncDeps) {}
 
-  async run(): Promise<{ counts: { prs: number; reviews: number; repos: number; apiCalls: number } }> {
+  async run(): Promise<{ counts: { prs: number; reviews: number; runs: number; repos: number; apiCalls: number } }> {
     const { settings, token, repo, lastSync } = this.deps;
     const lastFetchedAt = (await lastSync.lastOkFinishedAt('github')) ?? undefined;
 
@@ -59,6 +62,11 @@ export class GithubSync implements SourceSync {
 
     let prCount = 0;
     let reviewCount = 0;
+    let runCount = 0;
+
+    // Workflow runs (REST): incremental por `created` desde la última sync ok menos 1 día;
+    // en la primera carga, desde la misma `since` que los PRs.
+    const runsCreatedSince = lastFetchedAt ? new Date(lastFetchedAt.getTime() - DAY_MS) : settings.since;
 
     for (const repoName of settings.repos) {
       const nodes = await fetchRepoPrs(client, {
@@ -96,11 +104,17 @@ export class GithubSync implements SourceSync {
         reviewCount += pr.reviews.length;
       }
       prCount += parsed.length;
+
+      const runs = await listWorkflowRuns(client, repoName, { createdSince: runsCreatedSince });
+      if (runs.length > 0) {
+        await repo.upsertWorkflowRuns(runs.map((r) => toWorkflowRunUpsertInput(repoName, r)));
+      }
+      runCount += runs.length;
     }
 
     // apiCalls: búsquedas GraphQL efectuadas por el cliente (la sonda whoAmI no cuenta).
     const apiCalls = client.apiCalls;
 
-    return { counts: { prs: prCount, reviews: reviewCount, repos: settings.repos.length, apiCalls } };
+    return { counts: { prs: prCount, reviews: reviewCount, runs: runCount, repos: settings.repos.length, apiCalls } };
   }
 }

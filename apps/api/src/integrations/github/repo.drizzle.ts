@@ -5,8 +5,14 @@
  */
 import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { pullRequests, prReviews, prReviewRequests } from '../../db/schema.js';
-import type { GithubRepo, PrUpsertInput, ReviewUpsertInput, ReviewRequestUpsertInput } from './repo.js';
+import { pullRequests, prReviews, prReviewRequests, workflowRuns } from '../../db/schema.js';
+import type {
+  GithubRepo,
+  PrUpsertInput,
+  ReviewUpsertInput,
+  ReviewRequestUpsertInput,
+  WorkflowRunUpsertInput,
+} from './repo.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDb = NodePgDatabase<any>;
@@ -84,5 +90,36 @@ export class DrizzleGithubRepo implements GithubRepo {
     await this.db.insert(prReviewRequests).values(
       requests.map((r) => ({ prId, at: r.at, requestedLogin: r.requestedLogin })),
     );
+  }
+
+  async upsertWorkflowRuns(rows: WorkflowRunUpsertInput[]): Promise<void> {
+    for (const r of rows) {
+      await this.db
+        .insert(workflowRuns)
+        .values({
+          id: r.id,
+          repo: r.repo,
+          name: r.name,
+          event: r.event,
+          status: r.status,
+          conclusion: r.conclusion,
+          headBranch: r.headBranch,
+          headSha: r.headSha,
+          runAttempt: r.runAttempt,
+          createdAt: r.createdAt,
+          runStartedAt: r.runStartedAt,
+          updatedAt: r.updatedAt,
+        })
+        .onConflictDoUpdate({
+          target: workflowRuns.id,
+          set: {
+            status: r.status,
+            conclusion: r.conclusion,
+            runAttempt: r.runAttempt,
+            runStartedAt: r.runStartedAt,
+            updatedAt: r.updatedAt,
+          },
+        });
+    }
   }
 }

@@ -135,3 +135,18 @@ export interface ParseOptions {
   /** Regex (global) para extraer claves de issue en título+rama, p.ej. /\bPROJ-\d+\b/gi. */
   issueKeyRegex?: RegExp;
 }
+
+/** Workflow run tal y como la devuelve `GET /repos/{org}/{repo}/actions/runs` (campos usados). */
+export interface WorkflowRunApi {
+  id: number;
+  name: string | null;
+  event: string | null;
+  status: string | null;
+  conclusion: string | null;
+  head_branch: string | null;
+  head_sha: string | null;
+  run_attempt: number | null;
+  created_at: string;
+  run_started_at: string | null;
+  updated_at: string | null;
+}

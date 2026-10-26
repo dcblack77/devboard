@@ -144,6 +144,14 @@ export interface SettingsDto {
   macroMap: MacroMap;
   countedTypes: CountedTypes;
   hotfixRegex: string | null;
+  /** Vista "Sistema" (DORA): nombre del workflow de despliegue a producción. */
+  deployWorkflow: string;
+  /** Regex sobre `head_branch` de los despliegues que cuentan como producción. */
+  deployBranches: string;
+  /** Regex sobre el nombre de workflow que identifica CI. */
+  ciWorkflowRegex: string;
+  /** Rama base cuyos PRs cuentan como "feature PR". */
+  featureBase: string;
 }
 
 export interface SnapshotDto {

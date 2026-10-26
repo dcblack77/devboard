@@ -2,7 +2,7 @@
  * Interfaz de persistencia usada por GithubSync. Implementación real en
  * `repo.drizzle.ts`; se puede mockear en tests sin tocar Postgres.
  */
-import type { ParsedPr } from './types.js';
+import type { ParsedPr, WorkflowRunApi } from './types.js';
 
 export interface PrUpsertInput {
   id: string;
@@ -39,6 +39,22 @@ export interface ReviewRequestUpsertInput {
   requestedLogin: string;
 }
 
+/** Fila de `workflow_runs` lista para upsert (por `id`). */
+export interface WorkflowRunUpsertInput {
+  id: number;
+  repo: string;
+  name: string | null;
+  event: string | null;
+  status: string | null;
+  conclusion: string | null;
+  headBranch: string | null;
+  headSha: string | null;
+  runAttempt: number | null;
+  createdAt: Date;
+  runStartedAt: Date | null;
+  updatedAt: Date | null;
+}
+
 export interface GithubRepo {
   /** Inserta/actualiza PRs (upsert por `id` = `repo#number`). */
   upsertPrs(items: PrUpsertInput[]): Promise<void>;
@@ -46,6 +62,26 @@ export interface GithubRepo {
   replaceReviews(prId: string, reviews: ReviewUpsertInput[]): Promise<void>;
   /** Borra y reinserta las solicitudes de review de un PR. */
   replaceRequests(prId: string, requests: ReviewRequestUpsertInput[]): Promise<void>;
+  /** Inserta/actualiza workflow runs (upsert por `id`; en conflicto refresca status/conclusion/updated_at/run_attempt). */
+  upsertWorkflowRuns(rows: WorkflowRunUpsertInput[]): Promise<void>;
+}
+
+/** Adapta una workflow run REST al shape que espera el repo. */
+export function toWorkflowRunUpsertInput(repo: string, run: WorkflowRunApi): WorkflowRunUpsertInput {
+  return {
+    id: run.id,
+    repo,
+    name: run.name ?? null,
+    event: run.event ?? null,
+    status: run.status ?? null,
+    conclusion: run.conclusion ?? null,
+    headBranch: run.head_branch ?? null,
+    headSha: run.head_sha ?? null,
+    runAttempt: run.run_attempt ?? null,
+    createdAt: new Date(run.created_at),
+    runStartedAt: run.run_started_at ? new Date(run.run_started_at) : null,
+    updatedAt: run.updated_at ? new Date(run.updated_at) : null,
+  };
 }
 
 /** Adapta una ParsedPr al shape que espera el repo. */

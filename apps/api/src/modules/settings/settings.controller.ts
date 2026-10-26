@@ -44,6 +44,19 @@ const thresholdsSchema = z.object({
   blockedRed: z.number(),
 });
 
+/** Texto que debe compilar como RegExp (los ajustes de la vista Sistema son regex). */
+const regexString = z.string().min(1).refine(
+  (v) => {
+    try {
+      new RegExp(v);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: 'Regex inválida' },
+);
+
 /** Validación de `PUT /api/settings`: todos los campos opcionales (actualización parcial). */
 const updateSettingsSchema = z.object({
   jiraProject: z.string().nullable().optional(),
@@ -58,6 +71,10 @@ const updateSettingsSchema = z.object({
   macroMap: z.record(z.string()).optional(),
   countedTypes: z.array(z.string()).optional(),
   hotfixRegex: z.string().nullable().optional(),
+  deployWorkflow: z.string().min(1).optional(),
+  deployBranches: regexString.optional(),
+  ciWorkflowRegex: regexString.optional(),
+  featureBase: z.string().min(1).optional(),
 }) satisfies z.ZodType<UpdateSettingsRequest>;
 
 const createPersonSchema = z.object({

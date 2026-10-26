@@ -1,4 +1,4 @@
-import { boolean, index, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * Fila singleton de configuración del equipo. Se siembra al arrancar desde variables de
@@ -18,6 +18,14 @@ export const settings = pgTable('settings', {
   macroMap: jsonb('macro_map').notNull().default({}),
   countedTypes: jsonb('counted_types').notNull().default([]),
   hotfixRegex: text('hotfix_regex'),
+  /** Vista "Sistema" (DORA): nombre del workflow de despliegue a producción. */
+  deployWorkflow: text('deploy_workflow').notNull().default('Deployment'),
+  /** Regex sobre `head_branch` de las runs de despliegue que cuentan como producción. */
+  deployBranches: text('deploy_branches').notNull().default('^main$|hotfix'),
+  /** Regex sobre el nombre del workflow que identifica los runs de CI. */
+  ciWorkflowRegex: text('ci_workflow_regex').notNull().default('^CI'),
+  /** Rama base cuyos PRs cuentan como "feature PR". */
+  featureBase: text('feature_base').notNull().default('develop'),
 });
 
 /** Persona canónica: agrupa nombres de Jira y logins de GitHub bajo una sola identidad. */
@@ -178,6 +186,29 @@ export const prReviewRequests = pgTable('pr_review_requests', {
   at: timestamp('at', { withTimezone: true }).notNull(),
   requestedLogin: text('requested_login').notNull(),
 });
+
+/**
+ * Workflow run de GitHub Actions (REST `/actions/runs`). Base de la vista "Sistema":
+ * despliegues (`name == settings.deployWorkflow`) y CI (`settings.ciWorkflowRegex`).
+ */
+export const workflowRuns = pgTable(
+  'workflow_runs',
+  {
+    id: bigint('id', { mode: 'number' }).primaryKey(),
+    repo: text('repo').notNull(),
+    name: text('name'),
+    event: text('event'),
+    status: text('status'),
+    conclusion: text('conclusion'),
+    headBranch: text('head_branch'),
+    headSha: text('head_sha'),
+    runAttempt: integer('run_attempt'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    runStartedAt: timestamp('run_started_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+  },
+  (table) => [index('workflow_runs_repo_name_created_at_idx').on(table.repo, table.name, table.createdAt)],
+);
 
 /** Registro de cada ejecución de sincronización (Jira/GitHub), para auditoría y `/sync/status`. */
 export const syncRuns = pgTable('sync_runs', {

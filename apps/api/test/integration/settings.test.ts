@@ -32,6 +32,10 @@ const FAKE_SETTINGS = {
   macroMap: {},
   countedTypes: ['Historia'],
   hotfixRegex: null,
+  deployWorkflow: 'Deployment',
+  deployBranches: '^main$|hotfix',
+  ciWorkflowRegex: '^CI',
+  featureBase: 'develop',
 };
 
 vi.mock('../../src/domain/context.js', () => ({
@@ -103,6 +107,43 @@ describe('/api/settings — autenticación y validación', () => {
     const agent = request.agent(baseUrl);
     await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
     const res = await agent.put('/api/settings').send({ attentionDays: 7 });
+    expect(res.status).toBe(200);
+  });
+
+  it('GET /api/settings expone los ajustes de Sistema con sus valores por defecto', async () => {
+    const agent = request.agent(baseUrl);
+    await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
+    const res = await agent.get('/api/settings');
+    expect(res.status).toBe(200);
+    expect(res.body.settings).toMatchObject({
+      deployWorkflow: 'Deployment',
+      deployBranches: '^main$|hotfix',
+      ciWorkflowRegex: '^CI',
+      featureBase: 'develop',
+    });
+  });
+
+  it('PUT /api/settings con regex inválida en deployBranches responde 400', async () => {
+    const agent = request.agent(baseUrl);
+    await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
+    const res = await agent.put('/api/settings').send({ deployBranches: '(' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Payload inválido');
+  });
+
+  it('PUT /api/settings con regex inválida en ciWorkflowRegex responde 400', async () => {
+    const agent = request.agent(baseUrl);
+    await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
+    const res = await agent.put('/api/settings').send({ ciWorkflowRegex: '[' });
+    expect(res.status).toBe(400);
+  });
+
+  it('PUT /api/settings con ajustes de Sistema válidos responde 200', async () => {
+    const agent = request.agent(baseUrl);
+    await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
+    const res = await agent
+      .put('/api/settings')
+      .send({ deployWorkflow: 'Deploy prod', deployBranches: '^(main|release/.*)$', ciWorkflowRegex: '^(CI|Tests)', featureBase: 'dev' });
     expect(res.status).toBe(200);
   });
 

@@ -124,6 +124,56 @@ export class GithubClient {
   }
 
   /**
+   * GET REST (`https://api.github.com/...`) con los mismos timeout/reintentos que `gql`.
+   * 401 → GithubAuthError; otros estados no-2xx → GithubApiError. Cuenta en `apiCalls`.
+   */
+  async rest<T>(url: string): Promise<T> {
+    let attempt = 0;
+    for (;;) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+      try {
+        this.apiCallCount += 1;
+        const res = await this.fetchImpl(url, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'devboard',
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (RETRYABLE_STATUSES.has(res.status)) {
+          if (attempt >= this.maxRetries - 1) {
+            const body = await res.text().catch(() => undefined);
+            throw new GithubApiError(`GitHub REST error ${res.status}`, res.status, body);
+          }
+          await this.sleepImpl((2 + 3 * attempt) * 1000);
+          attempt += 1;
+          continue;
+        }
+        if (res.status === 401) {
+          const body = await res.text().catch(() => undefined);
+          throw new GithubAuthError(401, body);
+        }
+        if (!res.ok) {
+          const body = await res.text().catch(() => undefined);
+          throw new GithubApiError(`GitHub REST error ${res.status}`, res.status, body);
+        }
+        return (await res.json()) as T;
+      } catch (err) {
+        clearTimeout(timer);
+        if (err instanceof GithubApiError) throw err;
+        if (attempt >= this.maxRetries - 1) throw err;
+        await this.sleepImpl((2 + 3 * attempt) * 1000);
+        attempt += 1;
+      }
+    }
+  }
+
+  /**
    * Sonda de autenticación: `viewer { login }`. Un PAT revocado devuelve 401;
    * un token sin permisos puede devolver 200 con `errors` y sin `data`.
    */

@@ -31,6 +31,14 @@ const DEFAULT_MACRO_MAP: Record<string, MacroStatus> = {
 
 const DEFAULT_COUNTED_TYPES = ['Historia', 'Tarea', 'Error', 'Story', 'Task', 'Bug'];
 
+/** Vista "Sistema" (DORA): despliegue = workflow `Deployment` sobre main/hotfix; CI = workflows `CI*`; feature PR = base `develop`. */
+export const DEFAULT_SISTEMA = {
+  deployWorkflow: 'Deployment',
+  deployBranches: '^main$|hotfix',
+  ciWorkflowRegex: '^CI',
+  featureBase: 'develop',
+} as const;
+
 /**
  * Siembra idempotente de la fila singleton `settings` (id=1) a partir de las variables de
  * entorno. Si ya existe, no la sobrescribe (la UI de settings es la fuente de verdad tras el
@@ -60,6 +68,10 @@ export async function seedSettings(): Promise<void> {
     macroMap: DEFAULT_MACRO_MAP,
     countedTypes: DEFAULT_COUNTED_TYPES,
     hotfixRegex: null,
+    deployWorkflow: DEFAULT_SISTEMA.deployWorkflow,
+    deployBranches: DEFAULT_SISTEMA.deployBranches,
+    ciWorkflowRegex: DEFAULT_SISTEMA.ciWorkflowRegex,
+    featureBase: DEFAULT_SISTEMA.featureBase,
   });
 
   logger.info('settings sembrada con valores por defecto');

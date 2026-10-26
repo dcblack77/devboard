@@ -82,6 +82,10 @@ function toSettingsDto(row: typeof settingsTable.$inferSelect): SettingsDto {
     macroMap: row.macroMap as Record<string, MacroStatus>,
     countedTypes: row.countedTypes as string[],
     hotfixRegex: row.hotfixRegex,
+    deployWorkflow: row.deployWorkflow,
+    deployBranches: row.deployBranches,
+    ciWorkflowRegex: row.ciWorkflowRegex,
+    featureBase: row.featureBase,
   };
 }
 

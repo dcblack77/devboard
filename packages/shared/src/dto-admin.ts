@@ -20,6 +20,10 @@ export interface UpdateSettingsRequest {
   macroMap?: Record<string, string>;
   countedTypes?: string[];
   hotfixRegex?: string | null;
+  deployWorkflow?: string;
+  deployBranches?: string;
+  ciWorkflowRegex?: string;
+  featureBase?: string;
 }
 
 /** Respuesta de `GET/PUT /api/settings`. */
