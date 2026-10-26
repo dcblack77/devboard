@@ -111,6 +111,7 @@ export function Jira() {
     <main>
       <h1>Entrega</h1>
       <p className="lead">Ritmo de entrega y tiempos por estado, a partir de Jira.</p>
+      <p className="muted">Ciclo de desarrollo (En curso → entregado). El ciclo hasta Done y los estados de validación están en Sistema.</p>
       <PrintButton />
 
       <Block title="Resumen">

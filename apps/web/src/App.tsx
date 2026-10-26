@@ -8,6 +8,7 @@ import { LinksProvider } from './components/IssueLinks';
 import { FEATURES } from './config/features';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
+import { System } from './pages/System';
 import { Corporate } from './pages/Corporate';
 import { Team } from './pages/Team';
 import { TeamPerson } from './pages/TeamPerson';
@@ -91,6 +92,7 @@ function AppRoutes({
           }
         />
         <Route path="/" element={<Home />} />
+        <Route path="/system" element={<System />} />
         <Route path="/corporate" element={<Corporate />} />
         <Route path="/jira" element={<Jira />} />
         <Route path="/github" element={<Github />} />

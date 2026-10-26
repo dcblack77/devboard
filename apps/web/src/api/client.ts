@@ -16,6 +16,7 @@ import type {
   SyncStateDto,
   SyncStatusDto,
   TeamResponse,
+  SystemResponse,
 } from '@devboard/shared';
 
 /** Error lanzado cuando la API responde con un código de error HTTP. */
@@ -72,6 +73,8 @@ export const api = {
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
 
   home: () => request<HomeResponse>('/home'),
+  system: (params: { months: number; repo: string }) =>
+    request<SystemResponse>(`/system?months=${params.months}&repo=${encodeURIComponent(params.repo)}`),
   jira: () => request<JiraResponse>('/jira'),
   github: () => request<GithubResponse>('/github'),
   people: () => request<PeopleResponse>('/people'),
