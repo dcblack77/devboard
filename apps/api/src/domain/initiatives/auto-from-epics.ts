@@ -54,6 +54,18 @@ export function autoInitiativeSlug(epicKey: string, summary: string): string {
   return slugify(`${epicKey}-${summary}`);
 }
 
+/**
+ * Slug único: si `base` ya está en `taken` (slugs existentes + los que se van a crear en este
+ * mismo plan) se sufija `-2`, `-3`… El índice `initiatives_slug_unique` nunca debe tumbar el sync.
+ */
+export function uniqueSlug(base: string, taken: ReadonlySet<string>): string {
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n += 1) {
+    const candidate = `${base}-${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
 /** Orden por proyecto y número (`DEV-9` antes que `DEV-10`). */
 function compareEpicKeys(a: string, b: string): number {
   const [pa, na] = splitKey(a);
@@ -76,6 +88,7 @@ export function reconcileInitiativesFromEpics(input: ReconcileInput): ReconcileR
 
   const toCreate: AutoInitiativeCreate[] = [];
   const toRename: InitiativeRename[] = [];
+  const takenSlugs = new Set(input.initiatives.map((i) => i.slug));
 
   const epics = [...input.epics].sort((a, b) => compareEpicKeys(a.key, b.key));
   for (const epic of epics) {
@@ -87,7 +100,9 @@ export function reconcileInitiativesFromEpics(input: ReconcileInput): ReconcileR
       continue;
     }
     if (linkedEpicKeys.has(epic.key)) continue; // agrupada a mano en una iniciativa manual
-    toCreate.push({ name: epic.summary, slug: autoInitiativeSlug(epic.key, epic.summary), epicKey: epic.key });
+    const slug = uniqueSlug(autoInitiativeSlug(epic.key, epic.summary), takenSlugs);
+    takenSlugs.add(slug);
+    toCreate.push({ name: epic.summary, slug, epicKey: epic.key });
   }
 
   return { toCreate, toRename };

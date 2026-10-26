@@ -10,6 +10,18 @@ import type { JiraConfig, StatusAliasMap } from './types.js';
 import type { SourceSync } from '../../modules/sync/registry.js';
 import { reconcileInitiativesFromEpics } from '../../domain/initiatives/auto-from-epics.js';
 
+/** Subconjunto de pino que usa el sync; inyectable para que el módulo no cargue env al importarse. */
+export interface SyncLogger {
+  warn(obj: Record<string, unknown>, msg: string): void;
+}
+
+/** Postgres `unique_violation`. */
+const PG_UNIQUE_VIOLATION = '23505';
+
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === PG_UNIQUE_VIOLATION;
+}
+
 export type { SourceSync };
 
 export interface JiraSyncSettings {
@@ -27,6 +39,7 @@ export interface JiraSyncDeps {
   repo: JiraRepo;
   client?: JiraClient;
   now?: Date;
+  logger?: SyncLogger;
 }
 
 export class JiraSync implements SourceSync {
@@ -35,12 +48,14 @@ export class JiraSync implements SourceSync {
   private readonly settings: JiraSyncSettings;
   private readonly repo: JiraRepo;
   private readonly now?: Date;
+  private readonly logger?: SyncLogger;
 
   constructor(deps: JiraSyncDeps) {
     this.client = deps.client ?? new JiraClient(deps.config);
     this.settings = deps.settings;
     this.repo = deps.repo;
     this.now = deps.now;
+    this.logger = deps.logger;
   }
 
   async run(): Promise<{ counts: Record<string, number> }> {
@@ -96,7 +111,22 @@ export class JiraSync implements SourceSync {
       initiatives,
       initiativeEpics,
     });
-    for (const c of plan.toCreate) await this.repo.createAutoInitiative(c);
+    // El reconciliador ya evita colisiones de slug, pero una carrera con Settings (TL crea una
+    // manual con ese slug entre el listado y el insert) no debe marcar el run ok=false para siempre.
+    let initiativesCreated = 0;
+    const skippedEpics: string[] = [];
+    for (const c of plan.toCreate) {
+      try {
+        await this.repo.createAutoInitiative(c);
+        initiativesCreated += 1;
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
+        skippedEpics.push(c.epicKey);
+      }
+    }
+    if (skippedEpics.length > 0) {
+      this.logger?.warn({ epics: skippedEpics }, 'jira sync: slug de iniciativa auto ya en uso; épicas saltadas hasta el siguiente sync');
+    }
     for (const r of plan.toRename) await this.repo.renameInitiative(r.id, r.name);
 
     const childrenCount = epicIndex.reduce((acc, e) => acc + e.children.length, 0);
@@ -107,7 +137,8 @@ export class JiraSync implements SourceSync {
         epics: epicIndex.length,
         children: childrenCount,
         changelogsFetched,
-        initiativesCreated: plan.toCreate.length,
+        initiativesCreated,
+        initiativesSkipped: skippedEpics.length,
         initiativesRenamed: plan.toRename.length,
       },
     };

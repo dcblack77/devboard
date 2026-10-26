@@ -56,6 +56,27 @@ describe('reconcileInitiativesFromEpics', () => {
     expect(out).toEqual({ toCreate: [], toRename: [] });
   });
 
+  it('slug ya usado por una iniciativa manual ⇒ se sufija (-2, -3…), nunca colisiona', () => {
+    const out = reconcileInitiativesFromEpics({
+      epics: [epic('DEV-1', 'Onboarding')],
+      initiatives: [
+        { id: 10, name: 'Mi onboarding', slug: 'dev-1-onboarding', source: 'manual', epicKey: null },
+        { id: 11, name: 'Otra', slug: 'dev-1-onboarding-2', source: 'manual', epicKey: null },
+      ],
+      initiativeEpics: [],
+    });
+    expect(out.toCreate).toEqual([{ name: 'Onboarding', slug: 'dev-1-onboarding-3', epicKey: 'DEV-1' }]);
+  });
+
+  it('dos épicas nuevas cuyo slug coincide ⇒ la segunda se sufija (determinista)', () => {
+    const out = reconcileInitiativesFromEpics({
+      epics: [epic('DEV-1', 'A'), epic('DEV-1', 'A')],
+      initiatives: [],
+      initiativeEpics: [],
+    });
+    expect(out.toCreate.map((c) => c.slug)).toEqual(['dev-1-a', 'dev-1-a-2']);
+  });
+
   it('orden determinista por clave de épica (numérico dentro del proyecto)', () => {
     const out = reconcileInitiativesFromEpics({
       epics: [epic('DEV-10', 'j'), epic('DEV-9', 'i'), epic('DEV-1', 'a')],

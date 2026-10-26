@@ -69,6 +69,7 @@ async function buildJiraSync(): Promise<SourceSync | null> {
       finalStatus: DEFAULT_FINAL_STATUS,
     },
     repo: new DrizzleJiraRepo(db),
+    logger,
   });
 }
 
