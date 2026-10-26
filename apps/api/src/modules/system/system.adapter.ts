@@ -45,6 +45,7 @@ export function normalizeSegments(segments: SystemSegment[], aliases: StatusAlia
 export function toSystemIssues(rows: AnalyzedIssue[], aliases: StatusAliases): SystemIssue[] {
   return rows.map((r) => ({
     key: r.key,
+    type: r.type ?? null,
     createdAt: r.created,
     resolvedAt: r.resolved,
     deliveredAt: r.deliveredAt,
@@ -94,6 +95,18 @@ export function toSystemRuns(rows: RunRow[]): SystemRun[] {
   }));
 }
 
-export function toSystemSettings(s: { deployWorkflow: string; deployBranches: string; featureBase: string }): SystemSettings {
-  return { deployWorkflow: s.deployWorkflow, deployBranches: s.deployBranches, featureBase: s.featureBase };
+export function toSystemSettings(s: {
+  deployWorkflow: string;
+  deployBranches: string;
+  featureBase: string;
+  statusFlow?: string[];
+  countedTypes?: string[];
+}): SystemSettings {
+  return {
+    deployWorkflow: s.deployWorkflow,
+    deployBranches: s.deployBranches,
+    featureBase: s.featureBase,
+    statusFlow: s.statusFlow ?? [],
+    countedTypes: s.countedTypes ?? [],
+  };
 }
