@@ -42,7 +42,7 @@ export class InMemorySyncRunsRepo implements SyncRunsRepo {
   private sorted(source?: string): SyncRunRow[] {
     return this.rows
       .filter((r) => (source ? r.source === source : true))
-      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime() || b.id - a.id);
   }
 
   async lastOkCounts(source: string): Promise<Record<string, number> | null> {

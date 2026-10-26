@@ -67,13 +67,14 @@ describe('GET /api/sync/status — runs + health', () => {
   });
 
   it('runs ok recientes en ambas fuentes ⇒ stale=false y lastOkAt ISO', async () => {
-    const j = repo.seed({ source: 'jira', ok: true, counts: { issues: 100 }, startedAt: minutesAgo(10) });
+    const j = repo.seed({ source: 'jira', ok: true, counts: { issues: 100 }, startedAt: minutesAgo(12) });
     const g = repo.seed({ source: 'github', ok: true, counts: { prs: 3, apiCalls: 2 }, startedAt: minutesAgo(10) });
 
     const res = await request(baseUrl).get('/api/sync/status');
     expect(res.status).toBe(200);
     expect(res.body.runs).toHaveLength(2);
-    expect(res.body.runs[0]).toMatchObject({ source: 'jira', ok: true, counts: { issues: 100 } });
+    const jiraRun = res.body.runs.find((r: { source: string }) => r.source === 'jira');
+    expect(jiraRun).toMatchObject({ source: 'jira', ok: true, counts: { issues: 100 } });
     expect(res.body.health.jira).toEqual({ lastOkAt: j.finishedAt!.toISOString(), stale: false, lastError: null });
     expect(res.body.health.github).toEqual({ lastOkAt: g.finishedAt!.toISOString(), stale: false, lastError: null });
   });

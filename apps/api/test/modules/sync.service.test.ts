@@ -111,6 +111,15 @@ describe('SyncService.runOne', () => {
     expect(repo.rows.at(-1)!.error).toContain('sync github');
   });
 
+  it('github: run con solo la sonda (apiCalls=0, repos=0) tras un run poblado ⇒ el guard dispara', async () => {
+    repo.seed({ source: 'github', ok: true, counts: { prs: 50, reviews: 3, repos: 3, apiCalls: 12 }, startedAt: new Date('2026-10-01T07:00:00Z') });
+    await service.runOne('github', async () => ({ counts: { prs: 0, reviews: 0, repos: 0, apiCalls: 0 } }));
+    const row = repo.rows.at(-1)!;
+    expect(row.ok).toBe(false);
+    expect(row.error).toContain('0 llamadas a la API');
+    expect(row.counts).toEqual({ prs: 0, reviews: 0, repos: 0, apiCalls: 0 });
+  });
+
   it('la comparación es por fuente: un jira ok previo no afecta a github', async () => {
     repo.seed({ source: 'jira', ok: true, counts: { issues: 100 }, startedAt: new Date('2026-10-01T07:00:00Z') });
     await service.runOne('github', async () => ({ counts: { prs: 0, apiCalls: 0 } }));

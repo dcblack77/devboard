@@ -98,7 +98,7 @@ export class GithubSync implements SourceSync {
       prCount += parsed.length;
     }
 
-    // apiCalls: contador real de peticiones GraphQL efectuadas por el cliente.
+    // apiCalls: búsquedas GraphQL efectuadas por el cliente (la sonda whoAmI no cuenta).
     const apiCalls = client.apiCalls;
 
     return { counts: { prs: prCount, reviews: reviewCount, repos: settings.repos.length, apiCalls } };

@@ -97,8 +97,8 @@ describe('GithubSync.run', () => {
     expect(queries).toHaveLength(1);
     expect(queries[0]).toContain('updated:>=2025-03-04');
     expect(result.counts.prs).toBe(0);
-    // 1 sonda viewer + 1 búsqueda
-    expect(result.counts.apiCalls).toBe(2);
+    // solo la búsqueda: la sonda viewer no cuenta
+    expect(result.counts.apiCalls).toBe(1);
   });
 
   it('varios repos: agrega counts de todos', async () => {
@@ -117,8 +117,27 @@ describe('GithubSync.run', () => {
 
     const result = await sync.run();
     expect(result.counts.repos).toBe(2);
-    // 1 sonda viewer + 1 búsqueda por repo
-    expect(result.counts.apiCalls).toBe(3);
+    // 1 búsqueda por repo; la sonda viewer no cuenta
+    expect(result.counts.apiCalls).toBe(2);
+  });
+
+  it('sin repos configurados: apiCalls=0 aunque la sonda viewer sí se envió', async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) =>
+      isViewerQuery(init) ? viewerResponse() : searchResponse([]),
+    ) as unknown as typeof fetch;
+    const repo = new InMemoryRepo();
+
+    const sync = new GithubSync({
+      settings: { org: 'acme', repos: [], since: new Date('2025-01-01T00:00:00Z') },
+      token: 'fake-token',
+      repo,
+      lastSync: { lastOkFinishedAt: async () => new Date('2025-03-05T00:00:00Z') },
+      clientFactory: (config) => new GithubClient({ ...config, fetchImpl: fetchMock }),
+    });
+
+    const result = await sync.run();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.counts.apiCalls).toBe(0);
   });
 
   it('token revocado (401 en viewer): run() rechaza con GithubAuthError y no toca el repo', async () => {

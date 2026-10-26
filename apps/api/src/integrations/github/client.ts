@@ -54,7 +54,11 @@ export class GithubClient {
   private readonly nowFn: () => Date;
   private apiCallCount = 0;
 
-  /** Número de peticiones GraphQL efectivamente enviadas (para contadores de sync). */
+  /**
+   * Número de peticiones GraphQL de datos (búsquedas) efectivamente enviadas, para
+   * contadores de sync. La sonda `whoAmI()` NO cuenta: así `apiCalls === 0` significa
+   * "no se hizo ninguna búsqueda" (guard de run vacío en `sync.service.ts`).
+   */
   get apiCalls(): number {
     return this.apiCallCount;
   }
@@ -71,13 +75,14 @@ export class GithubClient {
   }
 
   /** POST GraphQL con timeout + reintentos en 502/503/504/red (backoff 2 + 3*attempt s, como la referencia). */
-  async gql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  async gql<T>(query: string, variables: Record<string, unknown>, opts: { count?: boolean } = {}): Promise<T> {
+    const count = opts.count ?? true;
     let attempt = 0;
     for (;;) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), this.timeoutMs);
       try {
-        this.apiCallCount += 1;
+        if (count) this.apiCallCount += 1;
         const res = await this.fetchImpl(GRAPHQL_URL, {
           method: 'POST',
           headers: {
@@ -125,7 +130,7 @@ export class GithubClient {
   async whoAmI(): Promise<{ login: string }> {
     let data: { viewer?: { login?: string } | null } | undefined;
     try {
-      data = await this.gql<{ viewer?: { login?: string } | null }>('query { viewer { login } }', {});
+      data = await this.gql<{ viewer?: { login?: string } | null }>('query { viewer { login } }', {}, { count: false });
     } catch (err) {
       if (err instanceof GithubApiError && (err.status === 401 || err.status === undefined)) {
         throw new GithubAuthError(err.status, err.body ?? err.message);

@@ -79,7 +79,7 @@ export class DrizzleSyncRunsRepo implements SyncRunsRepo {
       .select()
       .from(syncRuns)
       .where(eq(syncRuns.source, source))
-      .orderBy(desc(syncRuns.startedAt))
+      .orderBy(desc(syncRuns.startedAt), desc(syncRuns.id))
       .limit(1);
     return row ? toRow(row) : null;
   }
@@ -89,13 +89,13 @@ export class DrizzleSyncRunsRepo implements SyncRunsRepo {
       .select()
       .from(syncRuns)
       .where(and(eq(syncRuns.source, source), eq(syncRuns.ok, true)))
-      .orderBy(desc(syncRuns.startedAt))
+      .orderBy(desc(syncRuns.startedAt), desc(syncRuns.id))
       .limit(1);
     return row ? toRow(row) : null;
   }
 
   async latest(limit: number): Promise<SyncRunRow[]> {
-    const rows = await getDb().select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(limit);
+    const rows = await getDb().select().from(syncRuns).orderBy(desc(syncRuns.startedAt), desc(syncRuns.id)).limit(limit);
     return rows.map(toRow);
   }
 
