@@ -30,12 +30,21 @@ export const people = pgTable('people', {
   active: boolean('active').notNull().default(true),
 });
 
-/** Agrupación manual de épicas para reporting de negocio. */
+/**
+ * Iniciativa de negocio que agrupa épicas. Por defecto una por épica de Jira, creada
+ * automáticamente en cada sync (`source='auto'`, `epic_key` = la épica). Las creadas a mano
+ * desde Settings son `source='manual'`; renombrar una `auto` la fija como `manual-renamed`
+ * (el sync deja de sobrescribir su nombre).
+ */
 export const initiatives = pgTable('initiatives', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   position: integer('position').notNull().default(0),
+  /** 'manual' | 'auto' | 'manual-renamed' */
+  source: text('source').notNull().default('manual'),
+  /** Épica origen cuando source != 'manual'. */
+  epicKey: text('epic_key').unique(),
 });
 
 /** Relación N:M entre iniciativas y épicas de Jira. */

@@ -15,6 +15,13 @@
       "when": 1789078925647,
       "tag": "0001_far_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793037155271,
+      "tag": "0002_initiatives_from_epics",
+      "breakpoints": true
     }
   ]
 }
