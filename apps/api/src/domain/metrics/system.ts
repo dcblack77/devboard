@@ -162,3 +162,74 @@ export function doraPerRepo(prs: SystemPr[], runs: SystemRun[], settings: System
   }
   return out;
 }
+
+export interface PracticePeriod {
+  period: string;
+  prs: number;
+  sizeP50: number | null;
+  pctOver400: number | null;
+  pickupP50H: number | null;
+  firstReviewToMergeP50H: number | null;
+  humanReviewsPerPr: number | null;
+  pctMergedWithoutHumanApproval: number | null;
+}
+
+function quarterKey(d: Date): string {
+  return `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
+}
+
+function monthKey(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function isFeaturePr(pr: SystemPr, settings: SystemSettings, window: Window): pr is SystemPr & { mergedAt: Date } {
+  if (pr.isBot || !inWindow(pr.mergedAt, window)) return false;
+  return pr.baseRef === null || pr.baseRef === settings.featureBase;
+}
+
+function practiceFor(period: string, prs: (SystemPr & { mergedAt: Date })[]): PracticePeriod {
+  const sizes = prs.map((p) => p.additions + p.deletions);
+  const pickup: number[] = [];
+  const toMerge: number[] = [];
+  let humanReviews = 0;
+  let noApproval = 0;
+  for (const p of prs) {
+    const humans = p.reviews.filter((r) => !r.isBot && r.author !== p.author);
+    humanReviews += humans.length;
+    if (!humans.some((r) => r.state === 'APPROVED')) noApproval += 1;
+    const fr = firstHumanReview(p);
+    if (fr) {
+      pickup.push(hours(p.createdAt, fr));
+      toMerge.push(hours(fr, p.mergedAt));
+    }
+  }
+  return {
+    period,
+    prs: prs.length,
+    sizeP50: quantile(sizes, 0.5),
+    pctOver400: pct(sizes.filter((s) => s > 400).length, prs.length),
+    pickupP50H: quantile(pickup, 0.5),
+    firstReviewToMergeP50H: quantile(toMerge, 0.5),
+    humanReviewsPerPr: prs.length === 0 ? null : humanReviews / prs.length,
+    pctMergedWithoutHumanApproval: pct(noApproval, prs.length),
+  };
+}
+
+function groupBy(prs: (SystemPr & { mergedAt: Date })[], keyOf: (d: Date) => string): PracticePeriod[] {
+  const groups = new Map<string, (SystemPr & { mergedAt: Date })[]>();
+  for (const p of prs) {
+    const k = keyOf(p.mergedAt);
+    groups.set(k, [...(groups.get(k) ?? []), p]);
+  }
+  return [...groups.keys()].sort().map((k) => practiceFor(k, groups.get(k) as (SystemPr & { mergedAt: Date })[]));
+}
+
+/** Práctica de PRs (feature PRs mergeados, no bot) agrupada por trimestre y por mes. */
+export function prPractice(
+  prs: SystemPr[],
+  settings: SystemSettings,
+  window: Window,
+): { byQuarter: PracticePeriod[]; byMonth: PracticePeriod[] } {
+  const feature = prs.filter((p) => isFeaturePr(p, settings, window));
+  return { byQuarter: groupBy(feature, quarterKey), byMonth: groupBy(feature, monthKey) };
+}
