@@ -53,6 +53,10 @@ export class GithubSync implements SourceSync {
       ? this.deps.clientFactory({ token, org: settings.org, repos: settings.repos })
       : new GithubClient({ token, org: settings.org, repos: settings.repos });
 
+    // Sonda de auth antes de nada: que un token revocado falle el run en vez de
+    // dejar un sync "vacío" con ok=true.
+    await client.whoAmI();
+
     let prCount = 0;
     let reviewCount = 0;
 

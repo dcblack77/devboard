@@ -25,6 +25,18 @@ export class GithubApiError extends Error {
   }
 }
 
+/** Token inválido/revocado (401) o GraphQL sin datos en `viewer`. */
+export class GithubAuthError extends GithubApiError {
+  constructor(status: number | undefined, body?: string) {
+    super(
+      `GitHub ${status ?? 'auth'}: credenciales inválidas o caducadas (GITHUB_TOKEN)`,
+      status,
+      body,
+    );
+    this.name = 'GithubAuthError';
+  }
+}
+
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -104,6 +116,25 @@ export class GithubClient {
         attempt += 1;
       }
     }
+  }
+
+  /**
+   * Sonda de autenticación: `viewer { login }`. Un PAT revocado devuelve 401;
+   * un token sin permisos puede devolver 200 con `errors` y sin `data`.
+   */
+  async whoAmI(): Promise<{ login: string }> {
+    let data: { viewer?: { login?: string } | null } | undefined;
+    try {
+      data = await this.gql<{ viewer?: { login?: string } | null }>('query { viewer { login } }', {});
+    } catch (err) {
+      if (err instanceof GithubApiError && (err.status === 401 || err.status === undefined)) {
+        throw new GithubAuthError(err.status, err.body ?? err.message);
+      }
+      throw err;
+    }
+    const login = data?.viewer?.login;
+    if (!login) throw new GithubAuthError(undefined, JSON.stringify(data));
+    return { login };
   }
 
   /**
