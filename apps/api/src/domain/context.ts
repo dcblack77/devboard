@@ -226,6 +226,7 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
 
   const initiativeInputs: InitiativeInput[] = initiativeRows.map((i) => ({
     name: i.name,
+    slug: i.slug,
     epics: initiativeEpicRows.filter((ie) => ie.initiativeId === i.id).map((ie) => ie.epicKey),
   }));
   const initiativesList = initiativeStats(initiativeInputs, epicIndex, rows, weeks, now, issueSettings);

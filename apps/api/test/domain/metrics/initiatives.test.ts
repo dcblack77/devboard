@@ -14,6 +14,23 @@ function epic(key: string, children: EpicWithChildren['children']): EpicWithChil
 }
 
 describe('initiativeStats', () => {
+  it('el slug público es el slug de BD (único), no slugify(nombre): dos iniciativas con el mismo nombre son distinguibles', () => {
+    const epicIndex = {
+      'PROJ-100': epic('PROJ-100', [{ key: 'PROJ-1', summary: 'H1', type: 'Historia', status: 'Por hacer', assigneeRaw: null }]),
+      'PROJ-200': epic('PROJ-200', [{ key: 'PROJ-2', summary: 'H2', type: 'Historia', status: 'Por hacer', assigneeRaw: null }]),
+    };
+    const rows = analyzeIssues([], [], baseSettings(), NOW);
+    const stats = initiativeStats(
+      [
+        { name: 'Onboarding', slug: 'proj-100-onboarding', epics: ['PROJ-100'] },
+        { name: 'Onboarding', slug: 'proj-200-onboarding', epics: ['PROJ-200'] },
+      ],
+      epicIndex, rows, WEEKS, NOW, baseSettings(),
+    );
+    expect(stats.map((s) => s.slug)).toEqual(['proj-100-onboarding', 'proj-200-onboarding']);
+    expect(stats.find((s) => s.slug === 'proj-200-onboarding')?.epics[0].key).toBe('PROJ-200');
+  });
+
   it('pctDone sobre todos los hijos no-subtarea de las épicas de la iniciativa', () => {
     const epicIndex = {
       'PROJ-100': epic('PROJ-100', [
@@ -23,7 +40,7 @@ describe('initiativeStats', () => {
     };
     const issues = [makeIssue({ key: 'PROJ-1', parentKey: 'PROJ-100', status: 'Finalizada', statusNorm: 'Finalizada' })];
     const rows = analyzeIssues(issues, [], baseSettings(), NOW);
-    const [stat] = initiativeStats([{ name: 'Iniciativa X', epics: ['PROJ-100'] }], epicIndex, rows, WEEKS, NOW, baseSettings());
+    const [stat] = initiativeStats([{ name: 'Iniciativa X', slug: 'iniciativa-x', epics: ['PROJ-100'] }], epicIndex, rows, WEEKS, NOW, baseSettings());
 
     expect(stat.childrenTotal).toBe(2);
     expect(stat.pctDone).toBe(50);
@@ -38,7 +55,7 @@ describe('initiativeStats', () => {
       makeIssue({ key: 'PROJ-2', parentKey: 'PROJ-1', type: 'Subtarea', status: 'En curso', statusNorm: 'En curso' }),
     ];
     const rows = analyzeIssues(issues, [], baseSettings(), NOW);
-    const [stat] = initiativeStats([{ name: 'Iniciativa Y', epics: ['PROJ-100'] }], epicIndex, rows, WEEKS, NOW, baseSettings());
+    const [stat] = initiativeStats([{ name: 'Iniciativa Y', slug: 'iniciativa-y', epics: ['PROJ-100'] }], epicIndex, rows, WEEKS, NOW, baseSettings());
 
     expect(stat.issues.map((i) => i.key)).toContain('PROJ-2');
   });

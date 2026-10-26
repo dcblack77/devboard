@@ -266,7 +266,7 @@ export class SettingsController {
     }
     // Renombrar una iniciativa `auto` la fija: el sync de Jira deja de seguir el summary de la épica.
     const patch: Partial<typeof initiatives.$inferInsert> = { ...rest };
-    if (row.source === 'auto' && rest.name !== undefined && rest.name !== row.name) {
+    if (row.source === 'auto' && rest.name !== undefined && rest.name.trim() !== row.name.trim()) {
       patch.source = 'manual-renamed';
     }
     if (Object.keys(patch).length > 0) {

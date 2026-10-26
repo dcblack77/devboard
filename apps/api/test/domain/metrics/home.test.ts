@@ -57,7 +57,7 @@ describe('teamNumbers / homeSummary', () => {
     const rows = analyzeIssues(issues, [], settings, NOW);
     const dstats = devStats(rows, epicIndex, settings, NOW, WEEKS);
     const initiativesList = initiativeStats(
-      [{ name: 'Iniciativa X', epics: ['PROJ-100'] }],
+      [{ name: 'Iniciativa X', slug: 'iniciativa-x', epics: ['PROJ-100'] }],
       epicIndex,
       rows,
       WEEKS,

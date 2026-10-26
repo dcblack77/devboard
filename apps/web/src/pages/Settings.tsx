@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SettingsDto, SyncRunDto } from '@devboard/shared';
+import type { InitiativeAdminDto, SettingsDto, SyncRunDto } from '@devboard/shared';
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
@@ -57,15 +57,7 @@ interface PersonAdmin {
   active: boolean;
 }
 
-interface InitiativeAdmin {
-  id: number;
-  name: string;
-  slug: string;
-  position: number;
-  source: 'manual' | 'auto' | 'manual-renamed';
-  epicKey: string | null;
-  epicKeys: string[];
-}
+type InitiativeAdmin = InitiativeAdminDto;
 
 /** Etiqueta de origen de una iniciativa (`auto · DEV-12`), o null si es manual. */
 export function initiativeTagLabel(i: Pick<InitiativeAdmin, 'source' | 'epicKey'>): string | null {

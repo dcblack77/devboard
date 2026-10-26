@@ -41,8 +41,10 @@ pantalla de Ajustes.
    Las iniciativas se crean solas: cada sync de Jira crea una iniciativa `auto · CLAVE` por cada
    épica que no esté en ninguna iniciativa, con el nombre de la épica (y lo sigue si cambia en
    Jira). Si renombras una iniciativa auto en Ajustes, queda fijada y el sync deja de tocar su
-   nombre. Borrar una iniciativa auto no sirve de nada (vuelve en el siguiente sync): para que una
-   épica deje de tener su propia iniciativa, agrúpala dentro de una iniciativa manual.
+   nombre (el slug, `clave-nombre-original`, se conserva aunque la épica o la iniciativa se renombren,
+   así los enlaces no se rompen). Borrar una iniciativa auto no sirve de nada (vuelve en el siguiente
+   sync): para que una épica deje de tener su propia iniciativa, agrúpala dentro de una iniciativa
+   manual. Si una épica desaparece de Jira, su iniciativa auto se queda; bórrala en Ajustes.
 
 Comprobación rápida por terminal:
 ```bash

@@ -5,7 +5,7 @@
  */
 import { MacroStatus } from '@devboard/shared';
 import type { EpicWithChildren } from '../../integrations/jira/types.js';
-import { mean, slugify, weekKey } from './time.js';
+import { mean, weekKey } from './time.js';
 import { daysByStateType, type DaysByStateType } from './status.js';
 import type { AnalyzedIssue, IssueMetricsSettings } from './issues.js';
 import type { AttentionIssue, WeeklyCount } from './people.js';
@@ -16,9 +16,10 @@ function macroOf(status: string, settings: IssueMetricsSettings): MacroStatus | 
   return settings.macroMap[status] ?? MacroStatus.Pending;
 }
 
-/** Entrada mínima de iniciativa: nombre + claves de las épicas que agrupa. */
+/** Entrada mínima de iniciativa: nombre, slug de BD (único, es el slug público) y claves de las épicas que agrupa. */
 export interface InitiativeInput {
   name: string;
+  slug: string;
   epics: string[];
 }
 
@@ -157,7 +158,7 @@ export function initiativeStats(
 
     return {
       name: initiative.name,
-      slug: slugify(initiative.name),
+      slug: initiative.slug,
       epics: epics.map((e) => ({
         key: e.key,
         summary: e.summary,
