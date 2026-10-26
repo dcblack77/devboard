@@ -28,6 +28,29 @@ describe('toPullRequest', () => {
     expect(pr.reviewRequests[0].requestedLogin).toBe('user2');
   });
 
+  it('baseRef y firstCommitAt: rama base + la menor de authoredDate/committedDate del primer commit', () => {
+    const pr = toPullRequest(prMerged as PrNode);
+    expect(pr.baseRef).toBe('develop');
+    expect(pr.firstCommitAt?.toISOString()).toBe('2025-01-03T08:00:00.000Z');
+  });
+
+  it('firstCommitAt usa committedDate si es anterior a authoredDate', () => {
+    const node: PrNode = {
+      ...(prMerged as PrNode),
+      commits: { nodes: [{ commit: { authoredDate: '2025-01-04T09:30:00Z', committedDate: '2025-01-02T07:00:00Z' } }] },
+    };
+    expect(toPullRequest(node).firstCommitAt?.toISOString()).toBe('2025-01-02T07:00:00.000Z');
+  });
+
+  it('sin commits ni baseRefName (fixture antigua): firstCommitAt y baseRef null', () => {
+    const pr = toPullRequest(prDraftHotfix as PrNode);
+    expect(pr.firstCommitAt).toBeNull();
+    expect(pr.baseRef).toBeNull();
+    const empty: PrNode = { ...(prMerged as PrNode), commits: { nodes: [] }, baseRefName: null };
+    expect(toPullRequest(empty).firstCommitAt).toBeNull();
+    expect(toPullRequest(empty).baseRef).toBeNull();
+  });
+
   it('sin timelineItems: readyAt = createdAt', () => {
     const pr = toPullRequest(prDraftHotfix as PrNode);
     expect(pr.readyAt.toISOString()).toBe(pr.createdAt.toISOString());

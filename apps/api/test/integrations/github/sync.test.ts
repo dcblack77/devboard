@@ -101,6 +101,8 @@ describe('GithubSync.run', () => {
 
     expect(repo.prs).toHaveLength(1);
     expect(repo.prs[0].id).toBe('svc-a#101');
+    expect(repo.prs[0].baseRef).toBe('develop');
+    expect(repo.prs[0].firstCommitAt?.toISOString()).toBe('2025-01-03T08:00:00.000Z');
     expect(repo.reviewsByPr.get('svc-a#101')).toHaveLength(1);
     expect(repo.requestsByPr.get('svc-a#101')).toHaveLength(1);
     expect(result.counts.prs).toBe(1);

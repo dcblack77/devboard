@@ -92,6 +92,20 @@ docker compose exec -T db psql -U devboard devboard < backup.sql
 Si pierdes el volumen no pasa nada grave: una sincronización completa lo reconstruye desde Jira y
 GitHub; solo se pierden Ajustes (personas, iniciativas, umbrales) y las fotos semanales.
 
+### Backfill de PRs (vista Sistema)
+
+Desde la Fase 2 cada PR guarda `first_commit_at` y `base_ref` (lead time DORA y detección de
+feature PRs). El sync es incremental por `updated`, así que los PRs antiguos se quedan a `NULL`
+hasta ejecutar una vez, tras aplicar las migraciones:
+
+```bash
+# dentro del contenedor api, o en local con DATABASE_URL + GITHUB_* en el entorno
+npm run db:backfill-prs -w apps/api          # PRs mergeados en los últimos 400 días
+BACKFILL_DAYS=200 npm run db:backfill-prs -w apps/api
+```
+
+Solo reescribe los PRs que sigan con `first_commit_at IS NULL`; imprime cuántos actualizó.
+
 ## Desarrollo
 
 ```bash

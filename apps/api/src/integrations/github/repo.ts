@@ -22,6 +22,8 @@ export interface PrUpsertInput {
   deletions: number;
   changedFiles: number;
   headRef: string | null;
+  baseRef: string | null;
+  firstCommitAt: Date | null;
   erfKeys: string[];
   hotfix: boolean;
   raw: unknown;
@@ -104,6 +106,8 @@ export function toPrUpsertInput(parsed: ParsedPr): PrUpsertInput {
     deletions: parsed.deletions,
     changedFiles: parsed.changedFiles,
     headRef: parsed.headRef,
+    baseRef: parsed.baseRef,
+    firstCommitAt: parsed.firstCommitAt,
     erfKeys: parsed.issueKeys,
     hotfix: parsed.hotfix,
     raw: parsed,

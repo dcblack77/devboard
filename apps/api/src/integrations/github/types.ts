@@ -53,6 +53,10 @@ export interface PrNode {
   deletions: number;
   changedFiles: number;
   headRefName: string | null;
+  /** Rama base (destino) del PR. Opcional: fixtures/consultas antiguas no lo traen. */
+  baseRefName?: string | null;
+  /** Primer commit del PR en orden de PR (`commits(first: 1)` devuelve el MÁS ANTIGUO). */
+  commits?: { nodes: Array<{ commit: { authoredDate: string | null; committedDate: string | null } }> } | null;
   repository: { name: string };
   author: GithubUserRef | null;
   mergedBy: GithubUserRef | null;
@@ -121,6 +125,10 @@ export interface ParsedPr {
   deletions: number;
   changedFiles: number;
   headRef: string | null;
+  /** Rama base del PR (p.ej. `develop`), o null si la consulta no la trae. */
+  baseRef: string | null;
+  /** Fecha del primer commit del PR (min(authoredDate, committedDate)), o null si no hay commits. */
+  firstCommitAt: Date | null;
   issueKeys: string[];
   hotfix: boolean;
   reviews: ReviewParsed[];

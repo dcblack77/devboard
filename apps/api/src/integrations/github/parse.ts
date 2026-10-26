@@ -36,6 +36,22 @@ function extractIssueKeys(text: string, regex?: RegExp): string[] {
   return [...new Set(matches.map((m) => m.toUpperCase()))].sort();
 }
 
+/**
+ * Fecha del primer commit del PR: `commits(first: 1)` devuelve el más antiguo en orden
+ * de PR; nos quedamos con la menor de authoredDate/committedDate (un rebase puede
+ * adelantar el committedDate respecto al authoredDate, o viceversa).
+ */
+function firstCommitAt(node: PrNode): Date | null {
+  const first = node.commits?.nodes?.[0]?.commit;
+  if (!first) return null;
+  const candidates = [first.authoredDate, first.committedDate]
+    .filter((d): d is string => typeof d === 'string' && d.length > 0)
+    .map((d) => new Date(d))
+    .filter((d) => !Number.isNaN(d.getTime()));
+  if (candidates.length === 0) return null;
+  return new Date(Math.min(...candidates.map((d) => d.getTime())));
+}
+
 /** Convierte un nodo GraphQL de PR en un objeto listo para persistir/analizar. */
 export function toPullRequest(node: PrNode, options: ParseOptions = {}): ParsedPr {
   const botPatterns = options.botPatterns ?? DEFAULT_BOT_PATTERNS;
@@ -95,6 +111,8 @@ export function toPullRequest(node: PrNode, options: ParseOptions = {}): ParsedP
     deletions: node.deletions,
     changedFiles: node.changedFiles,
     headRef: node.headRefName ?? null,
+    baseRef: node.baseRefName ?? null,
+    firstCommitAt: firstCommitAt(node),
     issueKeys,
     hotfix,
     reviews,

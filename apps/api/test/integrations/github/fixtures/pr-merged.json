@@ -12,21 +12,71 @@
   "deletions": 10,
   "changedFiles": 3,
   "headRefName": "feature/PROJ-123-retry",
-  "repository": { "name": "svc-a" },
-  "author": { "login": "user1" },
-  "mergedBy": { "login": "user2" },
+  "repository": {
+    "name": "svc-a"
+  },
+  "author": {
+    "login": "user1"
+  },
+  "mergedBy": {
+    "login": "user2"
+  },
   "reviews": {
     "nodes": [
-      { "author": { "login": "user2" }, "state": "APPROVED", "submittedAt": "2025-01-06T10:00:00Z" },
-      { "author": { "login": "user1" }, "state": "APPROVED", "submittedAt": "2025-01-06T11:00:00Z" },
-      { "author": { "login": "dependabot[bot]" }, "state": "COMMENTED", "submittedAt": "2025-01-06T09:00:00Z" },
-      { "author": { "login": "user3" }, "state": "PENDING", "submittedAt": null }
+      {
+        "author": {
+          "login": "user2"
+        },
+        "state": "APPROVED",
+        "submittedAt": "2025-01-06T10:00:00Z"
+      },
+      {
+        "author": {
+          "login": "user1"
+        },
+        "state": "APPROVED",
+        "submittedAt": "2025-01-06T11:00:00Z"
+      },
+      {
+        "author": {
+          "login": "dependabot[bot]"
+        },
+        "state": "COMMENTED",
+        "submittedAt": "2025-01-06T09:00:00Z"
+      },
+      {
+        "author": {
+          "login": "user3"
+        },
+        "state": "PENDING",
+        "submittedAt": null
+      }
     ]
   },
   "timelineItems": {
     "nodes": [
-      { "__typename": "ReviewRequestedEvent", "createdAt": "2025-01-05T09:05:00Z", "requestedReviewer": { "login": "user2" } },
-      { "__typename": "ReadyForReviewEvent", "createdAt": "2025-01-05T12:00:00Z" }
+      {
+        "__typename": "ReviewRequestedEvent",
+        "createdAt": "2025-01-05T09:05:00Z",
+        "requestedReviewer": {
+          "login": "user2"
+        }
+      },
+      {
+        "__typename": "ReadyForReviewEvent",
+        "createdAt": "2025-01-05T12:00:00Z"
+      }
+    ]
+  },
+  "baseRefName": "develop",
+  "commits": {
+    "nodes": [
+      {
+        "commit": {
+          "authoredDate": "2025-01-03T08:00:00Z",
+          "committedDate": "2025-01-04T09:30:00Z"
+        }
+      }
     ]
   }
 }

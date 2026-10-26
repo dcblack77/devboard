@@ -149,6 +149,10 @@ export const pullRequests = pgTable(
     deletions: integer('deletions').notNull().default(0),
     changedFiles: integer('changed_files').notNull().default(0),
     headRef: text('head_ref'),
+    /** Rama base (destino). Null en PRs sincronizados antes de la Fase 2 hasta el backfill. */
+    baseRef: text('base_ref'),
+    /** Fecha del primer commit del PR (inicio del lead time DORA). */
+    firstCommitAt: timestamp('first_commit_at', { withTimezone: true }),
     erfKeys: text('erf_keys').array().notNull().default([]),
     hotfix: boolean('hotfix').notNull().default(false),
     raw: jsonb('raw').notNull().default({}),

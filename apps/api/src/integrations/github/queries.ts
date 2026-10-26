@@ -15,7 +15,8 @@ query($q: String!, $after: String) {
     nodes {
       ... on PullRequest {
         number title url state isDraft createdAt mergedAt closedAt updatedAt
-        additions deletions changedFiles headRefName
+        additions deletions changedFiles headRefName baseRefName
+        commits(first: 1) { nodes { commit { authoredDate committedDate } } }
         repository { name }
         author { login }
         mergedBy { login }
