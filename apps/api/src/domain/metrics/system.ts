@@ -49,6 +49,8 @@ export interface SystemSegment {
 /** Issue ya analizado (ver `analyzeIssues`): tramos cerrados + `deliveredAt`. */
 export interface SystemIssue {
   key: string;
+  /** Tipo de issue de Jira (`Historia`, `Tarea`, `Error`, `Subtarea`…); null si se desconoce. */
+  type: string | null;
   createdAt: Date;
   resolvedAt: Date | null;
   deliveredAt: Date | null;
@@ -59,6 +61,21 @@ export interface SystemSettings {
   deployWorkflow: string;
   deployBranches: string;
   featureBase: string;
+  /** Orden de estados del tablero; ordena la tabla por estado. */
+  statusFlow: string[];
+  /** Tipos de issue contados en ciclo y cierres (`closed`); vacío = todos. */
+  countedTypes: string[];
+}
+
+export interface KanbanOptions {
+  statusFlow?: string[];
+  countedTypes?: string[];
+}
+
+/** Filtra a los tipos contados; lista vacía = sin filtro. */
+function countedOnly(issues: SystemIssue[], countedTypes: readonly string[] | undefined): SystemIssue[] {
+  if (!countedTypes || countedTypes.length === 0) return issues;
+  return issues.filter((i) => i.type !== null && countedTypes.includes(i.type));
 }
 
 export interface DoraRepo {
@@ -241,6 +258,7 @@ export const KANBAN_STATUSES = {
   blocked: 'Blocked',
   deployedDev: 'Desplegado en DEV',
   qaBusiness: 'QA Negocio',
+  done: 'Finalizada',
 } as const;
 
 export interface KanbanStateStat {
@@ -252,9 +270,14 @@ export interface KanbanStateStat {
 export interface KanbanFlow {
   tickets: number;
   cycleKanbanH: number | null;
+  cycleKanbanP85H: number | null;
   engineeringH: number | null;
+  /** Mediana de espera SOLO sobre tickets que esperaron (>0 h). */
   waitingH: number | null;
+  /** % de tickets con alguna espera. */
+  pctWithWait: number | null;
   flowEfficiency: number | null;
+  /** Por estado visitado, en orden de `statusFlow`; sin el estado terminal. */
   states: KanbanStateStat[];
   reworkPct: number | null;
   /** % resueltos antes de `deliveredAt` (no hay enlace PR→issue en la entrada). */
@@ -265,12 +288,14 @@ function sumIn(segments: SystemSegment[], statuses: readonly string[]): number {
   return segments.filter((s) => statuses.includes(s.status)).reduce((acc, s) => acc + hours(s.startedAt, s.endedAt), 0);
 }
 
-/** Ciclo Kanban + flow efficiency sobre issues resueltos en la ventana. */
-export function kanbanCycle(issues: SystemIssue[], window: Window): KanbanFlow {
+/** Ciclo Kanban + flow efficiency sobre issues (de tipos contados) resueltos en la ventana. */
+export function kanbanCycle(issues: SystemIssue[], window: Window, opts: KanbanOptions = {}): KanbanFlow {
   const K = KANBAN_STATUSES;
   const engStatuses = [K.inProgress, K.inReview];
   const waitStatuses = [K.blocked, K.deployedDev, K.qaBusiness];
-  const resolved = issues.filter((i) => inWindow(i.resolvedAt, window)) as (SystemIssue & { resolvedAt: Date })[];
+  const resolved = countedOnly(issues, opts.countedTypes).filter((i) => inWindow(i.resolvedAt, window)) as (SystemIssue & {
+    resolvedAt: Date;
+  })[];
   const cycle: number[] = [];
   const eng: number[] = [];
   const wait: number[] = [];
@@ -279,8 +304,7 @@ export function kanbanCycle(issues: SystemIssue[], window: Window): KanbanFlow {
   const perState = new Map<string, number[]>();
   for (const i of resolved) {
     const start = i.segments.find((s) => s.status === K.inProgress);
-    const end = i.deliveredAt ?? i.resolvedAt;
-    if (start) cycle.push(hours(start.startedAt, end));
+    if (start) cycle.push(hours(start.startedAt, i.resolvedAt));
     const e = sumIn(i.segments, engStatuses);
     const w = sumIn(i.segments, waitStatuses);
     eng.push(e);
@@ -288,19 +312,28 @@ export function kanbanCycle(issues: SystemIssue[], window: Window): KanbanFlow {
     if (i.segments.filter((s) => s.status === K.inProgress).length >= 2) rework += 1;
     if (i.deliveredAt && i.resolvedAt < i.deliveredAt) closedBefore += 1;
     const byStatus = new Map<string, number>();
-    for (const s of i.segments) byStatus.set(s.status, (byStatus.get(s.status) ?? 0) + hours(s.startedAt, s.endedAt));
+    for (const s of i.segments) {
+      if (s.status === K.done) continue;
+      byStatus.set(s.status, (byStatus.get(s.status) ?? 0) + hours(s.startedAt, s.endedAt));
+    }
     for (const [st, h] of byStatus) perState.set(st, [...(perState.get(st) ?? []), h]);
   }
   const engTotal = eng.reduce((a, b) => a + b, 0);
   const waitTotal = wait.reduce((a, b) => a + b, 0);
+  const waited = wait.filter((w) => w > 0);
   const n = resolved.length;
+  const flow = opts.statusFlow ?? [];
+  const known = flow.filter((st) => perState.has(st));
+  const rest = [...perState.keys()].filter((st) => !flow.includes(st)).sort();
   return {
     tickets: n,
     cycleKanbanH: quantile(cycle, 0.5),
+    cycleKanbanP85H: quantile(cycle, 0.85),
     engineeringH: quantile(eng, 0.5),
-    waitingH: quantile(wait, 0.5),
+    waitingH: quantile(waited, 0.5),
+    pctWithWait: pct(waited.length, n),
     flowEfficiency: engTotal + waitTotal === 0 ? null : engTotal / (engTotal + waitTotal),
-    states: [...perState.keys()].sort().map((status) => {
+    states: [...known, ...rest].map((status) => {
       const hs = perState.get(status) as number[];
       return { status, p50H: quantile(hs, 0.5), pctOfTickets: pct(hs.length, n) };
     }),
@@ -311,7 +344,10 @@ export function kanbanCycle(issues: SystemIssue[], window: Window): KanbanFlow {
 
 export interface ClosureDay {
   date: string;
+  /** Cierres de tipos contados (sin subtareas si así lo dice `countedTypes`). */
   closed: number;
+  /** Cierres de todos los tipos, subtareas incluidas. */
+  closedAll: number;
   viaQaNegocio: number;
 }
 
@@ -324,24 +360,29 @@ export interface ClosureBatches {
 
 export const BATCH_MIN_CLOSED = 5;
 
-/** Lotes de cierre: cierres por día (UTC), días con ≥5 cierres, histogramas por día de semana (0=domingo) y hora. */
-export function closureBatches(issues: SystemIssue[], window: Window): ClosureBatches {
+/**
+ * Lotes de cierre: cierres por día (UTC), días con ≥5 cierres (sobre `closedAll`),
+ * histogramas por día de semana (0=domingo) y hora. `closed` solo cuenta tipos contados.
+ */
+export function closureBatches(issues: SystemIssue[], window: Window, opts: KanbanOptions = {}): ClosureBatches {
   const byDay = new Map<string, ClosureDay>();
   const weekdayHistogram = new Array<number>(7).fill(0);
   const hourHistogram = new Array<number>(24).fill(0);
+  const counted = new Set(countedOnly(issues, opts.countedTypes).map((i) => i.key));
   for (const i of issues) {
     if (!inWindow(i.resolvedAt, window)) continue;
     const r = i.resolvedAt;
     const date = r.toISOString().slice(0, 10);
-    const day = byDay.get(date) ?? { date, closed: 0, viaQaNegocio: 0 };
-    day.closed += 1;
+    const day = byDay.get(date) ?? { date, closed: 0, closedAll: 0, viaQaNegocio: 0 };
+    day.closedAll += 1;
+    if (counted.has(i.key)) day.closed += 1;
     if (i.segments.some((s) => s.status === KANBAN_STATUSES.qaBusiness)) day.viaQaNegocio += 1;
     byDay.set(date, day);
     weekdayHistogram[r.getUTCDay()] += 1;
     hourHistogram[r.getUTCHours()] += 1;
   }
   const days = [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
-  return { days, batches: days.filter((d) => d.closed >= BATCH_MIN_CLOSED), weekdayHistogram, hourHistogram };
+  return { days, batches: days.filter((d) => d.closedAll >= BATCH_MIN_CLOSED), weekdayHistogram, hourHistogram };
 }
 
 export const SYSTEM_DEFINITIONS: Record<string, string> = {
@@ -357,13 +398,14 @@ export const SYSTEM_DEFINITIONS: Record<string, string> = {
   sizeP50: 'Tamaño mediano del PR (líneas añadidas + borradas).',
   pctOver400: '% de PRs con más de 400 líneas cambiadas.',
   pctMergedWithoutHumanApproval: '% de PRs mergeados sin aprobación humana.',
-  cycleKanbanH: 'Ciclo Kanban: horas desde el primer "En curso" hasta Done (entregado o resuelto).',
+  cycleKanbanH: 'Ciclo Kanban: horas desde el primer "En curso" hasta Finalizada (p50/p85). Solo tipos contados.',
   engineeringH: 'Tiempo de ingeniería: horas en "En curso" + "In review".',
-  waitingH: 'Tiempo de espera: horas en "Blocked" + "Desplegado en DEV" + "QA Negocio".',
+  waitingH: 'Tiempo de espera: horas en "Blocked" + "Desplegado en DEV" + "QA Negocio" (mediana sobre tickets que esperaron).',
+  pctWithWait: '% de tickets con alguna espera.',
   flowEfficiency: 'Flow efficiency: ingeniería / (ingeniería + espera).',
   reworkPct: '% de tickets que volvieron a "En curso" (≥2 visitas).',
   closedBeforeDeliveredPct: '% de tickets resueltos antes de su fecha de entrega.',
-  batches: 'Días con 5 o más cierres: señal de cierre en lote.',
+  batches: 'Días con 5 o más cierres (todos los tipos, subtareas incluidas): señal de cierre en lote. `closed` cuenta solo tipos contados.',
 };
 
 export interface SystemInput {
@@ -379,8 +421,8 @@ export function systemSummary(input: SystemInput, window: Window) {
     window: { from: window.from.toISOString(), to: window.to.toISOString() },
     repos: doraPerRepo(input.prs, input.runs, input.settings, window),
     practice: prPractice(input.prs, input.settings, window),
-    flow: kanbanCycle(input.issues, window),
-    batches: closureBatches(input.issues, window),
+    flow: kanbanCycle(input.issues, window, { statusFlow: input.settings.statusFlow, countedTypes: input.settings.countedTypes }),
+    batches: closureBatches(input.issues, window, { countedTypes: input.settings.countedTypes }),
     definitions: SYSTEM_DEFINITIONS,
   };
 }

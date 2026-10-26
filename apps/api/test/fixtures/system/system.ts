@@ -36,5 +36,5 @@ export function seg(status: string, start: number, end: number): SystemSegment {
 }
 
 export function issue(over: Partial<SystemIssue> & { key: string }): SystemIssue {
-  return { createdAt: T0, resolvedAt: null, deliveredAt: null, segments: [], ...over };
+  return { type: 'Historia', createdAt: T0, resolvedAt: null, deliveredAt: null, segments: [], ...over };
 }

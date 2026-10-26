@@ -22,10 +22,41 @@ describe('kanbanCycle', () => {
     expect(f.tickets).toBe(1);
     expect(f.engineeringH).toBe(72);
     expect(f.waitingH).toBe(168);
+    expect(f.pctWithWait).toBe(1);
     expect(f.flowEfficiency).toBeCloseTo(0.3);
     expect(f.cycleKanbanH).toBe(240);
+    expect(f.cycleKanbanP85H).toBe(240);
     expect(f.reworkPct).toBe(0);
     expect(f.closedBeforeDeliveredPct).toBe(0);
+  });
+
+  it('cycle ends at Finalizada (resolvedAt), not at deliveredAt', () => {
+    const i = issue({
+      key: 'X-5',
+      resolvedAt: at(240),
+      deliveredAt: at(72),
+      segments: [
+        seg('En curso', 0, 48),
+        seg('In review', 48, 72),
+        seg('Desplegado en DEV', 72, 144),
+        seg('QA Negocio', 144, 240),
+        seg('Finalizada', 240, 300),
+      ],
+    });
+    const f = kanbanCycle([i], window);
+    expect(f.cycleKanbanH).toBe(240);
+    expect(f.closedBeforeDeliveredPct).toBe(0);
+  });
+
+  it('waitingH is the median over tickets that waited; flow efficiency stays total-based', () => {
+    const waited = issue({ key: 'W-1', resolvedAt: at(40), segments: [seg('En curso', 0, 20), seg('Blocked', 20, 40)] });
+    const a = issue({ key: 'W-2', resolvedAt: at(10), segments: [seg('En curso', 0, 10)] });
+    const b = issue({ key: 'W-3', resolvedAt: at(10), segments: [seg('En curso', 0, 10)] });
+    const f = kanbanCycle([waited, a, b], window);
+    expect(f.tickets).toBe(3);
+    expect(f.waitingH).toBe(20);
+    expect(f.pctWithWait).toBeCloseTo(1 / 3);
+    expect(f.flowEfficiency).toBeCloseTo(40 / 60);
   });
 
   it('per-state stats only over visitors; rework and closedBeforeDelivered', () => {
@@ -43,6 +74,26 @@ describe('kanbanCycle', () => {
     expect(f.closedBeforeDeliveredPct).toBe(0.5);
     const blocked = f.states.find((s) => s.status === 'Blocked');
     expect(blocked).toEqual({ status: 'Blocked', p50H: 10, pctOfTickets: 0.5 });
-    expect(f.cycleKanbanH).toBe(45); // (60 + 30) / 2 — a ends at deliveredAt
+    expect(f.cycleKanbanH).toBe(40); // (50 + 30) / 2 — both end at resolvedAt
+  });
+
+  it('states follow statusFlow order and exclude Finalizada', () => {
+    const statusFlow = ['Backlog', 'Por hacer', 'En curso', 'In review', 'Blocked', 'Desplegado en DEV', 'QA Negocio', 'Finalizada'];
+    const i = issue({
+      key: 'O-1',
+      resolvedAt: at(100),
+      segments: [seg('Por hacer', -5, 0), seg('En curso', 0, 10), seg('QA Negocio', 10, 50), seg('In review', 50, 100), seg('Finalizada', 100, 200)],
+    });
+    const f = kanbanCycle([i], window, { statusFlow });
+    expect(f.states.map((s) => s.status)).toEqual(['Por hacer', 'En curso', 'In review', 'QA Negocio']);
+  });
+
+  it('only counted issue types enter the cycle metrics', () => {
+    const story = issue({ key: 'T-1', type: 'Historia', resolvedAt: at(10), segments: [seg('En curso', 0, 10)] });
+    const sub = issue({ key: 'T-2', type: 'Subtarea', resolvedAt: at(100), segments: [seg('En curso', 0, 100)] });
+    const f = kanbanCycle([story, sub], window, { countedTypes: ['Historia', 'Tarea', 'Error'] });
+    expect(f.tickets).toBe(1);
+    expect(f.cycleKanbanH).toBe(10);
+    expect(kanbanCycle([story, sub], window).tickets).toBe(2);
   });
 });

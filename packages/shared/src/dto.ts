@@ -254,8 +254,10 @@ export interface KanbanStateDto {
 export interface KanbanFlowDto {
   tickets: number;
   cycleKanbanH: number | null;
+  cycleKanbanP85H: number | null;
   engineeringH: number | null;
   waitingH: number | null;
+  pctWithWait: number | null;
   flowEfficiency: number | null;
   states: KanbanStateDto[];
   reworkPct: number | null;
@@ -265,6 +267,7 @@ export interface KanbanFlowDto {
 export interface ClosureDayDto {
   date: string;
   closed: number;
+  closedAll: number;
   viaQaNegocio: number;
 }
 
