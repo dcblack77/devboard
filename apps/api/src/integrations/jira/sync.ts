@@ -8,6 +8,7 @@ import { toIssueUpsertInput, toEpicUpsertInput } from './repo.js';
 import type { JiraRepo } from './repo.js';
 import type { JiraConfig, StatusAliasMap } from './types.js';
 import type { SourceSync } from '../../modules/sync/registry.js';
+import { reconcileInitiativesFromEpics } from '../../domain/initiatives/auto-from-epics.js';
 
 export type { SourceSync };
 
@@ -87,6 +88,17 @@ export class JiraSync implements SourceSync {
 
     await this.repo.upsertEpics(epicIndex.map(toEpicUpsertInput));
 
+    // Iniciativas = épicas: una iniciativa `auto` por épica sin agrupar; las `auto` siguen
+    // el summary de su épica. Ver domain/initiatives/auto-from-epics.ts.
+    const { initiatives, initiativeEpics } = await this.repo.listInitiativesWithEpics();
+    const plan = reconcileInitiativesFromEpics({
+      epics: epicIndex.map((e) => ({ key: e.key, summary: e.summary })),
+      initiatives,
+      initiativeEpics,
+    });
+    for (const c of plan.toCreate) await this.repo.createAutoInitiative(c);
+    for (const r of plan.toRename) await this.repo.renameInitiative(r.id, r.name);
+
     const childrenCount = epicIndex.reduce((acc, e) => acc + e.children.length, 0);
 
     return {
@@ -95,6 +107,8 @@ export class JiraSync implements SourceSync {
         epics: epicIndex.length,
         children: childrenCount,
         changelogsFetched,
+        initiativesCreated: plan.toCreate.length,
+        initiativesRenamed: plan.toRename.length,
       },
     };
   }

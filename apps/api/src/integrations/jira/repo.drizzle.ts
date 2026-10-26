@@ -10,6 +10,8 @@ import {
   issueStatusSegments,
   issueAssigneeChanges,
   epics,
+  initiatives,
+  initiativeEpics,
 } from '../../db/schema.js';
 import type {
   JiraRepo,
@@ -17,6 +19,9 @@ import type {
   SegmentInput,
   AssigneeChangeInput,
   EpicUpsertInput,
+  InitiativeRow,
+  InitiativeEpicRow,
+  AutoInitiativeInput,
 } from './repo.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,5 +112,36 @@ export class DrizzleJiraRepo implements JiraRepo {
           },
         });
     }
+  }
+
+  async listInitiativesWithEpics(): Promise<{ initiatives: InitiativeRow[]; initiativeEpics: InitiativeEpicRow[] }> {
+    const [iniRows, ieRows] = await Promise.all([
+      this.db
+        .select({
+          id: initiatives.id,
+          name: initiatives.name,
+          slug: initiatives.slug,
+          source: initiatives.source,
+          epicKey: initiatives.epicKey,
+        })
+        .from(initiatives),
+      this.db.select({ initiativeId: initiativeEpics.initiativeId, epicKey: initiativeEpics.epicKey }).from(initiativeEpics),
+    ]);
+    return { initiatives: iniRows, initiativeEpics: ieRows };
+  }
+
+  async createAutoInitiative(input: AutoInitiativeInput): Promise<number> {
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(initiatives)
+        .values({ name: input.name, slug: input.slug, source: 'auto', epicKey: input.epicKey })
+        .returning({ id: initiatives.id });
+      await tx.insert(initiativeEpics).values({ initiativeId: row.id, epicKey: input.epicKey });
+      return row.id;
+    });
+  }
+
+  async renameInitiative(id: number, name: string): Promise<void> {
+    await this.db.update(initiatives).set({ name }).where(eq(initiatives.id, id));
   }
 }

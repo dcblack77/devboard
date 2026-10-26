@@ -38,6 +38,12 @@ pantalla de Ajustes.
    credenciales; después se repite cada `SYNC_MINUTES`). En **Ajustes → Personas** mapea nombres de
    Jira y logins de GitHub a cada persona; en **Iniciativas** agrupa épicas.
 
+   Las iniciativas se crean solas: cada sync de Jira crea una iniciativa `auto · CLAVE` por cada
+   épica que no esté en ninguna iniciativa, con el nombre de la épica (y lo sigue si cambia en
+   Jira). Si renombras una iniciativa auto en Ajustes, queda fijada y el sync deja de tocar su
+   nombre. Borrar una iniciativa auto no sirve de nada (vuelve en el siguiente sync): para que una
+   épica deje de tener su propia iniciativa, agrúpala dentro de una iniciativa manual.
+
 Comprobación rápida por terminal:
 ```bash
 curl http://localhost:8092/api/health          # {"ok":true,"db":true,"version":"0.1.0"}

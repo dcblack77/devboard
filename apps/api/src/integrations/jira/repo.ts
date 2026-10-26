@@ -41,6 +41,25 @@ export interface EpicUpsertInput {
   createdAt: Date;
 }
 
+export interface InitiativeRow {
+  id: number;
+  name: string;
+  slug: string;
+  source: string;
+  epicKey: string | null;
+}
+
+export interface InitiativeEpicRow {
+  initiativeId: number;
+  epicKey: string;
+}
+
+export interface AutoInitiativeInput {
+  name: string;
+  slug: string;
+  epicKey: string;
+}
+
 export interface JiraRepo {
   /** Inserta/actualiza issues (upsert por `key`). */
   upsertIssues(issues: IssueUpsertInput[]): Promise<void>;
@@ -50,6 +69,12 @@ export interface JiraRepo {
   replaceAssigneeChanges(issueKey: string, changes: AssigneeChangeInput[]): Promise<void>;
   /** Inserta/actualiza épicas (upsert por `key`). */
   upsertEpics(epics: EpicUpsertInput[]): Promise<void>;
+  /** Todas las iniciativas + sus filas de `initiative_epics` (para la reconciliación auto). */
+  listInitiativesWithEpics(): Promise<{ initiatives: InitiativeRow[]; initiativeEpics: InitiativeEpicRow[] }>;
+  /** Crea una iniciativa `source='auto'` y su fila en `initiative_epics`, en una transacción. */
+  createAutoInitiative(input: AutoInitiativeInput): Promise<number>;
+  /** Cambia el nombre de una iniciativa (usado para seguir el summary de la épica). */
+  renameInitiative(id: number, name: string): Promise<void>;
 }
 
 /** Adapta un ParsedIssue + contexto (epicKey, macro) al shape que espera el repo. */
