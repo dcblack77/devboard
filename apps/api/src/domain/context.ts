@@ -23,6 +23,7 @@ import {
   prReviews,
   pullRequests,
   settings as settingsTable,
+  workflowRuns,
 } from '../db/schema.js';
 import type { EpicWithChildren } from '../integrations/jira/types.js';
 import { analyzeIssues, type AnalyzedIssue, type IssueMetricsSettings } from './metrics/issues.js';
@@ -46,6 +47,9 @@ export interface PersonRow {
   githubLogins: string[];
 }
 
+import type { SystemInput } from './metrics/system.js';
+import { toSystemIssues, toSystemPrs, toSystemRuns, toSystemSettings } from '../modules/system/system.adapter.js';
+
 export interface MetricsContext {
   now: Date;
   settings: SettingsDto;
@@ -64,6 +68,8 @@ export interface MetricsContext {
   gh: ReviewStats | null;
   prs: AnalyzedPr[];
   home: HomeSummary;
+  /** Entradas tipadas de la vista "Sistema" (tramos con alias aplicados y fusionados). */
+  system: SystemInput;
 }
 
 /** Carga la fila singleton `settings` y la convierte al DTO público. */
@@ -156,7 +162,7 @@ function windowFilter<T extends { createdAt: Date }>(rows: T[], sinceDate: strin
 export async function buildMetricsContext(now: Date = new Date()): Promise<MetricsContext> {
   const db = getDb();
 
-  const [settingsRows, peopleRows, initiativeRows, initiativeEpicRows, issueRows, segmentRows, epicRows, prRows, reviewRows, requestRows] =
+  const [settingsRows, peopleRows, initiativeRows, initiativeEpicRows, issueRows, segmentRows, epicRows, prRows, reviewRows, requestRows, runRows] =
     await Promise.all([
       db.select().from(settingsTable).where(eq(settingsTable.id, 1)).limit(1),
       db.select().from(people),
@@ -168,6 +174,7 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
       db.select().from(pullRequests),
       db.select().from(prReviews),
       db.select().from(prReviewRequests),
+      db.select().from(workflowRuns),
     ]);
 
   if (settingsRows.length === 0) {
@@ -245,6 +252,13 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
 
   const home = homeSummary(rows, dstats, { now, settings: issueSettings, initiativesList, gh });
 
+  const system: SystemInput = {
+    prs: toSystemPrs(windowedPrs, windowedReviews),
+    runs: toSystemRuns(runRows),
+    issues: toSystemIssues(rows, aliases),
+    settings: toSystemSettings(settingsDto),
+  };
+
   return {
     now,
     settings: settingsDto,
@@ -262,6 +276,7 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
     gh,
     prs,
     home,
+    system,
   };
 }
 
