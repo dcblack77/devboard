@@ -26,6 +26,14 @@ export class JiraApiError extends Error {
   }
 }
 
+/** Credenciales inválidas o caducadas (401/403 en /myself). */
+export class JiraAuthError extends JiraApiError {
+  constructor(status: number, body?: string) {
+    super(`Jira ${status}: credenciales inválidas o caducadas (JIRA_EMAIL / JIRA_API_TOKEN)`, status, body);
+    this.name = 'JiraAuthError';
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -95,6 +103,23 @@ export class JiraClient {
   private async getJson<T>(path: string): Promise<T> {
     const res = await this.request(path);
     return (await res.json()) as T;
+  }
+
+  /**
+   * Sonda de autenticación: `GET /myself`. Atlassian responde 200 con
+   * `issues: []` a búsquedas anónimas cuando el token está revocado, así que
+   * un sync "vacío" no basta para detectarlo; esta llamada sí devuelve 401.
+   */
+  async whoAmI(): Promise<{ accountId: string; emailAddress?: string }> {
+    try {
+      const me = await this.getJson<{ accountId: string; emailAddress?: string }>('myself');
+      return { accountId: me.accountId, emailAddress: me.emailAddress };
+    } catch (err) {
+      if (err instanceof JiraApiError && (err.status === 401 || err.status === 403)) {
+        throw new JiraAuthError(err.status, err.body);
+      }
+      throw err;
+    }
   }
 
   /**

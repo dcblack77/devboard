@@ -45,6 +45,10 @@ export class JiraSync implements SourceSync {
   async run(): Promise<{ counts: Record<string, number> }> {
     const { project, sinceDate, statusAliases, macroMap, finalStatus } = this.settings;
 
+    // Sonda de auth antes de nada: con token revocado Jira devuelve 200 y 0 issues
+    // (acceso anónimo), lo que dejaría un run ok=true vacío. /myself sí falla (401).
+    await this.client.whoAmI();
+
     const [windowIssues, epicIndex] = await Promise.all([
       this.client.fetchWindow(project, sinceDate),
       this.client.epicsWithChildren(project),
