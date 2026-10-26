@@ -3,7 +3,9 @@
  * NodePgDatabase ya conectada (no abre conexión propia), igual que
  * DrizzleJiraRepo.
  */
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+
+const WORKFLOW_RUNS_CHUNK = 500;
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { pullRequests, prReviews, prReviewRequests, workflowRuns } from '../../db/schema.js';
 import type {
@@ -97,31 +99,36 @@ export class DrizzleGithubRepo implements GithubRepo {
   }
 
   async upsertWorkflowRuns(rows: WorkflowRunUpsertInput[]): Promise<void> {
-    for (const r of rows) {
+    // Inserción multi-fila por lotes: ~2.500 runs/año por repo hacían una
+    // sentencia por fila. `excluded.<col>` toma el valor de la fila en conflicto.
+    for (let i = 0; i < rows.length; i += WORKFLOW_RUNS_CHUNK) {
+      const chunk = rows.slice(i, i + WORKFLOW_RUNS_CHUNK);
       await this.db
         .insert(workflowRuns)
-        .values({
-          id: r.id,
-          repo: r.repo,
-          name: r.name,
-          event: r.event,
-          status: r.status,
-          conclusion: r.conclusion,
-          headBranch: r.headBranch,
-          headSha: r.headSha,
-          runAttempt: r.runAttempt,
-          createdAt: r.createdAt,
-          runStartedAt: r.runStartedAt,
-          updatedAt: r.updatedAt,
-        })
+        .values(
+          chunk.map((r) => ({
+            id: r.id,
+            repo: r.repo,
+            name: r.name,
+            event: r.event,
+            status: r.status,
+            conclusion: r.conclusion,
+            headBranch: r.headBranch,
+            headSha: r.headSha,
+            runAttempt: r.runAttempt,
+            createdAt: r.createdAt,
+            runStartedAt: r.runStartedAt,
+            updatedAt: r.updatedAt,
+          })),
+        )
         .onConflictDoUpdate({
           target: workflowRuns.id,
           set: {
-            status: r.status,
-            conclusion: r.conclusion,
-            runAttempt: r.runAttempt,
-            runStartedAt: r.runStartedAt,
-            updatedAt: r.updatedAt,
+            status: sql`excluded.status`,
+            conclusion: sql`excluded.conclusion`,
+            runAttempt: sql`excluded.run_attempt`,
+            runStartedAt: sql`excluded.run_started_at`,
+            updatedAt: sql`excluded.updated_at`,
           },
         });
     }
