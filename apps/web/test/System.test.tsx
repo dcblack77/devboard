@@ -38,8 +38,10 @@ const SYSTEM = {
   flow: {
     tickets: 20,
     cycleKanbanH: 120,
+    cycleKanbanP85H: 240,
     engineeringH: 48,
     waitingH: 72,
+    pctWithWait: 0.5,
     flowEfficiency: 0.4,
     states: [{ status: 'En curso', p50H: 48, pctOfTickets: 1 }],
     reworkPct: 0.1,
@@ -47,7 +49,7 @@ const SYSTEM = {
   },
   batches: {
     days: [],
-    batches: [{ date: '2026-03-02', closed: 6, viaQaNegocio: 4 }],
+    batches: [{ date: '2026-03-02', closed: 6, closedAll: 9, viaQaNegocio: 4 }],
     weekdayHistogram: [0, 3, 2, 5, 1, 6, 0],
     hourHistogram: [],
   },
@@ -71,6 +73,9 @@ describe('System', () => {
       expect(screen.getByRole('heading', { name: title })).toBeTruthy();
     }
     expect(screen.getByText('Tiempo de ingeniería')).toBeTruthy();
+    expect(screen.getByText('5.0 d')).toBeTruthy(); // cycle p50 in days
+    expect(screen.getByText(/p85 10\.0 d · 20 tickets/)).toBeTruthy();
+    expect(screen.getByText(/6 cierres contados · 9 en total/)).toBeTruthy();
     expect(String((fn.mock.calls[0] as unknown[])[0])).toContain('/api/system?months=12&repo=all');
   });
 });

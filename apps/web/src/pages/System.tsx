@@ -4,7 +4,6 @@ import { api } from '../api/client';
 import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { FilterTable } from '../components/FilterTable';
-import { fmtHours } from '../lib/format';
 
 type Months = 3 | 6 | 12;
 
@@ -109,9 +108,14 @@ export function System() {
         {flow ? (
           <>
             <div className="kpis">
-              <Kpi value={fmtHours(flow.cycleKanbanH)} label="Ciclo hasta Done p50" sub={`${flow.tickets} tickets`} />
-              <Kpi value={fmtHours(flow.engineeringH)} label="Tiempo de ingeniería" sub="En curso + In review (mediana)" />
-              <Kpi value={fmtRatio(flow.flowEfficiency)} label="Flow efficiency" sub="ingeniería / (ingeniería + espera)" />
+              <Kpi value={`${fmtDays(flow.cycleKanbanH)} d`} label="Ciclo hasta Done p50" sub={`p85 ${fmtDays(flow.cycleKanbanP85H)} d · ${flow.tickets} tickets`} />
+              <Kpi value={`${fmtDays(flow.engineeringH)} d`} label="Tiempo de ingeniería" sub={`En curso + In review (mediana) · ${flow.tickets} tickets`} />
+              <Kpi
+                value={`${fmtDays(flow.waitingH)} d`}
+                label="Tiempo de espera"
+                sub={`mediana de los que esperaron · ${fmtRatio(flow.pctWithWait)} con espera`}
+              />
+              <Kpi value={fmtRatio(flow.flowEfficiency)} label="Flow efficiency" sub={`ingeniería / (ingeniería + espera) · ${flow.tickets} tickets`} />
               <Kpi value={fmtRatio(flow.closedBeforeDeliveredPct)} label="Cerrados antes de entregar" />
             </div>
             <FilterTable<KanbanStateDto>
@@ -153,7 +157,7 @@ export function System() {
               <ul>
                 {data.batches.batches.map((d: ClosureDayDto) => (
                   <li key={d.date}>
-                    {d.date}: {d.closed} cierres ({d.viaQaNegocio} vía QA Negocio)
+                    {d.date}: {d.closed} cierres contados · {d.closedAll} en total ({d.viaQaNegocio} vía QA Negocio)
                   </li>
                 ))}
               </ul>
