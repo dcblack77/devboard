@@ -109,16 +109,17 @@ describe('GithubSync.run', () => {
     expect(result.counts.reviews).toBe(1);
     expect(result.counts.repos).toBe(1);
     expect(result.counts.apiCalls).toBeGreaterThan(0);
-    // primera carga: una búsqueda por mes desde `since` (fetchRepoPrs usa el reloj real) + 1 REST de runs
-    expect(result.counts.apiCalls).toBe(call + 1);
+    // primera carga: una búsqueda por mes desde `since` (fetchRepoPrs usa el reloj real) + 1 REST de runs por mes
+    expect(result.counts.apiCalls).toBe(call + runUrls.length);
     expect(call).toBeGreaterThanOrEqual(3);
     // workflow runs: primera carga desde `since`, upsert en el repo, contadas en counts.runs
     expect(repo.runs).toHaveLength(1);
     expect(repo.runs[0]).toMatchObject({ id: 9001, repo: 'svc-a', name: 'Deployment', conclusion: 'success', headBranch: 'main' });
     expect(repo.runs[0].createdAt.toISOString()).toBe('2025-01-06T10:00:00.000Z');
     expect(result.counts.runs).toBe(1);
-    expect(runUrls).toHaveLength(1);
-    expect(new URL(runUrls[0]).searchParams.get('created')).toBe('>=2025-01-01');
+    // runs por rangos mensuales `created=A..B` (tope de 1000 resultados por consulta); el primero arranca en `since`
+    expect(runUrls.length).toBeGreaterThanOrEqual(1);
+    expect(new URL(runUrls[0]).searchParams.get('created')).toMatch(/^2025-01-01\.\.\d{4}-\d{2}-\d{2}$/);
   });
 
   it('carga incremental: usa lastOkFinishedAt como lastFetchedAt (una sola query)', async () => {
@@ -151,16 +152,22 @@ describe('GithubSync.run', () => {
     expect(result.counts.prs).toBe(0);
     expect(result.counts.runs).toBe(0);
     // runs: created>= lastOk - 1 día
-    expect(runUrls).toHaveLength(1);
-    expect(new URL(runUrls[0]).searchParams.get('created')).toBe('>=2025-03-04');
-    // búsqueda + REST de runs: la sonda viewer no cuenta
-    expect(result.counts.apiCalls).toBe(2);
+    expect(runUrls.length).toBeGreaterThanOrEqual(1);
+    expect(new URL(runUrls[0]).searchParams.get('created')).toMatch(/^2025-03-04\.\./);
+    // búsqueda + REST de runs (una por mes): la sonda viewer no cuenta
+    expect(result.counts.apiCalls).toBe(1 + runUrls.length);
   });
 
   it('varios repos: agrega counts de todos', async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) =>
-      isViewerQuery(init) ? viewerResponse() : isRunsRequest(url) ? runsResponse([deployRun]) : searchResponse([]),
-    ) as unknown as typeof fetch;
+    let runCalls = 0;
+    const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (isViewerQuery(init)) return viewerResponse();
+      if (isRunsRequest(url)) {
+        runCalls += 1;
+        return runsResponse([deployRun]);
+      }
+      return searchResponse([]);
+    }) as unknown as typeof fetch;
     const repo = new InMemoryRepo();
 
     const sync = new GithubSync({
@@ -173,10 +180,11 @@ describe('GithubSync.run', () => {
 
     const result = await sync.run();
     expect(result.counts.repos).toBe(2);
+    // la misma run aparece en cada rango mensual y se dedupe por id ⇒ 1 por repo
     expect(result.counts.runs).toBe(2);
     expect(repo.runs.map((r) => r.repo)).toEqual(['svc-a', 'svc-b']);
-    // 1 búsqueda + 1 REST de runs por repo; la sonda viewer no cuenta
-    expect(result.counts.apiCalls).toBe(4);
+    // 1 búsqueda por repo + 1 REST de runs por repo y mes; la sonda viewer no cuenta
+    expect(result.counts.apiCalls).toBe(2 + runCalls);
   });
 
   it('sin repos configurados: apiCalls=0 aunque la sonda viewer sí se envió', async () => {
