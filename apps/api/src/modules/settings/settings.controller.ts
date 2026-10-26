@@ -16,6 +16,7 @@ import {
   type CreatePersonRequest,
   type DiscoverResponse,
   type InitiativeAdminDto,
+  type InitiativeSource,
   type InitiativeAdminItemResponse,
   type InitiativesAdminResponse,
   type PeopleAdminResponse,
@@ -88,6 +89,18 @@ const updateInitiativeSchema = z.object({
   position: z.number().int().optional(),
   epicKeys: z.array(z.string()).optional(),
 }) satisfies z.ZodType<UpdateInitiativeRequest>;
+
+function initiativeToDto(row: typeof initiatives.$inferSelect, epicKeys: string[]): InitiativeAdminDto {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    position: row.position,
+    source: row.source as InitiativeSource,
+    epicKey: row.epicKey,
+    epicKeys,
+  };
+}
 
 function personToDto(row: typeof people.$inferSelect): PersonAdminDto {
   return {
@@ -205,13 +218,12 @@ export class SettingsController {
       db.select().from(initiatives),
       db.select().from(initiativeEpics),
     ]);
-    const list: InitiativeAdminDto[] = initiativeRows.map((i) => ({
-      id: i.id,
-      name: i.name,
-      slug: i.slug,
-      position: i.position,
-      epicKeys: epicRows.filter((e) => e.initiativeId === i.id).map((e) => e.epicKey),
-    }));
+    const list: InitiativeAdminDto[] = initiativeRows.map((i) =>
+      initiativeToDto(
+        i,
+        epicRows.filter((e) => e.initiativeId === i.id).map((e) => e.epicKey),
+      ),
+    );
     const body: InitiativesAdminResponse = { initiatives: list };
     res.status(200).json(body);
   }
@@ -233,9 +245,7 @@ export class SettingsController {
       await db.insert(initiativeEpics).values(epicKeys.map((epicKey) => ({ initiativeId: row!.id, epicKey })));
     }
     invalidateMetricsContext();
-    const body: InitiativeAdminItemResponse = {
-      initiative: { id: row!.id, name: row!.name, slug: row!.slug, position: row!.position, epicKeys },
-    };
+    const body: InitiativeAdminItemResponse = { initiative: initiativeToDto(row!, epicKeys) };
     res.status(201).json(body);
   }
 
@@ -254,8 +264,13 @@ export class SettingsController {
       res.status(404).json({ error: 'Iniciativa no encontrada' });
       return;
     }
-    if (Object.keys(rest).length > 0) {
-      [row] = await db.update(initiatives).set(rest).where(eq(initiatives.id, initiativeId)).returning();
+    // Renombrar una iniciativa `auto` la fija: el sync de Jira deja de seguir el summary de la épica.
+    const patch: Partial<typeof initiatives.$inferInsert> = { ...rest };
+    if (row.source === 'auto' && rest.name !== undefined && rest.name !== row.name) {
+      patch.source = 'manual-renamed';
+    }
+    if (Object.keys(patch).length > 0) {
+      [row] = await db.update(initiatives).set(patch).where(eq(initiatives.id, initiativeId)).returning();
     }
     if (epicKeys) {
       await db.delete(initiativeEpics).where(eq(initiativeEpics.initiativeId, initiativeId));
@@ -265,9 +280,7 @@ export class SettingsController {
     }
     const currentEpics = epicKeys ?? (await db.select().from(initiativeEpics).where(eq(initiativeEpics.initiativeId, initiativeId))).map((e) => e.epicKey);
     invalidateMetricsContext();
-    const body: InitiativeAdminItemResponse = {
-      initiative: { id: row!.id, name: row!.name, slug: row!.slug, position: row!.position, epicKeys: currentEpics },
-    };
+    const body: InitiativeAdminItemResponse = { initiative: initiativeToDto(row!, currentEpics) };
     res.status(200).json(body);
   }
 

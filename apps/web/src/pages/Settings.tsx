@@ -62,7 +62,16 @@ interface InitiativeAdmin {
   name: string;
   slug: string;
   position: number;
+  source: 'manual' | 'auto' | 'manual-renamed';
+  epicKey: string | null;
   epicKeys: string[];
+}
+
+/** Etiqueta de origen de una iniciativa (`auto · DEV-12`), o null si es manual. */
+export function initiativeTagLabel(i: Pick<InitiativeAdmin, 'source' | 'epicKey'>): string | null {
+  if (i.source === 'auto') return `auto · ${i.epicKey ?? '?'}`;
+  if (i.source === 'manual-renamed') return `auto renombrada · ${i.epicKey ?? '?'}`;
+  return null;
 }
 
 /** Pestaña General: campos simples + JSON editable para flujo/alias/macro-mapa. */
@@ -326,16 +335,31 @@ function IniciativasTab() {
     reload();
   }
 
+  async function renameInitiative(i: InitiativeAdmin) {
+    const name = window.prompt('Nuevo nombre', i.name)?.trim();
+    if (!name || name === i.name) return;
+    await adminApi.updateInitiativeAdmin(i.id, { name }).catch(() => setError('No se pudo renombrar.'));
+    reload();
+  }
+
   return (
-    <Block plain title="Iniciativas" lead="Agrupación manual de épicas de Jira para el seguimiento de negocio.">
+    <Block
+      plain
+      title="Iniciativas"
+      lead="Una por épica de Jira (creadas en cada sync). Agrupa varias épicas en una iniciativa manual si lo necesitas; las auto vuelven en el siguiente sync si las borras."
+    >
       {error ? <p className="error-msg">{error}</p> : null}
       <div className="grid">
         {initiatives.map((i) => (
           <div className="card" key={i.id}>
             <h4>
-              {i.name} <span className="muted small">({i.slug})</span>
+              {i.name} <span className="muted small">({i.slug})</span>{' '}
+              {initiativeTagLabel(i) ? <span className="tag tag-auto">{initiativeTagLabel(i)}</span> : null}
             </h4>
             <p className="small">Épicas: {i.epicKeys.join(', ') || '(ninguna)'}</p>
+            <button type="button" className="btn sec" onClick={() => renameInitiative(i)}>
+              Renombrar
+            </button>{' '}
             <button type="button" className="btn sec" onClick={() => removeInitiative(i.id)}>
               Borrar
             </button>

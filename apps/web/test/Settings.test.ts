@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateSettingsJson } from '../src/pages/Settings';
+import { initiativeTagLabel, validateSettingsJson } from '../src/pages/Settings';
 
 describe('validateSettingsJson', () => {
   it('acepta una lista de strings válida para statusFlow', () => {
@@ -27,5 +27,19 @@ describe('validateSettingsJson', () => {
     const result = validateSettingsJson('{"En Progreso": "en_marcha"}', 'record');
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value).toEqual({ 'En Progreso': 'en_marcha' });
+  });
+});
+
+describe('initiativeTagLabel', () => {
+  it('iniciativa auto ⇒ "auto · CLAVE"', () => {
+    expect(initiativeTagLabel({ source: 'auto', epicKey: 'DEV-12' })).toBe('auto · DEV-12');
+  });
+
+  it('auto renombrada ⇒ etiqueta distinta con la clave', () => {
+    expect(initiativeTagLabel({ source: 'manual-renamed', epicKey: 'DEV-12' })).toBe('auto renombrada · DEV-12');
+  });
+
+  it('manual ⇒ sin etiqueta', () => {
+    expect(initiativeTagLabel({ source: 'manual', epicKey: null })).toBeNull();
   });
 });

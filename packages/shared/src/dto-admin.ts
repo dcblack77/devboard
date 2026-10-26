@@ -63,12 +63,18 @@ export interface PersonAdminItemResponse {
   person: PersonAdminDto;
 }
 
+/** Origen de una iniciativa: creada a mano, creada por el sync desde una épica, o auto renombrada a mano. */
+export type InitiativeSource = 'manual' | 'auto' | 'manual-renamed';
+
 /** Fila `initiatives` + claves de épicas asociadas (tabla `initiative_epics`). */
 export interface InitiativeAdminDto {
   id: number;
   name: string;
   slug: string;
   position: number;
+  source: InitiativeSource;
+  /** Épica origen cuando `source !== 'manual'`. */
+  epicKey: string | null;
   epicKeys: string[];
 }
 
