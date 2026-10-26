@@ -1,10 +1,8 @@
-import { and, desc, eq } from 'drizzle-orm';
 import { SyncSource, type SyncStateDto } from '@devboard/shared';
-import { getDb } from '../../db/client.js';
-import { syncRuns } from '../../db/schema.js';
 import { logger } from '../../config/logger.js';
 import { getRegisteredSources } from './registry.js';
 import { invalidateMetricsContext } from '../../domain/context.js';
+import { DrizzleSyncRunsRepo, type SyncRunsRepo, type SyncRunRow } from './sync-runs.repo.js';
 
 /** Fuentes placeholder usadas mientras no haya integraciones reales registradas (Fase 1). */
 const PLACEHOLDER_SOURCE_NAMES: string[] = [SyncSource.Jira, SyncSource.GitHub];
@@ -22,7 +20,37 @@ export function isSyncRunning(): boolean {
   return running;
 }
 
+/**
+ * Un run "vacío" tras uno que trajo datos es sospechoso (credencial caducada,
+ * proyecto sin acceso: Jira responde 200 con `issues: []` en acceso anónimo).
+ * Devuelve el mensaje de error si debe marcarse como fallo, o null si es legítimo.
+ */
+export function detectSuspiciousZeroRun(
+  source: string,
+  counts: Record<string, number>,
+  lastOk: Record<string, number> | null,
+): string | null {
+  if (source === SyncSource.Jira) {
+    const prev = lastOk?.issues ?? 0;
+    if (prev > 0 && (counts.issues ?? 0) === 0) {
+      return `sync jira: 0 issues cuando la última ejecución correcta trajo ${prev}; posible credencial caducada o proyecto sin acceso`;
+    }
+    return null;
+  }
+  if (source === SyncSource.GitHub) {
+    // El sync de GitHub es incremental: 0 PRs nuevas es normal. Solo es sospechoso
+    // que no se haya hecho ninguna llamada a la API.
+    if (lastOk && (counts.apiCalls ?? 0) === 0) {
+      return 'sync github: 0 llamadas a la API; posible credencial caducada o configuración vacía';
+    }
+    return null;
+  }
+  return null;
+}
+
 export class SyncService {
+  constructor(private readonly runs: SyncRunsRepo = new DrizzleSyncRunsRepo()) {}
+
   /**
    * Sincroniza todas las fuentes. Devuelve `false` sin hacer nada si ya había una en curso.
    */
@@ -54,37 +82,30 @@ export class SyncService {
     }
   }
 
-  private async runOne(
-    source: string,
-    execute: () => Promise<{ counts: Record<string, number> }>,
-  ): Promise<void> {
-    const db = getDb();
+  async runOne(source: string, execute: () => Promise<{ counts: Record<string, number> }>): Promise<void> {
     const startedAt = new Date();
-    const [row] = await db
-      .insert(syncRuns)
-      .values({ source, startedAt, ok: null, counts: {} })
-      .returning({ id: syncRuns.id });
+    const id = await this.runs.insertStart(source, startedAt);
 
     try {
       const result = await execute();
-      await db
-        .update(syncRuns)
-        .set({ finishedAt: new Date(), ok: true, counts: result.counts })
-        .where(eq(syncRuns.id, row.id));
+      const lastOk = await this.runs.lastOkCounts(source);
+      const suspicious = detectSuspiciousZeroRun(source, result.counts, lastOk);
+      if (suspicious) {
+        await this.runs.finish(id, { finishedAt: new Date(), ok: false, counts: result.counts, error: suspicious });
+        logger.error({ source, counts: result.counts, error: suspicious }, 'sync run marcado como fallido');
+        return;
+      }
+      await this.runs.finish(id, { finishedAt: new Date(), ok: true, counts: result.counts });
       logger.info({ source, counts: result.counts }, 'sync run completado');
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
-      await db
-        .update(syncRuns)
-        .set({ finishedAt: new Date(), ok: false, error })
-        .where(eq(syncRuns.id, row.id));
+      await this.runs.finish(id, { finishedAt: new Date(), ok: false, error });
       logger.error({ source, error }, 'sync run falló');
     }
   }
 
-  async latestRuns(limit = 20) {
-    const db = getDb();
-    return db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(limit);
+  async latestRuns(limit = 20): Promise<SyncRunRow[]> {
+    return this.runs.latest(limit);
   }
 
   /**
@@ -92,23 +113,11 @@ export class SyncService {
    * Las fuentes salen de las registradas (o las placeholder si no hay ninguna).
    */
   async state(): Promise<SyncStateDto> {
-    const db = getDb();
     const registered = getRegisteredSources().map((s) => s.name);
     const names = registered.length > 0 ? registered : PLACEHOLDER_SOURCE_NAMES;
     const sources = await Promise.all(
       names.map(async (source) => {
-        const [lastOk] = await db
-          .select({ finishedAt: syncRuns.finishedAt })
-          .from(syncRuns)
-          .where(and(eq(syncRuns.source, source), eq(syncRuns.ok, true)))
-          .orderBy(desc(syncRuns.startedAt))
-          .limit(1);
-        const [last] = await db
-          .select({ ok: syncRuns.ok, error: syncRuns.error })
-          .from(syncRuns)
-          .where(eq(syncRuns.source, source))
-          .orderBy(desc(syncRuns.startedAt))
-          .limit(1);
+        const [lastOk, last] = await Promise.all([this.runs.lastOkRun(source), this.runs.lastRun(source)]);
         return {
           source,
           lastOkAt: lastOk?.finishedAt ? lastOk.finishedAt.toISOString() : null,
