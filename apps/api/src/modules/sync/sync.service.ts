@@ -1,8 +1,13 @@
-import { SyncSource, type SyncStateDto } from '@devboard/shared';
+import { SyncSource, type SyncHealthDto, type SyncSourceHealthDto, type SyncStateDto } from '@devboard/shared';
 import { logger } from '../../config/logger.js';
 import { getRegisteredSources } from './registry.js';
 import { invalidateMetricsContext } from '../../domain/context.js';
 import { DrizzleSyncRunsRepo, type SyncRunsRepo, type SyncRunRow } from './sync-runs.repo.js';
+
+/** Si no hay settings, intervalo por defecto del scheduler (minutos). */
+const DEFAULT_SYNC_MINUTES = 30;
+/** Una fuente está "stale" si no hay run ok en este múltiplo del intervalo de sync. */
+const STALE_FACTOR = 3;
 
 /** Fuentes placeholder usadas mientras no haya integraciones reales registradas (Fase 1). */
 const PLACEHOLDER_SOURCE_NAMES: string[] = [SyncSource.Jira, SyncSource.GitHub];
@@ -127,5 +132,27 @@ export class SyncService {
       }),
     );
     return { running: isSyncRunning(), sources };
+  }
+
+  /**
+   * Salud por fuente para `/api/sync/status`: `stale` si la última ejecución falló o
+   * la última correcta es más antigua que 3 × `settings.syncMinutes`.
+   */
+  async health(now: Date = new Date()): Promise<SyncHealthDto> {
+    const minutes = (await this.runs.syncMinutes()) ?? DEFAULT_SYNC_MINUTES;
+    const maxAgeMs = STALE_FACTOR * minutes * 60_000;
+    const one = async (source: string): Promise<SyncSourceHealthDto> => {
+      const [lastOk, last] = await Promise.all([this.runs.lastOkRun(source), this.runs.lastRun(source)]);
+      const lastOkAt = lastOk?.finishedAt ?? null;
+      const lastFailed = last?.ok === false;
+      const tooOld = lastOkAt === null || now.getTime() - lastOkAt.getTime() > maxAgeMs;
+      return {
+        lastOkAt: lastOkAt ? lastOkAt.toISOString() : null,
+        stale: lastFailed || tooOld,
+        lastError: last?.ok === false ? (last.error ?? null) : null,
+      };
+    };
+    const [jira, github] = await Promise.all([one(SyncSource.Jira), one(SyncSource.GitHub)]);
+    return { jira, github };
   }
 }

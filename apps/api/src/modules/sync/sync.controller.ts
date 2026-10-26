@@ -1,6 +1,6 @@
 import { controller, Get, Post, request, response } from '@expressots/adapter-express';
 import type { Request, Response } from 'express';
-import { Role, type SyncRunDto, type SyncStateDto } from '@devboard/shared';
+import { Role, type SyncRunDto, type SyncStateDto, type SyncStatusDto } from '@devboard/shared';
 import { SyncService, isSyncRunning } from './sync.service.js';
 import { requireRole } from '../../middleware/auth.middleware.js';
 
@@ -9,18 +9,20 @@ import { requireRole } from '../../middleware/auth.middleware.js';
 export class SyncController {
   private readonly syncService = new SyncService();
 
+  /** Últimas ejecuciones + salud por fuente (stale si la última falló o la última ok es vieja). */
   @Get('/status')
   async status(@response() res: Response) {
-    const rows = await this.syncService.latestRuns();
-    const body: SyncRunDto[] = rows.map((r) => ({
+    const [rows, health] = await Promise.all([this.syncService.latestRuns(), this.syncService.health()]);
+    const runs: SyncRunDto[] = rows.map((r) => ({
       id: r.id,
       source: r.source,
       startedAt: r.startedAt.toISOString(),
       finishedAt: r.finishedAt ? r.finishedAt.toISOString() : null,
       ok: r.ok,
       error: r.error,
-      counts: (r.counts as Record<string, number>) ?? {},
+      counts: r.counts ?? {},
     }));
+    const body: SyncStatusDto = { runs, health };
     res.status(200).json(body);
   }
 

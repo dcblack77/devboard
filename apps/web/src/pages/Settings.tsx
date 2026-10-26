@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SettingsDto, SyncRunDto } from '@devboard/shared';
 import { adminApi } from '../api/admin';
+import { api } from '../api/client';
 import { Block } from '../components/Block';
 
 type Tab = 'general' | 'personas' | 'iniciativas' | 'sincronizacion' | 'snapshots';
@@ -374,15 +375,10 @@ function SincronizacionTab() {
   const [launching, setLaunching] = useState(false);
 
   function reload() {
-    api_syncStatus()
-      .then(setRuns)
+    api
+      .syncStatus()
+      .then((s) => setRuns(s.runs))
       .catch(() => setError('No se pudo consultar el estado de sincronización.'));
-  }
-
-  async function api_syncStatus(): Promise<SyncRunDto[]> {
-    const res = await fetch('/api/sync/status', { credentials: 'include' });
-    if (!res.ok) throw new Error('error');
-    return (await res.json()) as SyncRunDto[];
   }
 
   useEffect(() => {

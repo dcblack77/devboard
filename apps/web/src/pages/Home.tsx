@@ -4,6 +4,7 @@ import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { Rag } from '../components/Rag';
 import { PrintButton } from '../components/PrintButton';
+import { SyncHealthBanner } from '../components/SyncHealthBanner';
 import { LineChart } from '../components/charts/LineChart';
 
 /** Colores RAG cortos usados por el dominio de métricas ('r'|'a'|'g'). */
@@ -76,6 +77,7 @@ export function Home() {
 
   return (
     <main>
+      <SyncHealthBanner />
       <h1>Inicio</h1>
       <p className="lead">Estado general del equipo: compromiso, entrega, riesgo y calidad.</p>
       <PrintButton />

@@ -35,6 +35,31 @@ export interface SyncRunDto {
   counts: Record<string, number>;
 }
 
+/** Salud de una fuente de sincronización (expuesta en `GET /api/sync/status`). */
+export interface SyncSourceHealthDto {
+  /** Fin de la última ejecución correcta, o null si nunca hubo una. */
+  lastOkAt: string | null;
+  /**
+   * `true` si la última ejecución falló o no hay ninguna correcta en los últimos
+   * 3 × `settings.syncMinutes`: los datos mostrados no son fiables.
+   */
+  stale: boolean;
+  /** Error de la última ejecución (null si fue correcta). */
+  lastError: string | null;
+}
+
+/** Salud por fuente. */
+export interface SyncHealthDto {
+  jira: SyncSourceHealthDto;
+  github: SyncSourceHealthDto;
+}
+
+/** Respuesta de `GET /api/sync/status`: últimas ejecuciones + salud por fuente. */
+export interface SyncStatusDto {
+  runs: SyncRunDto[];
+  health: SyncHealthDto;
+}
+
 /** Estado de una fuente en `GET /api/sync/state`. */
 export interface SyncSourceStateDto {
   source: SyncSource | string;

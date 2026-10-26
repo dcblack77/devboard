@@ -13,8 +13,8 @@ import type {
   PeopleResponse,
   PersonDetailResponse,
   SettingsDto,
-  SyncRunDto,
   SyncStateDto,
+  SyncStatusDto,
   TeamResponse,
 } from '@devboard/shared';
 
@@ -85,7 +85,7 @@ export const api = {
   teamMember: (slug: string) => request<PersonDetailResponse>(`/team/${slug}`),
   me_: (slug: string) => request<PersonDetailResponse>(`/me/${slug}`),
 
-  syncStatus: () => request<SyncRunDto[]>('/sync/status'),
+  syncStatus: () => request<SyncStatusDto>('/sync/status'),
   syncRun: () => request<void>('/sync/run', { method: 'POST' }),
   syncState: () => request<SyncStateDto>('/sync/state'),
   links: () => request<IssueLinksResponse>('/links'),

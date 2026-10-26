@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -13,5 +14,11 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  test: {
+    // Tests de componentes React (test/*.test.tsx) corren en jsdom; el resto en node
+    // (los .tsx pueden fijarlo también con `// @vitest-environment jsdom`).
+    environment: 'node',
+    environmentMatchGlobs: [['test/**/*.test.tsx', 'jsdom']],
   },
 });
