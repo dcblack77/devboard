@@ -233,3 +233,78 @@ export function prPractice(
   const feature = prs.filter((p) => isFeaturePr(p, settings, window));
   return { byQuarter: groupBy(feature, quarterKey), byMonth: groupBy(feature, monthKey) };
 }
+
+/** Nombres de estado normalizados de la vista Kanban (mismos que `statusFlow` de Jira). */
+export const KANBAN_STATUSES = {
+  inProgress: 'En curso',
+  inReview: 'In review',
+  blocked: 'Blocked',
+  deployedDev: 'Desplegado en DEV',
+  qaBusiness: 'QA Negocio',
+} as const;
+
+export interface KanbanStateStat {
+  status: string;
+  p50H: number | null;
+  pctOfTickets: number | null;
+}
+
+export interface KanbanFlow {
+  tickets: number;
+  cycleKanbanH: number | null;
+  engineeringH: number | null;
+  waitingH: number | null;
+  flowEfficiency: number | null;
+  states: KanbanStateStat[];
+  reworkPct: number | null;
+  /** % resueltos antes de `deliveredAt` (no hay enlace PR→issue en la entrada). */
+  closedBeforeDeliveredPct: number | null;
+}
+
+function sumIn(segments: SystemSegment[], statuses: readonly string[]): number {
+  return segments.filter((s) => statuses.includes(s.status)).reduce((acc, s) => acc + hours(s.startedAt, s.endedAt), 0);
+}
+
+/** Ciclo Kanban + flow efficiency sobre issues resueltos en la ventana. */
+export function kanbanCycle(issues: SystemIssue[], window: Window): KanbanFlow {
+  const K = KANBAN_STATUSES;
+  const engStatuses = [K.inProgress, K.inReview];
+  const waitStatuses = [K.blocked, K.deployedDev, K.qaBusiness];
+  const resolved = issues.filter((i) => inWindow(i.resolvedAt, window)) as (SystemIssue & { resolvedAt: Date })[];
+  const cycle: number[] = [];
+  const eng: number[] = [];
+  const wait: number[] = [];
+  let rework = 0;
+  let closedBefore = 0;
+  const perState = new Map<string, number[]>();
+  for (const i of resolved) {
+    const start = i.segments.find((s) => s.status === K.inProgress);
+    const end = i.deliveredAt ?? i.resolvedAt;
+    if (start) cycle.push(hours(start.startedAt, end));
+    const e = sumIn(i.segments, engStatuses);
+    const w = sumIn(i.segments, waitStatuses);
+    eng.push(e);
+    wait.push(w);
+    if (i.segments.filter((s) => s.status === K.inProgress).length >= 2) rework += 1;
+    if (i.deliveredAt && i.resolvedAt < i.deliveredAt) closedBefore += 1;
+    const byStatus = new Map<string, number>();
+    for (const s of i.segments) byStatus.set(s.status, (byStatus.get(s.status) ?? 0) + hours(s.startedAt, s.endedAt));
+    for (const [st, h] of byStatus) perState.set(st, [...(perState.get(st) ?? []), h]);
+  }
+  const engTotal = eng.reduce((a, b) => a + b, 0);
+  const waitTotal = wait.reduce((a, b) => a + b, 0);
+  const n = resolved.length;
+  return {
+    tickets: n,
+    cycleKanbanH: quantile(cycle, 0.5),
+    engineeringH: quantile(eng, 0.5),
+    waitingH: quantile(wait, 0.5),
+    flowEfficiency: engTotal + waitTotal === 0 ? null : engTotal / (engTotal + waitTotal),
+    states: [...perState.keys()].sort().map((status) => {
+      const hs = perState.get(status) as number[];
+      return { status, p50H: quantile(hs, 0.5), pctOfTickets: pct(hs.length, n) };
+    }),
+    reworkPct: pct(rework, n),
+    closedBeforeDeliveredPct: pct(closedBefore, n),
+  };
+}
