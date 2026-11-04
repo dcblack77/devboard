@@ -8,3 +8,7 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 cookies.txt
+.env.*
+!.env.example
+.hermes/
+*.sql.gz
