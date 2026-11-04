@@ -172,20 +172,40 @@ export class DrizzleSkillsRepo implements SkillsRepo {
     return written.length;
   }
 
+  /**
+   * El sync no rellena las columnas `*_person_id`: la canonización de personas se hace, como en
+   * el resto de métricas, por `people.github_logins` / `people.jira_names`. Resolvemos aquí con
+   * el mismo criterio y usamos la columna FK solo como respaldo.
+   */
   async activitySince(since: Date): Promise<ActivitySnapshot> {
     const db = getDb();
+    const personByGithub = (login: typeof pullRequests.authorLogin | typeof prReviews.reviewerLogin) =>
+      sql<number | null>`(select ${people.id} from ${people} where ${login} = any(${people.githubLogins}) limit 1)`;
+    const personByJira = sql<number | null>`(select ${people.id} from ${people} where ${issues.assigneeRaw} = any(${people.jiraNames}) limit 1)`;
     const [prRows, reviewRows, issueRows, epicRows] = await Promise.all([
       db
-        .select({ repo: pullRequests.repo, authorPersonId: pullRequests.authorPersonId, mergedAt: pullRequests.mergedAt })
+        .select({
+          repo: pullRequests.repo,
+          authorPersonId: sql<number | null>`coalesce(${pullRequests.authorPersonId}, ${personByGithub(pullRequests.authorLogin)})`,
+          mergedAt: pullRequests.mergedAt,
+        })
         .from(pullRequests)
         .where(and(isNotNull(pullRequests.mergedAt), gte(pullRequests.mergedAt, since))),
       db
-        .select({ repo: pullRequests.repo, reviewerPersonId: prReviews.reviewerPersonId, submittedAt: prReviews.submittedAt })
+        .select({
+          repo: pullRequests.repo,
+          reviewerPersonId: sql<number | null>`coalesce(${prReviews.reviewerPersonId}, ${personByGithub(prReviews.reviewerLogin)})`,
+          submittedAt: prReviews.submittedAt,
+        })
         .from(prReviews)
         .innerJoin(pullRequests, eq(prReviews.prId, pullRequests.id))
         .where(and(eq(prReviews.isBot, false), isNotNull(prReviews.submittedAt), gte(prReviews.submittedAt, since))),
       db
-        .select({ epicKey: issues.epicKey, personId: issues.personId, at: issues.updatedAt })
+        .select({
+          epicKey: issues.epicKey,
+          personId: sql<number | null>`coalesce(${issues.personId}, ${personByJira})`,
+          at: issues.updatedAt,
+        })
         .from(issues)
         .where(and(isNotNull(issues.epicKey), gte(issues.updatedAt, since))),
       db.select({ key: epics.key, summary: epics.summary }).from(epics),
