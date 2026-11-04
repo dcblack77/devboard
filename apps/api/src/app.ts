@@ -21,6 +21,7 @@ import { SettingsController } from './modules/settings/settings.controller.js';
 import { ExportController } from './modules/export/export.controller.js';
 import { SnapshotsController } from './modules/snapshots/snapshots.controller.js';
 import { LinksController } from './modules/links/links.controller.js';
+import { SkillsAdminController, SkillsController } from './modules/skills/skills.controller.js';
 import { resolveSession } from './middleware/auth.middleware.js';
 import { startScheduler } from './jobs/scheduler.js';
 import { registerRealSources } from './modules/sync/register-sources.js';
@@ -49,6 +50,8 @@ export class App extends AppExpress {
       ExportController,
       SnapshotsController,
       LinksController,
+      SkillsController,
+      SkillsAdminController,
     ]),
   ]);
 

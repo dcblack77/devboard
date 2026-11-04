@@ -3,6 +3,7 @@ import { logger } from '../../config/logger.js';
 import { getRegisteredSources } from './registry.js';
 import { invalidateMetricsContext } from '../../domain/context.js';
 import { DrizzleSyncRunsRepo, type SyncRunsRepo, type SyncRunRow } from './sync-runs.repo.js';
+import { SkillsService } from '../skills/skills.service.js';
 
 /** Si no hay settings, intervalo por defecto del scheduler (minutos). */
 const DEFAULT_SYNC_MINUTES = 30;
@@ -70,6 +71,7 @@ export class SyncService {
         for (const source of sources) {
           await this.runOne(source.name, () => source.run());
         }
+        await this.recomputeSkills();
         return true;
       }
 
@@ -84,6 +86,19 @@ export class SyncService {
       // El contexto de métricas cacheado (Fase 2) queda obsoleto tras cualquier sync,
       // haya tenido éxito o no (los datos de las fuentes que sí funcionaron ya están en DB).
       invalidateMetricsContext();
+    }
+  }
+
+  /**
+   * Recalcula las skills de dominio (repos / épicas) tras el sync. Nunca tumba el sync: un
+   * fallo aquí solo deja traza en el log.
+   */
+  private async recomputeSkills(): Promise<void> {
+    try {
+      const result = await new SkillsService().recompute();
+      logger.info(result, 'skills de dominio recalculadas tras el sync');
+    } catch (err) {
+      logger.error({ err }, 'no se pudieron recalcular las skills tras el sync');
     }
   }
 
