@@ -19,7 +19,24 @@ pantalla de Ajustes.
 - **Iniciativas / Épicas / Datos**: agrupación de épicas con RAG automático, avance %, tablas crudas.
 - **Team** (solo Tech Lead): ranking con semáforos, medianas, perfil por persona, versión para
   compartir `/me/:slug` (sin navegación ni datos de otros), export Excel, fotos semanales.
-- **Ajustes** (solo Tech Lead): general, personas (mapa Jira↔GitHub), iniciativas, sincronización, snapshots.
+- **Skills** (solo Tech Lead): mapa de competencias, stack y dominio por persona con niveles 0–3,
+  seniority global, cobertura y bus factor por skill.
+- **Ajustes** (solo Tech Lead): general, personas (mapa Jira↔GitHub), iniciativas, sincronización, snapshots, skills.
+
+## Skills
+
+Mapa de skills del equipo (`/skills`, solo Tech Lead). Tres categorías de skill: **competencias**
+transversales y **stack** técnico (catálogo por defecto, editable en Ajustes) y **dominio**
+(repos de GitHub y épicas de Jira, creadas automáticamente).
+
+- **Niveles** por persona y skill: 0 no ha tocado · 1 con ayuda · 2 autónomo · 3 referente.
+- **Seniority** global por persona (`junior` / `mid` / `senior`), siempre manual.
+- **Dominio automático**: en cada sync (y con `POST /api/skills/recompute`) se sugiere el nivel en
+  cada repo/épica a partir de la actividad de los últimos 365 días (PRs mergeados, reviews, issues
+  asignados). Las celdas editadas a mano (`manual`) ganan siempre sobre las automáticas (`auto`).
+- **Cobertura** de una skill = personas con nivel ≥ 2.
+- **Bus factor**: rojo ≤ 1 persona · ámbar 2 · verde ≥ 3. El perfil de cada persona muestra las
+  skills de las que es la única cubriendo.
 
 ## Instalación en 5 pasos
 
