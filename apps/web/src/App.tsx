@@ -17,6 +17,7 @@ import { Settings } from './pages/Settings';
 import { Jira } from './pages/Jira';
 import { Github } from './pages/Github';
 import { People } from './pages/People';
+import { Skills } from './pages/Skills';
 import { Initiatives } from './pages/Initiatives';
 import { Initiative } from './pages/Initiative';
 import { Epics } from './pages/Epics';
@@ -97,6 +98,7 @@ function AppRoutes({
         <Route path="/jira" element={<Jira />} />
         <Route path="/github" element={<Github />} />
         <Route path="/people" element={<People />} />
+        <Route path="/skills" element={<Skills />} />
         <Route path="/initiatives" element={<Initiatives />} />
         <Route path="/initiatives/:slug" element={<Initiative />} />
         <Route path="/epics" element={<Epics />} />

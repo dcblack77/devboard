@@ -14,6 +14,7 @@ const PUBLIC_LINKS: NavLinkDef[] = [
   { to: '/jira', label: 'Entrega' },
   { to: '/github', label: 'Code review' },
   { to: '/people', label: 'Personas' },
+  { to: '/skills', label: 'Skills' },
   { to: '/initiatives', label: 'Iniciativas' },
   { to: '/epics', label: 'Épicas' },
   { to: '/data', label: 'Datos' },

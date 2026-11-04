@@ -1,17 +1,24 @@
 import type {
   CreateInitiativeRequest,
   CreatePersonRequest,
+  CreateSkillRequest,
   DiscoverResponse,
   InitiativeAdminItemResponse,
   InitiativesAdminResponse,
   PeopleAdminResponse,
   PersonAdminItemResponse,
+  PersonSkillItemResponse,
+  RecomputeSkillsResponse,
+  SetPersonSkillRequest,
+  SetSeniorityRequest,
   SettingsAdminResponse,
+  SkillItemResponse,
   SnapshotDetailResponse,
   SnapshotListResponse,
   UpdateInitiativeRequest,
   UpdatePersonRequest,
   UpdateSettingsRequest,
+  UpdateSkillRequest,
 } from '@devboard/shared';
 
 /** Error lanzado cuando la API responde con un código de error HTTP (copia de `client.ts`). */
@@ -90,4 +97,16 @@ export const adminApi = {
   snapshots: () => request<SnapshotListResponse>('/snapshots'),
   snapshot: (id: number) => request<SnapshotDetailResponse>(`/snapshots/${id}`),
   createSnapshot: () => request<SnapshotDetailResponse>('/snapshots', { method: 'POST' }),
+
+  createSkill: (body: CreateSkillRequest) =>
+    request<SkillItemResponse>('/skills', { method: 'POST', body: JSON.stringify(body) }),
+  updateSkill: (skillId: number, body: UpdateSkillRequest) =>
+    request<SkillItemResponse>(`/skills/${skillId}`, { method: 'PUT', body: JSON.stringify(body) }),
+  setPersonSkill: (personId: number, skillId: number, body: SetPersonSkillRequest) =>
+    request<PersonSkillItemResponse>(`/people/${personId}/skills/${skillId}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deletePersonSkill: (personId: number, skillId: number) =>
+    request<void>(`/people/${personId}/skills/${skillId}`, { method: 'DELETE' }),
+  setSeniority: (personId: number, body: SetSeniorityRequest) =>
+    request<PersonAdminItemResponse>(`/people/${personId}/seniority`, { method: 'PUT', body: JSON.stringify(body) }),
+  recomputeSkills: () => request<RecomputeSkillsResponse>('/skills/recompute', { method: 'POST' }),
 };

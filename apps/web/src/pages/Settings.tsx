@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import type { InitiativeAdminDto, SettingsDto, SyncRunDto } from '@devboard/shared';
+import type { InitiativeAdminDto, Seniority, SettingsDto, SkillDto, SkillPersonDto, SyncRunDto } from '@devboard/shared';
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
 
-type Tab = 'general' | 'personas' | 'iniciativas' | 'sincronizacion' | 'snapshots';
+type Tab = 'general' | 'personas' | 'iniciativas' | 'skills' | 'sincronizacion' | 'snapshots';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'general', label: 'General' },
   { id: 'personas', label: 'Personas' },
   { id: 'iniciativas', label: 'Iniciativas' },
+  { id: 'skills', label: 'Skills' },
   { id: 'sincronizacion', label: 'Sincronización' },
   { id: 'snapshots', label: 'Snapshots' },
 ];
@@ -315,6 +316,131 @@ function PersonasTab() {
   );
 }
 
+/** Pestaña Skills: catálogo editable (competencias y stack), alta de skills y seniority por persona. */
+function SkillsTab() {
+  const [skills, setSkills] = useState<SkillDto[]>([]);
+  const [people, setPeople] = useState<SkillPersonDto[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{ name: string; category: 'competency' | 'stack'; description: string }>({
+    name: '',
+    category: 'competency',
+    description: '',
+  });
+
+  function reload() {
+    api
+      .skills()
+      .then((r) => {
+        setSkills(r.skills.filter((s) => s.category !== 'domain').sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)));
+        setPeople([...r.people].sort((a, b) => a.name.localeCompare(b.name)));
+      })
+      .catch(() => setError('No se pudo cargar el catálogo de skills.'));
+  }
+
+  useEffect(reload, []);
+
+  function editSkill(id: number, patch: Partial<SkillDto>) {
+    setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+
+  async function saveSkill(s: SkillDto) {
+    await adminApi
+      .updateSkill(s.id, { name: s.name, description: s.description, active: s.active, sortOrder: s.sortOrder })
+      .catch(() => setError('No se pudo guardar la skill.'));
+    reload();
+  }
+
+  async function createSkill() {
+    if (!draft.name.trim()) return;
+    await adminApi
+      .createSkill({ name: draft.name.trim(), category: draft.category, description: draft.description.trim() || undefined })
+      .catch(() => setError('No se pudo crear la skill.'));
+    setDraft({ name: '', category: 'competency', description: '' });
+    reload();
+  }
+
+  async function changeSeniority(p: SkillPersonDto, value: string) {
+    const seniority = (value || null) as Seniority | null;
+    setPeople((prev) => prev.map((x) => (x.id === p.id ? { ...x, seniority } : x)));
+    await adminApi.setSeniority(p.id, { seniority }).catch(() => setError('No se pudo guardar la seniority.'));
+  }
+
+  return (
+    <Block plain title="Skills" lead="Catálogo de competencias y stack (el dominio se calcula automáticamente) y seniority por persona.">
+      {error ? <p className="error-msg">{error}</p> : null}
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Descripción</th>
+            <th>Activa</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {skills.map((s) => (
+            <tr key={s.id}>
+              <td>
+                <input value={s.name} onChange={(e) => editSkill(s.id, { name: e.target.value })} />
+              </td>
+              <td>{s.category === 'competency' ? 'Competencia' : 'Stack'}</td>
+              <td>
+                <input value={s.description ?? ''} onChange={(e) => editSkill(s.id, { description: e.target.value || null })} />
+              </td>
+              <td>
+                <input type="checkbox" checked={s.active} onChange={(e) => editSkill(s.id, { active: e.target.checked })} />
+              </td>
+              <td>
+                <button type="button" className="btn sec" onClick={() => saveSkill(s)}>
+                  Guardar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="fbar">
+        <input placeholder="Nombre de la nueva skill" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+        <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value as 'competency' | 'stack' })}>
+          <option value="competency">Competencia</option>
+          <option value="stack">Stack</option>
+        </select>
+        <input placeholder="Descripción (opcional)" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+        <button type="button" className="btn" onClick={createSkill}>
+          Añadir skill
+        </button>
+      </div>
+      <section>
+        <h3>Seniority</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Seniority</th>
+            </tr>
+          </thead>
+          <tbody>
+            {people.map((p) => (
+              <tr key={p.id}>
+                <td>{p.name}</td>
+                <td>
+                  <select value={p.seniority ?? ''} onChange={(e) => changeSeniority(p, e.target.value)}>
+                    <option value="">—</option>
+                    <option value="junior">junior</option>
+                    <option value="mid">mid</option>
+                    <option value="senior">senior</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    </Block>
+  );
+}
+
 /** Pestaña Iniciativas: crear/editar/borrar y asignar épicas sin iniciativa. */
 function IniciativasTab() {
   const [initiatives, setInitiatives] = useState<InitiativeAdmin[]>([]);
@@ -569,6 +695,7 @@ export function Settings() {
       {tab === 'general' ? (settings ? <GeneralTab settings={settings} onSaved={setSettings} /> : <p className="muted">Cargando…</p>) : null}
       {tab === 'personas' ? <PersonasTab /> : null}
       {tab === 'iniciativas' ? <IniciativasTab /> : null}
+      {tab === 'skills' ? <SkillsTab /> : null}
       {tab === 'sincronizacion' ? <SincronizacionTab /> : null}
       {tab === 'snapshots' ? <SnapshotsTab /> : null}
     </main>

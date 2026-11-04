@@ -12,7 +12,9 @@ import type {
   MeResponse,
   PeopleResponse,
   PersonDetailResponse,
+  PersonSkillsResponse,
   SettingsDto,
+  SkillsResponse,
   SyncStateDto,
   SyncStatusDto,
   TeamResponse,
@@ -87,6 +89,9 @@ export const api = {
   team: () => request<TeamResponse>('/team'),
   teamMember: (slug: string) => request<PersonDetailResponse>(`/team/${slug}`),
   me_: (slug: string) => request<PersonDetailResponse>(`/me/${slug}`),
+
+  skills: () => request<SkillsResponse>('/skills'),
+  teamMemberSkills: (slug: string) => request<PersonSkillsResponse>(`/team/${slug}/skills`),
 
   syncStatus: () => request<SyncStatusDto>('/sync/status'),
   syncRun: () => request<void>('/sync/run', { method: 'POST' }),
