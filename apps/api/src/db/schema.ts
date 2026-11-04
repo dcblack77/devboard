@@ -1,4 +1,4 @@
-import { bigint, boolean, index, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * Fila singleton de configuración del equipo. Se siembra al arrancar desde variables de
@@ -36,7 +36,44 @@ export const people = pgTable('people', {
   githubLogins: text('github_logins').array().notNull().default([]),
   note: text('note'),
   active: boolean('active').notNull().default(true),
+  /** Etiqueta global de seniority ('junior' | 'mid' | 'senior'), solo manual. */
+  seniority: text('seniority'),
 });
+
+/**
+ * Catálogo de skills del mapa de skills. `category`: 'competency' (transversal, sembrada),
+ * 'stack' (tecnología, sembrada) o 'domain' (repo de GitHub / épica de Jira, creada
+ * automáticamente en cada recálculo). `description` guarda el descriptor por niveles.
+ */
+export const skills = pgTable('skills', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  category: text('category').notNull(),
+  description: text('description'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+});
+
+/**
+ * Nivel de una persona en una skill: 0 = no ha tocado, 1 = con ayuda, 2 = autónomo,
+ * 3 = referente. `source='manual'` gana siempre sobre `'auto'` (sugerido por el recálculo).
+ */
+export const personSkills = pgTable(
+  'person_skills',
+  {
+    personId: integer('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    skillId: integer('skill_id')
+      .notNull()
+      .references(() => skills.id, { onDelete: 'cascade' }),
+    level: smallint('level').notNull(),
+    source: text('source').notNull(),
+    evidence: text('evidence'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.personId, table.skillId] })],
+);
 
 /**
  * Iniciativa de negocio que agrupa épicas. Por defecto una por épica de Jira, creada

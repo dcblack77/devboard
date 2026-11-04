@@ -4,6 +4,8 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import pkg from 'pg';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { skills } from './schema.js';
+import { DEFAULT_SKILLS } from './seed-skills.js';
 
 const { Pool } = pkg;
 
@@ -18,6 +20,10 @@ async function main() {
   console.log('Aplicando migraciones...');
   await migrate(db, { migrationsFolder: path.join(__dirname, 'migrations') });
   console.log('Migraciones aplicadas correctamente.');
+
+  // Catálogo por defecto de skills (competencias + stack): idempotente, nunca pisa ediciones.
+  await db.insert(skills).values(DEFAULT_SKILLS).onConflictDoNothing({ target: skills.name });
+  console.log('Catálogo de skills por defecto comprobado.');
 
   await pool.end();
 }
