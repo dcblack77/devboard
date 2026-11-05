@@ -27,7 +27,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-devboard}:${POSTGRES_PASSWORD:-devboard}@db:5432/${POSTGRES_DB:-devboard}
     ports:
-      - '8092:8092'
+      # Solo LAN (IPv4): sin esto Docker publica también en [::] y queda abierto a internet.
+      - '${DEVBOARD_BIND:-127.0.0.1}:8092:8092'
     depends_on:
       db:
         condition: service_healthy
