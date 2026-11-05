@@ -32,7 +32,49 @@ export interface SkillPersonDto {
   id: number;
   name: string;
   seniority: Seniority | null;
+  /** Rol manual (etiqueta libre) fijado por el TL; `null` si no se ha fijado. */
+  role: string | null;
 }
+
+/** Forma del conocimiento derivada de la matriz. */
+export type ProfileShape = 'specialist' | 't-shaped' | 'generalist' | 'learning';
+
+/** Perfil de contribución en código (mismos umbrales que el informe mensual). */
+export type ProfileContribution = 'guardian' | 'builder' | 'balanced' | 'occasional' | 'low';
+
+export type RoleSource = 'manual' | 'suggested';
+
+/** Skill referenciada desde el perfil, con el nivel de la persona. */
+export interface ProfileSkillRef {
+  skillId: number;
+  name: string;
+  level: number;
+  evidence?: string | null;
+}
+
+/** Perfil derivado de una persona (`GET /api/team/:slug/skills`). */
+export interface PersonProfileDto {
+  personId: number;
+  shape: ProfileShape;
+  contribution: ProfileContribution;
+  suggestedRole: string | null;
+  /** Rol manual si existe, si no el sugerido. */
+  role: string | null;
+  roleSource: RoleSource | null;
+  /** Skills a nivel 3. */
+  referentIn: ProfileSkillRef[];
+  /** Skills a nivel 3 donde ninguna otra persona activa llega a 2. */
+  soleReferentIn: ProfileSkillRef[];
+  /** Dominios (repos / épicas) con nivel ≥ 2, los más relevantes primero (máx. 6). */
+  domainTop: ProfileSkillRef[];
+  /** Competencias / stack donde la persona está ≤ 1 y al menos la mitad del equipo ≥ 2 (máx. 5). */
+  gaps: ProfileSkillRef[];
+  /** Resumen de una frase en español. */
+  summary: string;
+}
+
+/** Perfil resumido por persona (`GET /api/skills`). */
+export type PersonProfileSummaryDto = Pick<PersonProfileDto, 'personId' | 'shape' | 'contribution' | 'role' | 'roleSource' | 'summary'>;
 
 /** Celda de la matriz persona × skill. */
 export interface PersonSkillDto {
@@ -61,6 +103,7 @@ export interface SkillsResponse {
   people: SkillPersonDto[];
   matrix: PersonSkillDto[];
   coverage: SkillCoverageDto[];
+  profiles: PersonProfileSummaryDto[];
 }
 
 /** Respuesta de `GET /api/team/:slug/skills`. */
@@ -70,6 +113,7 @@ export interface PersonSkillsResponse {
   rows: PersonSkillDto[];
   /** Skills en las que esta persona es la única con nivel ≥ 2. */
   soleOwnerOf: number[];
+  profile: PersonProfileDto;
 }
 
 /** Cuerpo de `POST /api/settings/skills` (solo competencias y stack; el dominio es automático). */
@@ -105,6 +149,11 @@ export interface PersonSkillItemResponse {
 /** Cuerpo de `PUT /api/settings/people/:personId/seniority`. */
 export interface SetSeniorityRequest {
   seniority: Seniority | null;
+}
+
+/** Cuerpo de `PUT /api/settings/people/:personId/role`. */
+export interface SetRoleRequest {
+  role: string | null;
 }
 
 /** Respuesta de `POST /api/skills/recompute`. */
