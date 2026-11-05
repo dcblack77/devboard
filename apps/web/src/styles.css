@@ -144,20 +144,34 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
 .btn.secondary { background: #fff; color: var(--accent); }
 
 /* Mapa de skills: niveles 0–3, cobertura y riesgo bus factor */
-.skills-layout { display: grid; grid-template-columns: 1fr 260px; gap: 14px; align-items: start; }
-.skills-matrix th { font-size: 12px; white-space: nowrap; }
+.skills-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 14px; align-items: start; }
+.skills-layout > div { min-width: 0; }
+/* La matriz va en filas (skills) × columnas (personas). El scroll horizontal, si hace falta,
+   queda dentro de este contenedor y no desborda la página. */
+.skills-scroll { overflow-x: auto; max-width: 100%; }
+.skills-matrix { width: auto; font-size: 12px; }
+.skills-matrix th, .skills-matrix td { padding: 2px 4px; }
+.skills-matrix .skill-name { position: sticky; left: 0; background: var(--card); z-index: 1; text-align: left; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.skills-matrix th.skill-name { font-weight: 600; }
+.skills-matrix .person-col, .skills-matrix .cov-col { width: 24px; vertical-align: bottom; }
+.skills-matrix .person-name { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; max-height: 110px; overflow: hidden; text-overflow: ellipsis; font-weight: 500; font-size: 11px; }
 .skills-matrix .lvl-cell { text-align: center; }
-.skills-matrix tfoot td { font-weight: 600; }
-.lvl { display: inline-block; width: 18px; height: 18px; border-radius: 4px; position: relative; vertical-align: middle; }
+.skills-matrix td.cov-col { font-weight: 700; border-left: 2px solid var(--line); }
+.skills-matrix th.cov-col { border-left: 2px solid var(--line); }
+.lvl { display: inline-block; width: 16px; height: 16px; border-radius: 3px; position: relative; vertical-align: middle; }
 .lvl-0 { background: #e5e7eb; }
 .lvl-1 { background: #bfdbfe; }
 .lvl-2 { background: #60a5fa; }
 .lvl-3 { background: #1d4ed8; }
 .lvl-manual { position: absolute; right: 1px; bottom: -1px; font-size: 8px; line-height: 1; color: #111; font-weight: 700; }
-.lvl-btn { background: none; border: 0; padding: 2px; cursor: pointer; }
+.lvl-btn { background: none; border: 0; padding: 1px; cursor: pointer; line-height: 0; }
 .risk-red { color: var(--warn); }
 .risk-amber { color: var(--amber); }
 .risk-green { color: var(--ok); }
+@media (max-width: 900px) {
+  .skills-layout { grid-template-columns: 1fr; }
+  .skills-matrix .skill-name { max-width: 150px; }
+}
 .seniority { margin-left: 6px; }
 .bus-factor { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .bus-factor li { padding: 3px 0; }

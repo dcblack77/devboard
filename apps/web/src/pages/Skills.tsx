@@ -139,62 +139,62 @@ export function Skills() {
                 {skills.length === 0 ? (
                   <p className="muted">Sin skills en esta categoría.</p>
                 ) : (
-                  <table className="skills-matrix">
-                    <thead>
-                      <tr>
-                        <th>Persona</th>
-                        {skills.map((s) => (
-                          <th key={s.id} title={s.description ?? undefined}>
-                            {s.name}
+                  // Skills en filas y personas en columnas: la lista de skills crece (sobre todo
+                  // el dominio) y en vertical siempre cabe; las personas son pocas y van en
+                  // cabeceras verticales compactas. La primera columna queda fija al hacer scroll.
+                  <div className="skills-scroll">
+                    <table className="skills-matrix">
+                      <thead>
+                        <tr>
+                          <th className="skill-name">Skill</th>
+                          {people.map((p) => (
+                            <th key={p.id} className="person-col" title={p.seniority ? `${p.name} · ${p.seniority}` : p.name}>
+                              <span className="person-name">{p.name}</span>
+                            </th>
+                          ))}
+                          <th className="cov-col" title="Personas con nivel ≥2">
+                            <span className="person-name">Cobertura (≥2)</span>
                           </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {people.map((p) => (
-                        <tr key={p.id}>
-                          <td>
-                            {p.name}
-                            {p.seniority ? <span className="tag tag-auto seniority">{p.seniority}</span> : null}
-                          </td>
-                          {skills.map((s) => {
-                            const row = matrix.get(cellKey(p.id, s.id));
-                            const level = (row?.level ?? 0) as SkillLevel;
-                            const square = <LevelSquare level={level} evidence={row?.evidence} manual={row?.source === 'manual'} />;
-                            return (
-                              <td key={s.id} className="lvl-cell">
-                                {isTl ? (
-                                  <button
-                                    type="button"
-                                    className="lvl-btn"
-                                    aria-label={`${p.name} · ${s.name}: nivel ${level}`}
-                                    onClick={() => cycle(p, s)}
-                                  >
-                                    {square}
-                                  </button>
-                                ) : (
-                                  square
-                                )}
-                              </td>
-                            );
-                          })}
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td>Cobertura (≥2)</td>
+                      </thead>
+                      <tbody>
                         {skills.map((s) => {
                           const c = coverage.get(s.id);
                           return (
-                            <td key={s.id} className={`lvl-cell risk-${c?.risk ?? 'red'}`} data-testid={`coverage-${s.id}`}>
-                              {c?.count2plus ?? 0}
-                            </td>
+                            <tr key={s.id}>
+                              <td className="skill-name" title={s.description ?? undefined}>
+                                {s.name}
+                              </td>
+                              {people.map((p) => {
+                                const row = matrix.get(cellKey(p.id, s.id));
+                                const level = (row?.level ?? 0) as SkillLevel;
+                                const square = <LevelSquare level={level} evidence={row?.evidence} manual={row?.source === 'manual'} />;
+                                return (
+                                  <td key={p.id} className="lvl-cell">
+                                    {isTl ? (
+                                      <button
+                                        type="button"
+                                        className="lvl-btn"
+                                        aria-label={`${p.name} · ${s.name}: nivel ${level}`}
+                                        onClick={() => cycle(p, s)}
+                                      >
+                                        {square}
+                                      </button>
+                                    ) : (
+                                      square
+                                    )}
+                                  </td>
+                                );
+                              })}
+                              <td className={`lvl-cell cov-col risk-${c?.risk ?? 'red'}`} data-testid={`coverage-${s.id}`}>
+                                {c?.count2plus ?? 0}
+                              </td>
+                            </tr>
                           );
                         })}
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </section>
             );
