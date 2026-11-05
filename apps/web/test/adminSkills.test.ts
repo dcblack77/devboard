@@ -40,6 +40,13 @@ describe('adminApi skills: rutas', () => {
     expect(calledUrl(fn)).toBe('/api/settings/people/3/seniority');
   });
 
+  it('setRole → PUT /api/settings/people/:p/role', async () => {
+    const fn = stub();
+    await adminApi.setRole(3, { role: 'Backend lead' });
+    expect(calledUrl(fn)).toBe('/api/settings/people/3/role');
+    expect((fn.mock.calls[0][1] as RequestInit).method).toBe('PUT');
+  });
+
   it('createSkill / updateSkill → /api/settings/skills', async () => {
     const fn = stub();
     await adminApi.createSkill({ name: 'X', category: 'stack' });

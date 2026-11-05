@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type {
+  PersonProfileSummaryDto,
   PersonSkillDto,
   SkillCategory,
   SkillCoverageDto,
@@ -11,6 +12,7 @@ import type {
 import { api } from '../api/client';
 import { adminApi } from '../api/admin';
 import { PrintButton } from '../components/PrintButton';
+import { CONTRIBUTION_LABEL, SHAPE_LABEL } from '../skillsLabels';
 
 const CATEGORIES: Array<{ id: SkillCategory; label: string }> = [
   { id: 'competency', label: 'Competencias' },
@@ -42,6 +44,8 @@ export function Skills() {
   const [error, setError] = useState<string | null>(null);
   const [isTl, setIsTl] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Persona cuyo rol se está editando en línea (solo TL) y el texto del borrador. */
+  const [roleEdit, setRoleEdit] = useState<{ personId: number; value: string } | null>(null);
 
   function load() {
     api
@@ -109,6 +113,21 @@ export function Skills() {
     }
   }
 
+  async function saveRole() {
+    if (!roleEdit) return;
+    const role = roleEdit.value.trim() || null;
+    setRoleEdit(null);
+    try {
+      await adminApi.setRole(roleEdit.personId, { role });
+      load();
+    } catch {
+      setError('No se pudo guardar el rol.');
+    }
+  }
+
+  const profiles = new Map<number, PersonProfileSummaryDto>();
+  for (const p of data.profiles ?? []) profiles.set(p.personId, p);
+
   const atRisk = data.coverage
     .filter((c) => c.risk !== 'green' && skillsById.get(c.skillId)?.active !== false)
     .sort((a, b) => (a.risk === b.risk ? a.count2plus - b.count2plus : a.risk === 'red' ? -1 : 1));
@@ -126,6 +145,53 @@ export function Skills() {
           <span className="small muted">Pulsa una celda para cambiar el nivel (0→1→2→3→0).</span>
         </div>
       ) : null}
+
+      <section className="profiles">
+        <h2>Perfiles</h2>
+        {people.map((p) => {
+          const prof = profiles.get(p.id);
+          const editing = roleEdit?.personId === p.id;
+          const roleText = prof?.role ?? '—';
+          return (
+            <div key={p.id} className="profile-row" data-testid={`profile-${p.id}`}>
+              <div>
+                <strong>{p.name}</strong>
+                {p.seniority ? <span className="chip">{p.seniority}</span> : null}
+                {prof ? <span className="chip">{SHAPE_LABEL[prof.shape]}</span> : null}
+                {prof ? <span className="chip">{CONTRIBUTION_LABEL[prof.contribution]}</span> : null}
+                {editing ? (
+                  <input
+                    className="role-input"
+                    autoFocus
+                    aria-label={`Rol de ${p.name}`}
+                    value={roleEdit.value}
+                    onChange={(e) => setRoleEdit({ personId: p.id, value: e.target.value })}
+                    onBlur={saveRole}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveRole();
+                      if (e.key === 'Escape') setRoleEdit(null);
+                    }}
+                  />
+                ) : isTl ? (
+                  <button
+                    type="button"
+                    className="chip chip-btn"
+                    title="Pulsa para fijar o borrar el rol"
+                    onClick={() => setRoleEdit({ personId: p.id, value: prof?.roleSource === 'manual' ? (prof.role ?? '') : '' })}
+                  >
+                    {roleText}
+                  </button>
+                ) : (
+                  <span className="chip">{roleText}</span>
+                )}
+                {prof?.roleSource === 'suggested' ? <small className="tag tag-auto">sugerido</small> : null}
+                {prof?.roleSource === 'manual' ? <small className="lvl-manual">M</small> : null}
+              </div>
+              {prof ? <div className="small muted">{prof.summary}</div> : null}
+            </div>
+          );
+        })}
+      </section>
 
       <div className="skills-layout">
         <div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { InitiativeAdminDto, Seniority, SettingsDto, SkillDto, SkillPersonDto, SyncRunDto } from '@devboard/shared';
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
@@ -321,6 +321,8 @@ function SkillsTab() {
   const [skills, setSkills] = useState<SkillDto[]>([]);
   const [people, setPeople] = useState<SkillPersonDto[]>([]);
   const [error, setError] = useState<string | null>(null);
+  /** Rol tal y como está guardado en la API, para no hacer PUT si el campo no ha cambiado. */
+  const savedRoles = useRef(new Map<number, string | null>());
   const [draft, setDraft] = useState<{ name: string; category: 'competency' | 'stack'; description: string }>({
     name: '',
     category: 'competency',
@@ -333,6 +335,7 @@ function SkillsTab() {
       .then((r) => {
         setSkills(r.skills.filter((s) => s.category !== 'domain').sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)));
         setPeople([...r.people].sort((a, b) => a.name.localeCompare(b.name)));
+        savedRoles.current = new Map(r.people.map((p) => [p.id, p.role ?? null]));
       })
       .catch(() => setError('No se pudo cargar el catálogo de skills.'));
   }
@@ -357,6 +360,15 @@ function SkillsTab() {
       .catch(() => setError('No se pudo crear la skill.'));
     setDraft({ name: '', category: 'competency', description: '' });
     reload();
+  }
+
+  /** Guarda el rol manual al salir del campo o pulsar Enter; vacío → sin rol. */
+  async function saveRole(p: SkillPersonDto, value: string) {
+    const role = value.trim() || null;
+    if (role === p.role) return;
+    setPeople((prev) => prev.map((x) => (x.id === p.id ? { ...x, role } : x)));
+    savedRoles.current.set(p.id, role);
+    await adminApi.setRole(p.id, { role }).catch(() => setError('No se pudo guardar el rol.'));
   }
 
   async function changeSeniority(p: SkillPersonDto, value: string) {
@@ -412,12 +424,13 @@ function SkillsTab() {
         </button>
       </div>
       <section>
-        <h3>Seniority</h3>
+        <h3>Seniority y rol</h3>
         <table>
           <thead>
             <tr>
               <th>Persona</th>
               <th>Seniority</th>
+              <th>Rol</th>
             </tr>
           </thead>
           <tbody>
@@ -431,6 +444,18 @@ function SkillsTab() {
                     <option value="mid">mid</option>
                     <option value="senior">senior</option>
                   </select>
+                </td>
+                <td>
+                  <input
+                    aria-label={`Rol de ${p.name}`}
+                    placeholder="Rol (vacío = sugerido)"
+                    value={p.role ?? ''}
+                    onChange={(e) => setPeople((prev) => prev.map((x) => (x.id === p.id ? { ...x, role: e.target.value || null } : x)))}
+                    onBlur={(e) => saveRole({ ...p, role: savedRoles.current.get(p.id) ?? null }, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                    }}
+                  />
                 </td>
               </tr>
             ))}

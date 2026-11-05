@@ -1,12 +1,50 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { PersonSkillsResponse, SkillCategory, SkillLevel } from '@devboard/shared';
+import type { PersonProfileDto, ProfileSkillRef, PersonSkillsResponse, SkillCategory, SkillLevel } from '@devboard/shared';
 import { api } from '../api/client';
 import { PersonDetail, type PersonDetailData } from '../components/PersonDetail';
 import { PrintButton } from '../components/PrintButton';
 import { LevelSquare } from './Skills';
+import { CONTRIBUTION_LABEL, SHAPE_LABEL } from '../skillsLabels';
 
 const CATEGORY_LABEL: Record<SkillCategory, string> = { competency: 'Competencias', stack: 'Stack', domain: 'Dominio' };
+
+/** Lista de chips con skills del perfil (referente, dominio, huecos); `sole` marca las de único referente. */
+function SkillChips({ title, items, sole }: { title: string; items: ProfileSkillRef[]; sole?: Set<number> }) {
+  if (items.length === 0) return null;
+  return (
+    <p className="small">
+      <strong>{title}:</strong>{' '}
+      {items.map((s) => (
+        <span key={s.skillId} className="chip" title={s.evidence ?? undefined}>
+          {s.name}
+          {sole?.has(s.skillId) ? ' (único)' : ''}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/** Cabecera del bloque de skills: resumen, forma, contribución, rol y skills destacadas. */
+function ProfileBlock({ profile }: { profile: PersonProfileDto }) {
+  const sole = new Set(profile.soleReferentIn.map((s) => s.skillId));
+  return (
+    <div className="profile-row">
+      <p className="lead">{profile.summary}</p>
+      <div>
+        <span className="chip">Forma: {SHAPE_LABEL[profile.shape]}</span>
+        <span className="chip">Contribución: {CONTRIBUTION_LABEL[profile.contribution]}</span>
+        <span className="chip">
+          Rol: {profile.role ?? '—'}
+          {profile.roleSource === 'suggested' ? ' (sugerido)' : profile.roleSource === 'manual' ? ' (manual)' : ''}
+        </span>
+      </div>
+      <SkillChips title="Referente en" items={profile.referentIn} sole={sole} />
+      <SkillChips title="Dominio" items={profile.domainTop} />
+      <SkillChips title="Huecos" items={profile.gaps} />
+    </div>
+  );
+}
 
 /** Bloque "Skills y dominio": skills con nivel ≥1 agrupadas por categoría y skills de las que es único referente. */
 function PersonSkillsBlock({ data }: { data: PersonSkillsResponse }) {
@@ -21,6 +59,7 @@ function PersonSkillsBlock({ data }: { data: PersonSkillsResponse }) {
   return (
     <section>
       <h2>Skills y dominio</h2>
+      {data.profile ? <ProfileBlock profile={data.profile} /> : null}
       <div className="grid">
         {groups.map((g) => (
           <div className="card" key={g.cat}>

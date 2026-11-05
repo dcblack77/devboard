@@ -10,8 +10,12 @@ const SKILLS = {
     { id: 3, name: 'Pagos', category: 'domain', description: null, sortOrder: 1, active: true },
   ],
   people: [
-    { id: 10, name: 'Ana', seniority: 'senior' },
-    { id: 11, name: 'Bruno', seniority: null },
+    { id: 10, name: 'Ana', seniority: 'senior', role: 'Referente de testing' },
+    { id: 11, name: 'Bruno', seniority: null, role: null },
+  ],
+  profiles: [
+    { personId: 10, shape: 'specialist', contribution: 'guardian', role: 'Referente de testing', roleSource: 'manual', summary: 'Ana es especialista y guardiana del código.' },
+    { personId: 11, shape: 'learning', contribution: 'occasional', role: 'Perfil en formación', roleSource: 'suggested', summary: 'Bruno está en formación con contribución puntual.' },
   ],
   matrix: [
     { personId: 10, skillId: 1, level: 3, source: 'manual', evidence: 'Lidera la estrategia de tests' },
@@ -48,8 +52,8 @@ describe('Skills — matriz y bus factor', () => {
     render(<Skills />);
 
     await screen.findByText('Competencias');
-    expect(screen.getAllByText('Ana').length).toBe(3);
-    expect(screen.getAllByText('Bruno').length).toBe(3);
+    expect(screen.getAllByText('Ana').length).toBe(4);
+    expect(screen.getAllByText('Bruno').length).toBe(4);
     expect(screen.getByText('Testing')).toBeTruthy();
     // TypeScript sale en la cabecera de la matriz y en la lista de riesgo.
     expect(screen.getAllByText('TypeScript').length).toBe(2);
@@ -67,6 +71,17 @@ describe('Skills — matriz y bus factor', () => {
     expect(items[0].className).toContain('risk-red');
     expect(items[0].textContent).toContain('Pagos');
     expect(items[1].textContent).toContain('TypeScript');
+
+    // Sección "Perfiles": resumen y etiquetas en español por persona.
+    expect(screen.getByText('Perfiles')).toBeTruthy();
+    expect(screen.getByText('Ana es especialista y guardiana del código.')).toBeTruthy();
+    expect(screen.getByText('Bruno está en formación con contribución puntual.')).toBeTruthy();
+    expect(screen.getByText('Especialista')).toBeTruthy();
+    expect(screen.getByText('Guardián')).toBeTruthy();
+    expect(screen.getByText('En formación')).toBeTruthy();
+    expect(screen.getByText('Puntual')).toBeTruthy();
+    expect(screen.getByText('sugerido')).toBeTruthy();
+    expect(screen.getByTestId('profile-10').textContent).toContain('Referente de testing');
 
     // Como viewer no hay botones de edición.
     expect(screen.queryByText('Recalcular dominio')).toBeNull();

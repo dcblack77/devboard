@@ -177,3 +177,14 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
 .bus-factor li { padding: 3px 0; }
 .skill-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .skill-list li { padding: 2px 0; }
+
+/* Perfiles por persona (/skills y /team/:slug): filas compactas con chips. */
+.profiles { margin-bottom: 18px; font-size: 12px; }
+.profile-row { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.profile-row:last-child { border-bottom: none; }
+.profile-row .lead { margin: 0 0 6px; font-size: 13px; }
+.chip { display: inline-block; margin: 0 4px 2px 0; padding: 1px 7px; border: 1px solid var(--line); border-radius: 10px; font-size: 11px; color: var(--ink); background: var(--card); white-space: nowrap; }
+.profile-row strong { margin-right: 6px; }
+.chip-btn { cursor: pointer; font: inherit; font-size: 11px; }
+.chip-btn:hover { border-color: var(--muted); }
+.role-input { padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 12px; color: var(--ink); }

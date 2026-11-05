@@ -10,6 +10,7 @@ import type {
   PersonSkillItemResponse,
   RecomputeSkillsResponse,
   SetPersonSkillRequest,
+  SetRoleRequest,
   SetSeniorityRequest,
   SettingsAdminResponse,
   SkillItemResponse,
@@ -111,5 +112,7 @@ export const adminApi = {
     request<void>(`/settings/people/${personId}/skills/${skillId}`, { method: 'DELETE' }),
   setSeniority: (personId: number, body: SetSeniorityRequest) =>
     request<PersonAdminItemResponse>(`/settings/people/${personId}/seniority`, { method: 'PUT', body: JSON.stringify(body) }),
+  setRole: (personId: number, body: SetRoleRequest) =>
+    request<PersonAdminItemResponse>(`/settings/people/${personId}/role`, { method: 'PUT', body: JSON.stringify(body) }),
   recomputeSkills: () => request<RecomputeSkillsResponse>('/skills/recompute', { method: 'POST' }),
 };
