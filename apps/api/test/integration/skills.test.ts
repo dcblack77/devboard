@@ -54,9 +54,9 @@ const recent = new Date('2026-10-01T00:00:00Z');
 function seed() {
   repo.reset();
   repo.people = [
-    { id: 1, name: 'Ana Pérez', active: true, seniority: 'senior' },
-    { id: 2, name: 'Bruno Díaz', active: true, seniority: null },
-    { id: 3, name: 'Carla Inactiva', active: false, seniority: 'mid' },
+    { id: 1, name: 'Ana Pérez', active: true, seniority: 'senior', role: null },
+    { id: 2, name: 'Bruno Díaz', active: true, seniority: null, role: null },
+    { id: 3, name: 'Carla Inactiva', active: false, seniority: 'mid', role: null },
   ];
   repo.addSkill({ name: 'Ejecución técnica', category: 'competency', sortOrder: 1 }); // id 1
   repo.addSkill({ name: 'Calidad y review', category: 'competency', sortOrder: 2 }); // id 2
@@ -95,8 +95,8 @@ describe('GET /api/skills', () => {
     expect(res.status).toBe(200);
     expect(res.body.skills.map((s: { id: number }) => s.id)).toEqual([1, 2, 3]);
     expect(res.body.people).toEqual([
-      { id: 1, name: 'Ana Pérez', seniority: 'senior' },
-      { id: 2, name: 'Bruno Díaz', seniority: null },
+      { id: 1, name: 'Ana Pérez', seniority: 'senior', role: null },
+      { id: 2, name: 'Bruno Díaz', seniority: null, role: null },
     ]);
     // Filas de personas inactivas / skills inactivas no salen.
     expect(res.body.matrix).toHaveLength(4);
@@ -105,6 +105,25 @@ describe('GET /api/skills', () => {
     expect(cov[1]).toEqual({ skillId: 1, count2plus: 2, count3: 1, busFactor: 2, risk: 'amber' });
     expect(cov[2]).toEqual({ skillId: 2, count2plus: 0, count3: 0, busFactor: 0, risk: 'red' });
     expect(cov[3]).toEqual({ skillId: 3, count2plus: 1, count3: 1, busFactor: 1, risk: 'red' });
+  });
+
+  it('incluye un perfil resumido por persona activa (forma, contribución, rol y resumen)', async () => {
+    const res = await request(baseUrl).get('/api/skills');
+    expect(res.body.profiles).toHaveLength(2);
+    const [ana, bruno] = res.body.profiles;
+    // Ana: 2 skills a nivel 3 y ninguna a 2 → sin regla exacta → generalist; 7 PRs y 12 reviews (1,7 por PR) en 1 mes → balanced.
+    expect(ana).toEqual({
+      personId: 1,
+      shape: 'generalist',
+      contribution: 'balanced',
+      role: null,
+      roleSource: null,
+      summary: expect.stringContaining('Ana Pérez · senior · Generalista · Equilibrado'),
+    });
+    expect(ana.summary).toContain('Node/TypeScript (único)');
+    // Bruno: 1 skill a nivel 2 → learning; 2 PRs sin reviews → balanced (2 PRs/mes).
+    expect(bruno).toMatchObject({ personId: 2, shape: 'learning', contribution: 'balanced', role: null, roleSource: null });
+    expect(bruno.summary).toContain('Bruno Díaz · sin seniority · En formación');
   });
 });
 
@@ -162,10 +181,26 @@ describe('GET /api/team/:slug/skills', () => {
     const agent = await tlAgent();
     const res = await agent.get('/api/team/ana-perez/skills');
     expect(res.status).toBe(200);
-    expect(res.body.person).toEqual({ id: 1, name: 'Ana Pérez', seniority: 'senior' });
+    expect(res.body.person).toEqual({ id: 1, name: 'Ana Pérez', seniority: 'senior', role: null });
     expect(res.body.rows.map((r: { skillId: number }) => r.skillId).sort()).toEqual([1, 3]);
     // Node/TypeScript: Ana es la única activa con ≥2 (Carla está inactiva).
     expect(res.body.soleOwnerOf).toEqual([3]);
+  });
+
+  it('incluye el perfil completo con resumen, referencias y huecos', async () => {
+    const agent = await tlAgent();
+    const res = await agent.get('/api/team/bruno-diaz/skills');
+    expect(res.status).toBe(200);
+    const profile = res.body.profile;
+    expect(profile).toMatchObject({ personId: 2, shape: 'learning', contribution: 'balanced', suggestedRole: null, role: null, roleSource: null });
+    expect(profile.summary).toContain('Bruno Díaz');
+    expect(profile.referentIn).toEqual([]);
+    // Ana (la única otra activa) tiene Node/TypeScript a 3 y Bruno no tiene fila → hueco a nivel 0.
+    expect(profile.gaps).toEqual([{ skillId: 3, name: 'Node/TypeScript', level: 0 }]);
+
+    const ana = await agent.get('/api/team/ana-perez/skills');
+    expect(ana.body.profile.referentIn.map((r: { skillId: number }) => r.skillId)).toEqual([1, 3]);
+    expect(ana.body.profile.soleReferentIn).toEqual([{ skillId: 3, name: 'Node/TypeScript', level: 3, evidence: null }]);
   });
 });
 
@@ -221,11 +256,36 @@ describe('administración de skills (/api/settings)', () => {
     expect(delAgain.status).toBe(404);
   });
 
+  it('PUT /api/settings/people/:personId/role fija un rol manual que gana a la sugerencia', async () => {
+    const agent = await tlAgent();
+    const ok = await agent.put('/api/settings/people/2/role').send({ role: '  Backend junior  ' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.person).toEqual({ id: 2, name: 'Bruno Díaz', seniority: null, role: 'Backend junior' });
+
+    const detail = await agent.get('/api/team/bruno-diaz/skills');
+    expect(detail.body.person.role).toBe('Backend junior');
+    expect(detail.body.profile).toMatchObject({ role: 'Backend junior', roleSource: 'manual' });
+    const matrix = await request(baseUrl).get('/api/skills');
+    expect(matrix.body.profiles.find((p: { personId: number }) => p.personId === 2)).toMatchObject({ role: 'Backend junior', roleSource: 'manual' });
+
+    const cleared = await agent.put('/api/settings/people/2/role').send({ role: '' });
+    expect(cleared.body.person.role).toBeNull();
+
+    const tooLong = await agent.put('/api/settings/people/2/role').send({ role: 'x'.repeat(61) });
+    expect(tooLong.status).toBe(400);
+
+    const missing = await agent.put('/api/settings/people/99/role').send({ role: 'x' });
+    expect(missing.status).toBe(404);
+
+    const anon = await request(baseUrl).put('/api/settings/people/2/role').send({ role: 'x' });
+    expect(anon.status).toBe(401);
+  });
+
   it('PUT /api/settings/people/:personId/seniority acepta junior|mid|senior|null', async () => {
     const agent = await tlAgent();
     const ok = await agent.put('/api/settings/people/2/seniority').send({ seniority: 'mid' });
     expect(ok.status).toBe(200);
-    expect(ok.body.person).toEqual({ id: 2, name: 'Bruno Díaz', seniority: 'mid' });
+    expect(ok.body.person).toEqual({ id: 2, name: 'Bruno Díaz', seniority: 'mid', role: null });
 
     const cleared = await agent.put('/api/settings/people/2/seniority').send({ seniority: null });
     expect(cleared.body.person.seniority).toBeNull();

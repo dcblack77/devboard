@@ -3,8 +3,10 @@
  * Replica la semántica relevante: unicidad de `skills.name`, PK compuesta de `person_skills`
  * y el "las filas manuales ganan" del upsert automático.
  */
+import { personActivityFromSnapshot } from '../../src/domain/skills/profile.js';
 import type {
   ActivitySnapshot,
+  PersonActivityRow,
   PersonSkillRow,
   PersonRow,
   SkillRow,
@@ -78,6 +80,13 @@ export class InMemorySkillsRepo implements SkillsRepo {
     return p;
   }
 
+  async setRole(personId: number, role: string | null): Promise<PersonRow | null> {
+    const p = this.people.find((x) => x.id === personId);
+    if (!p) return null;
+    p.role = role;
+    return p;
+  }
+
   async listPersonSkills(): Promise<PersonSkillRow[]> {
     return [...this.rows];
   }
@@ -110,5 +119,9 @@ export class InMemorySkillsRepo implements SkillsRepo {
 
   async activitySince(_since: Date): Promise<ActivitySnapshot> {
     return this.activity;
+  }
+
+  async personActivity(_since: Date): Promise<PersonActivityRow[]> {
+    return personActivityFromSnapshot(this.activity);
   }
 }

@@ -38,6 +38,8 @@ export const people = pgTable('people', {
   active: boolean('active').notNull().default(true),
   /** Etiqueta global de seniority ('junior' | 'mid' | 'senior'), solo manual. */
   seniority: text('seniority'),
+  /** Rol manual (etiqueta libre, máx. 60 caracteres) fijado por el TL. */
+  role: text('role'),
 });
 
 /**

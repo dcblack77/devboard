@@ -6,6 +6,9 @@ import { and, asc, eq, gte, isNotNull, sql } from 'drizzle-orm';
 import type { Seniority, SkillCategory, SkillSource } from '@devboard/shared';
 import { getDb } from '../../db/client.js';
 import { epics, issues, people, personSkills, prReviews, pullRequests, skills } from '../../db/schema.js';
+import { personActivityFromSnapshot, type PersonActivityRow } from '../../domain/skills/profile.js';
+
+export type { PersonActivityRow };
 
 export interface SkillRow {
   id: number;
@@ -21,6 +24,7 @@ export interface PersonRow {
   name: string;
   active: boolean;
   seniority: Seniority | null;
+  role: string | null;
 }
 
 export interface PersonSkillRow {
@@ -58,6 +62,7 @@ export interface SkillsRepo {
 
   listPeople(): Promise<PersonRow[]>;
   setSeniority(personId: number, seniority: Seniority | null): Promise<PersonRow | null>;
+  setRole(personId: number, role: string | null): Promise<PersonRow | null>;
 
   listPersonSkills(): Promise<PersonSkillRow[]>;
   /** Upsert `manual`; `null` si la persona o la skill no existen. */
@@ -67,6 +72,8 @@ export interface SkillsRepo {
   upsertAuto(rows: UpsertAutoRow[]): Promise<number>;
 
   activitySince(since: Date): Promise<ActivitySnapshot>;
+  /** PRs mergeados y reviews por persona desde `since`, con la primera fecha de actividad. */
+  personActivity(since: Date): Promise<PersonActivityRow[]>;
 }
 
 function toSkill(r: typeof skills.$inferSelect): SkillRow {
@@ -74,7 +81,7 @@ function toSkill(r: typeof skills.$inferSelect): SkillRow {
 }
 
 function toPerson(r: typeof people.$inferSelect): PersonRow {
-  return { id: r.id, name: r.name, active: r.active, seniority: (r.seniority as Seniority | null) ?? null };
+  return { id: r.id, name: r.name, active: r.active, seniority: (r.seniority as Seniority | null) ?? null, role: r.role ?? null };
 }
 
 function toRow(r: typeof personSkills.$inferSelect): PersonSkillRow {
@@ -119,6 +126,11 @@ export class DrizzleSkillsRepo implements SkillsRepo {
 
   async setSeniority(personId: number, seniority: Seniority | null): Promise<PersonRow | null> {
     const [row] = await getDb().update(people).set({ seniority }).where(eq(people.id, personId)).returning();
+    return row ? toPerson(row) : null;
+  }
+
+  async setRole(personId: number, role: string | null): Promise<PersonRow | null> {
+    const [row] = await getDb().update(people).set({ role }).where(eq(people.id, personId)).returning();
     return row ? toPerson(row) : null;
   }
 
@@ -216,5 +228,10 @@ export class DrizzleSkillsRepo implements SkillsRepo {
       epicAssignments: issueRows.map((i) => ({ epicKey: i.epicKey!, personId: i.personId, at: i.at })),
       epics: epicRows,
     };
+  }
+
+  /** Reutiliza `activitySince` (misma canonización de personas) en lugar de una consulta nueva. */
+  async personActivity(since: Date): Promise<PersonActivityRow[]> {
+    return personActivityFromSnapshot(await this.activitySince(since));
   }
 }

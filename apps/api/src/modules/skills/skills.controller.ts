@@ -1,7 +1,7 @@
 /**
  * Mapa de skills: `GET /api/skills` (matriz + cobertura, viewer), `GET /api/team/:slug/skills`
  * (detalle por persona, tl), `POST /api/skills/recompute` (tl) y administración bajo
- * `/api/settings/skills` y `/api/settings/people/:id/{skills,seniority}` (tl).
+ * `/api/settings/skills` y `/api/settings/people/:id/{skills,seniority,role}` (tl).
  */
 import { controller, Get, Post, Put, Delete, body, param, response } from '@expressots/adapter-express';
 import type { Response } from 'express';
@@ -11,6 +11,7 @@ import {
   type CreateSkillRequest,
   type PersonSkillItemResponse,
   type SetPersonSkillRequest,
+  type SetRoleRequest,
   type SetSeniorityRequest,
   type SkillItemResponse,
   type UpdateSkillRequest,
@@ -41,6 +42,16 @@ const setPersonSkillSchema = z.object({
 const setSenioritySchema = z.object({
   seniority: z.enum(['junior', 'mid', 'senior']).nullable(),
 }) satisfies z.ZodType<SetSeniorityRequest>;
+
+/** Rol manual: texto recortado de hasta 60 caracteres; cadena vacía → `null`. */
+const setRoleSchema = z.object({
+  role: z
+    .string()
+    .trim()
+    .max(60)
+    .nullable()
+    .transform((v) => (v === '' ? null : v)),
+}) satisfies z.ZodType<SetRoleRequest, z.ZodTypeDef, { role: string | null }>;
 
 /** Convierte un parámetro de ruta a id numérico; `null` si no es un entero válido. */
 function toId(raw: string): number | null {
@@ -169,6 +180,22 @@ export class SkillsAdminController {
       res.status(404).json({ error: 'Persona no encontrada' });
       return;
     }
-    res.status(200).json({ person: { id: person.id, name: person.name, seniority: person.seniority } });
+    res.status(200).json({ person: { id: person.id, name: person.name, seniority: person.seniority, role: person.role } });
+  }
+
+  @Put('/people/:personId/role', requireRole(Role.TeamLead))
+  async setRole(@param('personId') personIdRaw: string, @body() payload: unknown, @response() res: Response) {
+    const parsed = setRoleSchema.safeParse(payload);
+    const personId = toId(personIdRaw);
+    if (!parsed.success || personId === null) {
+      res.status(400).json({ error: 'Payload inválido', issues: parsed.success ? [] : parsed.error.issues });
+      return;
+    }
+    const person = await this.repo.setRole(personId, parsed.data.role);
+    if (!person) {
+      res.status(404).json({ error: 'Persona no encontrada' });
+      return;
+    }
+    res.status(200).json({ person: { id: person.id, name: person.name, seniority: person.seniority, role: person.role } });
   }
 }
