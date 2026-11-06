@@ -519,3 +519,6 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 /* Sistema (g1): filtros dentro de la cabecera. */
 .sys-filters { margin-bottom: 0; }
 .sys-batches-table { margin-top: 14px; }
+/* g2: Entrega / Épicas */
+.jira-type h4 { margin: 0 0 var(--sp-2); }
+.epics-progress .repo-bar { width: 70px; }
