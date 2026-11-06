@@ -188,3 +188,62 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
 .chip-btn { cursor: pointer; font: inherit; font-size: 11px; }
 .chip-btn:hover { border-color: var(--muted); }
 .role-input { padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 12px; color: var(--ink); }
+
+/* Página Sistema: cabecera con filtros, resumen, tarjetas y barras HTML responsivas. */
+.sys { max-width: 1400px; }
+.sys h1 { margin: 0 0 4px; font-size: 24px; }
+.sys-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.sys-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.sys-filters label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.sys-filters select { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; color: var(--ink); background: #fff; max-width: 100%; }
+.sys-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 6px 0 4px; }
+.sys-summary .kpi .v { font-size: 22px; }
+.sys .card { margin-bottom: 14px; }
+.sys-card { min-width: 0; }
+.sys-card table { background: transparent; }
+.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; margin-top: 14px; }
+.sys-grid > .card { margin-bottom: 0; }
+.sys-grid + .card { margin-top: 14px; }
+.table-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.table-scroll table { min-width: max-content; }
+.table-scroll .fbar input[type='text'] { min-width: 0; width: 220px; max-width: 100%; }
+.sys-toggle { display: inline-flex !important; align-items: center; gap: 6px; margin: 0 0 4px !important; cursor: pointer; }
+.sys-toggle input { width: auto !important; display: inline !important; margin: 0 !important; }
+.sys-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.sys-seg button { border: 0; background: #fff; padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; color: var(--ink); }
+.sys-seg button + button { border-left: 1px solid var(--line); }
+.sys-seg button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+
+.sys-bars { margin: 6px 0 0; }
+.sys-bars-plot { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--line); }
+.sys-bar { flex: 1 1 0; min-width: 1px; height: 100%; display: flex; align-items: flex-end; }
+.sys-bar-fill { width: 100%; background: #93c5fd; border-radius: 2px 2px 0 0; display: flex; align-items: flex-end; min-height: 0; }
+.sys-bar-inner { width: 100%; background: var(--accent); border-radius: 2px 2px 0 0; }
+.sys-bar:hover .sys-bar-fill { filter: brightness(0.9); }
+.sys-bars-axis { display: flex; gap: 2px; font-size: 11px; color: var(--muted); }
+.sys-bars-axis span { flex: 1 1 0; min-width: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-range { display: flex; justify-content: space-between; margin-top: 2px; }
+
+.sys-batches { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 16px; font-size: 13px; }
+.sys-batches li { padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.sys-defs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 8px 20px; margin: 10px 0 0; }
+.sys-defs dd { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.sys details summary { cursor: pointer; }
+
+@media (max-width: 640px) {
+  header { flex-wrap: wrap; padding: 10px 14px; gap: 10px; position: static; }
+  header .sub { display: none; }
+  header nav.main-nav { flex-basis: 100%; overflow-x: auto; flex-wrap: nowrap; white-space: nowrap; padding-bottom: 4px; }
+  main.sys { padding: 14px; }
+  .sys-filters { width: 100%; }
+  .sys-filters label { flex: 1 1 140px; }
+  .sys-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sys .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sys .kpi { padding: 10px; }
+  .sys .kpi .v { font-size: 20px; }
+  .sys-bars-plot { height: 90px; }
+}
+@media print {
+  .sys-bars-plot { height: 80px; }
+  .table-scroll { overflow: visible; }
+}
