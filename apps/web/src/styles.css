@@ -515,3 +515,7 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 /* Resumen de Incidencias en Inicio/Corporativo (SupportSummaryCards). */
 .ssc-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; margin: 6px 0 0; }
 .ssc-link { white-space: nowrap; }
+
+/* g2: Entrega / Épicas */
+.jira-type h4 { margin: 0 0 var(--sp-2); }
+.epics-progress .repo-bar { width: 70px; }
