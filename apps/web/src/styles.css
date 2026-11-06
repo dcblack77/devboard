@@ -393,7 +393,8 @@ main.cr .card { margin-top: 14px; min-width: 0; }
 .cr-chart-ctrl { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; justify-content: space-between; margin: var(--sp-3) 0 var(--sp-4); font-size: var(--fs-sm); }
 .cr-ctrl-left, .cr-ctrl-right { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .cr-chart-ctrl select, .cr-date input { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px 8px; font: inherit; font-size: var(--fs-sm); color: var(--ink); background: var(--field-bg); }
-.cr-date { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.cr-date, .card label.cr-date { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.card label.cr-date input { display: inline-block; width: auto; margin-top: 0; }
 /* Segmented control dentro de Code review: fondo --bg y opción activa como «pastilla». */
 main.cr .sys-seg { background: var(--bg); border-radius: var(--r-sm); padding: 2px; gap: 2px; }
 main.cr .sys-seg button { background: transparent; border-radius: 4px; font-size: var(--fs-sm); padding: 4px 12px; color: var(--ink-2); }
@@ -421,12 +422,18 @@ main.cr .card .q { display: flex; align-items: center; gap: 6px; font-size: var(
 main.cr table { font-size: var(--fs-sm); }
 main.cr th { background: var(--th-bg); color: var(--ink-2); font-size: var(--fs-xs); text-transform: none; }
 main.cr td, main.cr th { padding: 8px 10px; vertical-align: middle; }
-.pr-cell { min-width: 0; max-width: 520px; }
+/* Ancho fijo de columnas: el título se recorta con ellipsis en lugar de desbordar la tarjeta. */
+table.pr-list { table-layout: fixed; }
+table.pr-list th:nth-child(2) { width: 170px; }
+table.pr-list th:nth-child(3) { width: 150px; white-space: nowrap; }
+.pr-cell { overflow: hidden; }
+.author-cell { overflow: hidden; text-overflow: ellipsis; }
 .pr-cell .pr-line1 { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
 .pr-cell .pr-line1:hover { color: var(--accent); }
 .pr-num { font-family: var(--mono); font-weight: 600; color: var(--accent-ink); }
 .pr-repo { display: block; font-size: var(--fs-xs); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .author-cell { white-space: nowrap; min-width: 140px; }
+.pager .psize { white-space: nowrap; }
 .avatar { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: var(--sp-2); border-radius: 50%; background: var(--accent-bg); color: var(--accent-ink); font-size: 10px; font-weight: 700; letter-spacing: 0.02em; vertical-align: middle; }
 .age-badge { display: inline-block; min-width: 52px; text-align: center; padding: 2px 8px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line); }
 .age-badge.age-mid { color: var(--amber-ink); background: var(--amber-bg); border-color: transparent; }
@@ -455,7 +462,7 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 @media (min-width: 1024px) {
   /* Cabecera de tabla sticky bajo la cabecera de la app (el scroll horizontal anularía sticky). */
   main.cr .ft-scroll { overflow: visible; }
-  table.ft-modern thead th { position: sticky; top: var(--hdr-h); z-index: 2; }
+  main.cr .ft-scroll table.ft-modern thead th { position: sticky; top: var(--hdr-h); z-index: 2; }
 }
 
 /* FilterTable variant="modern": barra a todo el ancho, buscador con icono y filtros en píldora. */
