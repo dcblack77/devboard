@@ -3,8 +3,14 @@ import { api } from '../api/client';
 import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { Rag } from '../components/Rag';
-import { PrintButton } from '../components/PrintButton';
 import { SupportSummaryCards } from '../components/SupportSummaryCards';
+import { PageShell } from '../components/ui/PageShell';
+import { Section } from '../components/ui/Section';
+import { KpiGroup } from '../components/ui/KpiGroup';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { fmtHours, fmtPct } from '../lib/format';
+import { noApprovalEdge } from './Github';
 
 type ShortRag = 'r' | 'a' | 'g';
 
@@ -33,16 +39,11 @@ interface HomeData {
 }
 
 const RAG_MAP: Record<ShortRag, 'red' | 'amber' | 'green'> = { r: 'red', a: 'amber', g: 'green' };
-
-function fmtHours(h: number | null): string {
-  if (h === null) return '—';
-  if (h < 24) return `${h.toFixed(1)} h`;
-  return `${(h / 24).toFixed(1)} d`;
-}
+const RAG_TEXT: Record<ShortRag, string> = { r: 'Rojo', a: 'Ámbar', g: 'Verde' };
 
 /**
- * Página Corporativo: versión resumida de Inicio pensada para dirección.
- * Solo cifras agregadas del equipo y de las iniciativas; nunca nombres de personas.
+ * Página Corporativo: versión resumida de Inicio pensada para dirección e impresión.
+ * Solo cifras agregadas del equipo y de las iniciativas; nunca nombres de personas ni motivos.
  */
 export function Corporate() {
   const [data, setData] = useState<HomeData | null>(null);
@@ -56,53 +57,66 @@ export function Corporate() {
   }, []);
 
   if (error) return <p className="error-msg">{error}</p>;
-  if (!data) return <p className="muted">Cargando…</p>;
+  if (!data) return <PageSkeleton label="Cargando corporativo" />;
 
   const { numbers, rag, ragCounts } = data;
+  const gh = numbers.github;
 
   return (
-    <main>
-      <h1>Corporativo</h1>
-      <p className="lead">Resumen ejecutivo del estado del equipo, sin datos individuales.</p>
-      <PrintButton />
-
-      <Block title="Avance de iniciativas">
-        <Kpi value={ragCounts.green} label="En verde" rag="green" />
-        <Kpi value={ragCounts.amber} label="En ámbar" rag="amber" />
-        <Kpi value={ragCounts.red} label="En rojo" rag="red" />
-      </Block>
-
-      <section>
-        <h3>Iniciativas</h3>
-        <ul>
-          {rag.map((r) => (
-            <li key={r.slug}>
-              <Rag color={RAG_MAP[r.color]} text={`${r.name}: ${r.pct}% completado`} />
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <Block title="Entrega y calidad" lead="Cifras agregadas de las últimas 4 semanas.">
-        <Kpi value={numbers.delivered4w} label="Entregado (4 sem.)" />
-        <Kpi value={numbers.feat4w} label="Funcionalidad entregada" />
-        <Kpi value={numbers.bugs4w} label="Errores entregados" />
-        <Kpi value={fmtHours(numbers.cycleMean)} label="Tiempo de ciclo medio" />
+    <PageShell title="Corporativo" lead="Resumen ejecutivo del estado del equipo, sin datos individuales.">
+      <Block title="Resumen ejecutivo" plain>
+        <KpiGroup label="Iniciativas">
+          <Kpi value={ragCounts.green} label="En verde" />
+          <Kpi value={ragCounts.amber} label="En ámbar" edge={ragCounts.amber > 0 ? 'amber' : undefined} />
+          <Kpi value={ragCounts.red} label="En rojo" edge={ragCounts.red > 0 ? 'red' : undefined} />
+        </KpiGroup>
+        <KpiGroup label="Entrega y calidad">
+          <Kpi value={numbers.delivered4w} label="Entregado · 4 sem" title="Entregado en las últimas 4 semanas" />
+          <Kpi value={numbers.feat4w} label="Funcionalidad · 4 sem" title="Funcionalidad entregada en 4 semanas" />
+          <Kpi value={numbers.bugs4w} label="Errores · 4 sem" title="Errores entregados en 4 semanas" />
+          <Kpi value={fmtHours(numbers.cycleMean)} label="Ciclo medio" title="Tiempo de ciclo medio" />
+        </KpiGroup>
+        <KpiGroup label="Riesgo">
+          <Kpi value={numbers.blocked} label="Bloqueadas" title="Tareas bloqueadas" edge={numbers.blocked > 0 ? 'red' : undefined} />
+          <Kpi value={numbers.aged} label="Envejecidas" title="Tareas envejecidas" />
+          {gh ? (
+            <Kpi value={fmtPct(gh.pctNoApproval)} label="Sin aprobación" title="PRs mergeadas sin aprobación" edge={noApprovalEdge(gh.pctNoApproval)} />
+          ) : null}
+        </KpiGroup>
       </Block>
 
       <SupportSummaryCards months={12} />
 
-      <Block title="Riesgo" lead="Indicadores de bloqueo, sin detalle por persona.">
-        <Kpi value={numbers.blocked} label="Tareas bloqueadas" rag={numbers.blocked > 0 ? 'red' : undefined} />
-        <Kpi value={numbers.aged} label="Tareas envejecidas" />
-        {numbers.github ? (
-          <Kpi
-            value={`${numbers.github.pctNoApproval.toFixed(0)}%`}
-            label="PRs sin aprobación"
-            rag={numbers.github.pctNoApproval > 0 ? 'amber' : 'green'}
-          />
-        ) : null}
-      </Block>
-    </main>
+      <Section pageKey="corp" id="initiatives" title="Iniciativas" count={rag.length}>
+        {rag.length === 0 ? (
+          <EmptyState>No hay iniciativas en marcha.</EmptyState>
+        ) : (
+          <div className="table-scroll">
+            <table className="ft-modern">
+              <thead>
+                <tr>
+                  <th>Iniciativa</th>
+                  <th>Semáforo</th>
+                  <th>Avance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rag.map((r) => (
+                  <tr key={r.slug}>
+                    <td className="td-title" title={r.name}>
+                      {r.name}
+                    </td>
+                    <td>
+                      <Rag color={RAG_MAP[r.color]} text={RAG_TEXT[r.color]} />
+                    </td>
+                    <td className="num">{r.pct}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+    </PageShell>
   );
 }

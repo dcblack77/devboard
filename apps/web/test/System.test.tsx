@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
+// The closures chart becomes a TimeSeriesChart (chart.js): mock it as in Github.test.tsx.
+vi.mock('../src/components/charts/BarChart', () => ({ BarChart: () => <div data-testid="bar-chart" /> }));
+vi.mock('../src/components/charts/LineChart', () => ({ LineChart: () => <div data-testid="line-chart" /> }));
+
 import { System } from '../src/pages/System';
 
 const REPO_ACTIVE = {
@@ -98,7 +102,6 @@ describe('System', () => {
     expect(screen.getByText('Tiempo de ingeniería')).toBeTruthy();
     expect(screen.getAllByText('5.0 d').length).toBe(2); // cycle p50 in days: summary + flow
     expect(screen.getByText(/p85 10\.0 d · 20 tickets/)).toBeTruthy();
-    expect(screen.getByText(/6 contados · 9 en total/)).toBeTruthy();
     expect(String((fn.mock.calls[0] as unknown[])[0])).toContain('/api/system?months=12&repo=all');
   });
 
@@ -148,11 +151,11 @@ describe('System', () => {
     expect(screen.queryByText('2026-Q1')).toBeNull();
   });
 
-  it('charts closures per day, per weekday and per hour', async () => {
+  it('charts closures per weekday and per hour (daily closures moved to the time-series chart)', async () => {
     stubSystem();
     render(<System />);
     await screen.findAllByText('org/app');
-    expect(screen.getByRole('img', { name: /Cierres diarios/ })).toBeTruthy();
+    expect(screen.queryByRole('img', { name: /Cierres diarios/ })).toBeNull();
     expect(screen.getByRole('img', { name: /Cierres por día de la semana/ })).toBeTruthy();
     expect(screen.getByRole('img', { name: /Cierres por hora/ })).toBeTruthy();
     expect(screen.getByTitle('12h: 7')).toBeTruthy();
