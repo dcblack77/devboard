@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { Role } from '@devboard/shared';
 import { api } from './api/client';
@@ -40,10 +40,23 @@ function Layout({
 }) {
   const location = useLocation();
   const bare = location.pathname === '/login' || location.pathname.startsWith('/me/');
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  // Publica el alto real de la cabecera sticky en `--hdr-h` (p. ej. para thead sticky).
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const set = () => document.documentElement.style.setProperty('--hdr-h', `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [bare]);
+
   if (bare) return <>{children}</>;
   return (
     <>
-      <header>
+      <header ref={headerRef}>
         <h1>DevBoard</h1>
         <span className="sub">Métricas del equipo</span>
         {FEATURES.teamShortcut ? (

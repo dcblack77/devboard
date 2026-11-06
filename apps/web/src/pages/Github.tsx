@@ -199,9 +199,13 @@ export function Github() {
 
   return (
     <main className="cr">
-      <h1>Code review</h1>
-      <p className="lead">Métricas de revisión de código del equipo, a partir de GitHub.</p>
-      <PrintButton />
+      <div className="cr-head">
+        <div>
+          <h1>Code review</h1>
+          <p className="lead">Métricas de revisión de código del equipo, a partir de GitHub.</p>
+        </div>
+        <PrintButton />
+      </div>
 
       <Block title="Resumen del equipo">
         <Kpi value={rs.total} label="PRs totales" />

@@ -3,7 +3,37 @@ import type { Role, SyncStateDto } from '@devboard/shared';
 import { api, ApiError } from '../api/client';
 import { fmtAgo } from '../lib/format';
 
-const SOURCE_LABEL: Record<string, string> = { jira: 'Jira', github: 'GitHub' };
+const SOURCE_LABEL: Record<string, string> = { jira: 'Jira', support: 'Soporte', github: 'GitHub' };
+const AMBER_MIN = 30;
+const RED_MIN = 120;
+
+export type SyncLevel = 'ok' | 'amber' | 'warn';
+
+/**
+ * Semáforo de frescura de una fuente: verde < 30 min, ámbar > 30 min, rojo > 2 h,
+ * sin datos o si el último intento falló.
+ */
+export function syncLevel(
+  lastOkAt: string | null | undefined,
+  lastRunOk: boolean | null | undefined,
+  now: Date = new Date(),
+): SyncLevel {
+  if (lastRunOk === false || !lastOkAt) return 'warn';
+  const t = new Date(lastOkAt).getTime();
+  if (Number.isNaN(t)) return 'warn';
+  const min = (now.getTime() - t) / 60_000;
+  if (min > RED_MIN) return 'warn';
+  if (min > AMBER_MIN) return 'amber';
+  return 'ok';
+}
+
+const LEVEL_TEXT: Record<SyncLevel, string> = { ok: 'al día', amber: 'con retraso', warn: 'desactualizado' };
+
+function chipTitle(s: { lastOkAt: string | null; lastRunOk: boolean | null; lastError?: string | null }, label: string): string {
+  const parts = [`${label}: ${s.lastOkAt ? `última sincronización ${new Date(s.lastOkAt).toLocaleString('es-ES')}` : 'sin datos'}`];
+  if (s.lastRunOk === false && s.lastError) parts.push(`Último intento falló: ${s.lastError}`);
+  return parts.join('\n');
+}
 const POLL_MS = 3000;
 
 /**
@@ -63,14 +93,23 @@ export function SyncButton({ role, onUpdated }: { role: Role | null; onUpdated: 
 
   return (
     <div className="sync-box noprint">
-      <span className="sync-fresh">
-        {(state?.sources ?? []).map((s) => (
-          <span key={s.source} className={s.lastRunOk === false ? 'sync-src bad' : 'sync-src'}
-            title={s.lastRunOk === false && s.lastError ? `Último intento falló: ${s.lastError}` : undefined}>
-            {SOURCE_LABEL[s.source] ?? s.source}: {s.lastOkAt ? fmtAgo(s.lastOkAt) : 'sin datos'}
-            {s.lastRunOk === false ? ' ⚠' : ''}
-          </span>
-        ))}
+      <span className="sync-fresh sync-chips">
+        {(state?.sources ?? []).map((s) => {
+          const label = SOURCE_LABEL[s.source] ?? s.source;
+          const level = syncLevel(s.lastOkAt, s.lastRunOk);
+          return (
+            <span
+              key={s.source}
+              className={`sync-chip ${s.lastRunOk === false ? 'sync-src bad' : 'sync-src'}`}
+              title={chipTitle(s, label)}
+            >
+              <span className={`sync-dot ${level}`} role="img" aria-label={LEVEL_TEXT[level]} />
+              <span className="sync-name">{label}</span>
+              <span className="sync-ago">{s.lastOkAt ? fmtAgo(s.lastOkAt) : 'sin datos'}</span>
+              {s.lastRunOk === false ? <span aria-hidden="true"> ⚠</span> : null}
+            </span>
+          );
+        })}
       </span>
       {role === 'tl' ? (
         <button type="button" className="btn sec" disabled={running} onClick={launch}>
