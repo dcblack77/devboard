@@ -515,3 +515,15 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 /* Resumen de Incidencias en Inicio/Corporativo (SupportSummaryCards). */
 .ssc-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; margin: 6px 0 0; }
 .ssc-link { white-space: nowrap; }
+
+/* ---- g4: Datos / Iniciativas / Iniciativa / Skills ---- */
+.init-bar-cell { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.init-bar { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: var(--border, #e5e7eb); overflow: hidden; }
+.init-bar > span { display: block; height: 100%; background: var(--ok, #16a34a); border-radius: 4px; }
+td.init-people { white-space: nowrap; }
+.init-person { margin-right: 10px; display: inline-flex; align-items: center; }
+.skills-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 4px 0 12px; }
+.skills-search { padding: 6px 10px; min-width: 220px; border: 1px solid var(--border, #d1d5db); border-radius: 6px; background: inherit; color: inherit; }
+.skills-legend { display: inline-flex; align-items: center; gap: 12px; }
+.skills-legend-item { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.skills-person { display: inline-flex; align-items: center; margin-right: 6px; }

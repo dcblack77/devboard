@@ -11,7 +11,14 @@ import type {
 } from '@devboard/shared';
 import { api } from '../api/client';
 import { adminApi } from '../api/admin';
-import { PrintButton } from '../components/PrintButton';
+import { Block } from '../components/Block';
+import { Kpi } from '../components/Kpi';
+import { PageShell } from '../components/ui/PageShell';
+import { Section } from '../components/ui/Section';
+import { KpiGroup } from '../components/ui/KpiGroup';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Avatar } from '../components/ui/cells';
 import { CONTRIBUTION_LABEL, SHAPE_LABEL } from '../skillsLabels';
 
 const CATEGORIES: Array<{ id: SkillCategory; label: string }> = [
@@ -44,6 +51,7 @@ export function Skills() {
   const [error, setError] = useState<string | null>(null);
   const [isTl, setIsTl] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
   /** Persona cuyo rol se está editando en línea (solo TL) y el texto del borrador. */
   const [roleEdit, setRoleEdit] = useState<{ personId: number; value: string } | null>(null);
 
@@ -63,7 +71,7 @@ export function Skills() {
   }, []);
 
   if (error) return <p className="error-msg">{error}</p>;
-  if (!data) return <p className="muted">Cargando…</p>;
+  if (!data) return <PageSkeleton label="Cargando skills" />;
 
   const matrix = new Map<string, PersonSkillDto>();
   for (const row of data.matrix) matrix.set(cellKey(row.personId, row.skillId), row);
@@ -132,83 +140,122 @@ export function Skills() {
     .filter((c) => c.risk !== 'green' && skillsById.get(c.skillId)?.active !== false)
     .sort((a, b) => (a.risk === b.risk ? a.count2plus - b.count2plus : a.risk === 'red' ? -1 : 1));
 
+  const activeSkills = data.skills.filter((s) => s.active);
+  const activeCoverage = data.coverage.filter((c) => skillsById.get(c.skillId)?.active !== false);
+  const covered = activeCoverage.filter((c) => c.risk === 'green').length;
+  const amber = activeCoverage.filter((c) => c.risk === 'amber').length;
+  const red = activeCoverage.filter((c) => c.risk === 'red').length;
+  const needle = query.trim().toLowerCase();
+
+  const actions = isTl ? (
+    <button type="button" className="btn sec" disabled={busy} onClick={recompute}>
+      {busy ? 'Recalculando…' : 'Recalcular dominio'}
+    </button>
+  ) : undefined;
+
   return (
-    <main>
-      <h1>Skills</h1>
-      <p className="lead">Mapa de competencias, stack y dominio del equipo. Nivel 0–3 por persona y cobertura por skill.</p>
-      <PrintButton />
-      {isTl ? (
-        <div className="fbar noprint">
-          <button type="button" className="btn sec" disabled={busy} onClick={recompute}>
-            {busy ? 'Recalculando…' : 'Recalcular dominio'}
-          </button>
-          <span className="small muted">Pulsa una celda para cambiar el nivel (0→1→2→3→0).</span>
+    <PageShell
+      title="Skills"
+      lead="Mapa de competencias, stack y dominio del equipo. Nivel 0–3 por persona y cobertura por skill."
+      actions={actions}
+    >
+      <Block title="Resumen" plain>
+        <KpiGroup label="Equipo">
+          <Kpi value={people.length} label="Personas" />
+          <Kpi value={activeSkills.length} label="Skills activas" />
+        </KpiGroup>
+        <KpiGroup label="Cobertura">
+          <Kpi value={covered} label="Cubiertas (≥2)" title="Skills con al menos dos personas a nivel ≥2" />
+          <Kpi value={amber} label="En ámbar" edge={amber > 0 ? 'amber' : undefined} />
+          <Kpi value={red} label="En rojo" edge={red > 0 ? 'red' : undefined} />
+        </KpiGroup>
+      </Block>
+
+      <div className="skills-toolbar noprint">
+        <input
+          type="search"
+          className="skills-search"
+          aria-label="Buscar skill"
+          placeholder="Buscar skill…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="skills-legend">
+          {([0, 1, 2, 3] as SkillLevel[]).map((l) => (
+            <span key={l} className="skills-legend-item">
+              <LevelSquare level={l} />
+              {l}
+            </span>
+          ))}
+          <span className="small muted">Cobertura = personas con nivel ≥2</span>
         </div>
-      ) : null}
+        {isTl ? <span className="small muted">Pulsa una celda para cambiar el nivel (0→1→2→3→0).</span> : null}
+      </div>
 
-      <section className="profiles">
-        <h2>Perfiles</h2>
-        {people.map((p) => {
-          const prof = profiles.get(p.id);
-          const editing = roleEdit?.personId === p.id;
-          const roleText = prof?.role ?? '—';
-          return (
-            <div key={p.id} className="profile-row" data-testid={`profile-${p.id}`}>
-              <div>
-                <strong>{p.name}</strong>
-                {p.seniority ? <span className="chip">{p.seniority}</span> : null}
-                {prof ? <span className="chip">{SHAPE_LABEL[prof.shape]}</span> : null}
-                {prof ? <span className="chip">{CONTRIBUTION_LABEL[prof.contribution]}</span> : null}
-                {editing ? (
-                  <input
-                    className="role-input"
-                    autoFocus
-                    aria-label={`Rol de ${p.name}`}
-                    value={roleEdit.value}
-                    onChange={(e) => setRoleEdit({ personId: p.id, value: e.target.value })}
-                    onBlur={saveRole}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveRole();
-                      if (e.key === 'Escape') setRoleEdit(null);
-                    }}
-                  />
-                ) : isTl ? (
-                  <button
-                    type="button"
-                    className="chip chip-btn"
-                    title="Pulsa para fijar o borrar el rol"
-                    onClick={() => setRoleEdit({ personId: p.id, value: prof?.roleSource === 'manual' ? (prof.role ?? '') : '' })}
-                  >
-                    {roleText}
-                  </button>
-                ) : (
-                  <span className="chip">{roleText}</span>
-                )}
-                {prof?.roleSource === 'suggested' ? <small className="tag tag-auto">sugerido</small> : null}
-                {prof?.roleSource === 'manual' ? <small className="lvl-manual">M</small> : null}
-              </div>
-              {prof ? <div className="small muted">{prof.summary}</div> : null}
-            </div>
-          );
-        })}
-      </section>
-
-      <div className="skills-layout">
-        <div>
-          {CATEGORIES.map((cat) => {
-            const skills = data.skills
-              .filter((s) => s.category === cat.id && s.active)
-              .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+      <Section pageKey="skills" id="profiles" title="Perfiles" count={people.length}>
+        <div className="profiles">
+          {people.map((p) => {
+            const prof = profiles.get(p.id);
+            const editing = roleEdit?.personId === p.id;
+            const roleText = prof?.role ?? '—';
             return (
-              <section key={cat.id}>
-                <h2>{cat.label}</h2>
-                {skills.length === 0 ? (
-                  <p className="muted">Sin skills en esta categoría.</p>
-                ) : (
-                  // Skills en filas y personas en columnas: la lista de skills crece (sobre todo
-                  // el dominio) y en vertical siempre cabe; las personas son pocas y van en
-                  // cabeceras verticales compactas. La primera columna queda fija al hacer scroll.
-                  <div className="skills-scroll">
+              <div key={p.id} className="profile-row" data-testid={`profile-${p.id}`}>
+                <div>
+                  <strong className="author-cell skills-person">
+                    <Avatar name={p.name} />
+                  </strong>
+                  {p.seniority ? <span className="chip">{p.seniority}</span> : null}
+                  {prof ? <span className="chip">{SHAPE_LABEL[prof.shape]}</span> : null}
+                  {prof ? <span className="chip">{CONTRIBUTION_LABEL[prof.contribution]}</span> : null}
+                  {editing ? (
+                    <input
+                      className="role-input"
+                      autoFocus
+                      aria-label={`Rol de ${p.name}`}
+                      value={roleEdit.value}
+                      onChange={(e) => setRoleEdit({ personId: p.id, value: e.target.value })}
+                      onBlur={saveRole}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveRole();
+                        if (e.key === 'Escape') setRoleEdit(null);
+                      }}
+                    />
+                  ) : isTl ? (
+                    <button
+                      type="button"
+                      className="chip chip-btn"
+                      title="Pulsa para fijar o borrar el rol"
+                      onClick={() => setRoleEdit({ personId: p.id, value: prof?.roleSource === 'manual' ? (prof.role ?? '') : '' })}
+                    >
+                      {roleText}
+                    </button>
+                  ) : (
+                    <span className="chip">{roleText}</span>
+                  )}
+                  {prof?.roleSource === 'suggested' ? <small className="tag tag-auto">sugerido</small> : null}
+                  {prof?.roleSource === 'manual' ? <small className="lvl-manual">M</small> : null}
+                </div>
+                {prof ? <div className="small muted">{prof.summary}</div> : null}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {CATEGORIES.map((cat) => {
+        const all = data.skills
+          .filter((s) => s.category === cat.id && s.active)
+          .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+        const skills = needle ? all.filter((s) => s.name.toLowerCase().includes(needle)) : all;
+        return (
+          <Section key={cat.id} pageKey="skills" id={cat.id} title={cat.label} count={all.length}>
+            {all.length === 0 ? (
+              <EmptyState>Sin skills en esta categoría.</EmptyState>
+            ) : skills.length === 0 ? (
+              <EmptyState>Ninguna skill coincide con la búsqueda.</EmptyState>
+            ) : (
+              // Skills en filas y personas en columnas; la primera columna queda fija al hacer scroll.
+              <div className="skills-scroll">
                     <table className="skills-matrix">
                       <thead>
                         <tr>
@@ -260,31 +307,27 @@ export function Skills() {
                         })}
                       </tbody>
                     </table>
-                  </div>
-                )}
-              </section>
-            );
-          })}
-        </div>
+              </div>
+            )}
+          </Section>
+        );
+      })}
 
-        <aside className="card">
-          <h4>Riesgo bus factor</h4>
-          <p className="q">Skills con menos de dos personas a nivel ≥2.</p>
-          {atRisk.length === 0 ? (
-            <p className="muted">Sin riesgos detectados.</p>
-          ) : (
-            <ul className="bus-factor">
-              {atRisk.map((c) => (
-                <li key={c.skillId} className={`risk-${c.risk}`}>
-                  <span className={`rag-dot ${c.risk}`} />
-                  {skillsById.get(c.skillId)?.name ?? `#${c.skillId}`}
-                  <span className="muted"> · {c.count2plus} con nivel ≥2</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
-      </div>
-    </main>
+      <Section pageKey="skills" id="risk" title="Riesgo bus factor" count={atRisk.length} note="Skills con menos de dos personas a nivel ≥2.">
+        {atRisk.length === 0 ? (
+          <EmptyState>Sin riesgos detectados.</EmptyState>
+        ) : (
+          <ul className="bus-factor">
+            {atRisk.map((c) => (
+              <li key={c.skillId} className={`risk-${c.risk}`}>
+                <span className={`rag-dot ${c.risk}`} />
+                {skillsById.get(c.skillId)?.name ?? `#${c.skillId}`}
+                <span className="muted"> · {c.count2plus} con nivel ≥2</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+    </PageShell>
   );
 }
