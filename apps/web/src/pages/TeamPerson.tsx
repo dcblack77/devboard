@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom';
 import type { PersonProfileDto, ProfileSkillRef, PersonSkillsResponse, SkillCategory, SkillLevel } from '@devboard/shared';
 import { api } from '../api/client';
 import { PersonDetail, type PersonDetailData } from '../components/PersonDetail';
-import { PrintButton } from '../components/PrintButton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Section } from '../components/ui/Section';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import { LevelSquare } from './Skills';
 import { CONTRIBUTION_LABEL, SHAPE_LABEL } from '../skillsLabels';
 
@@ -57,8 +59,7 @@ function PersonSkillsBlock({ data }: { data: PersonSkillsResponse }) {
   }));
   const sole = data.soleOwnerOf.map((id) => byId.get(id)?.name).filter(Boolean) as string[];
   return (
-    <section>
-      <h2>Skills y dominio</h2>
+    <Section pageKey="person" id="skills" title="Skills y dominio">
       {data.profile ? <ProfileBlock profile={data.profile} /> : null}
       <div className="grid">
         {groups.map((g) => (
@@ -83,7 +84,7 @@ function PersonSkillsBlock({ data }: { data: PersonSkillsResponse }) {
           <strong>Único referente en:</strong> {sole.join(', ')}
         </p>
       ) : null}
-    </section>
+    </Section>
   );
 }
 
@@ -108,13 +109,11 @@ export function TeamPerson() {
   }, [slug]);
 
   if (error) return <p className="error-msg">{error}</p>;
-  if (!data) return <p className="muted">Cargando…</p>;
+  if (!data) return <PageSkeleton label="Cargando persona" />;
 
   return (
-    <>
-      <PrintButton />
-      <PersonDetail data={data} shareUrl={`/me/${slug}`} />
+    <PersonDetail data={data} shareUrl={`/me/${slug}`}>
       {skills ? <PersonSkillsBlock data={skills} /> : null}
-    </>
+    </PersonDetail>
   );
 }

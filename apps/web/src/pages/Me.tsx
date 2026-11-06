@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { PersonDetail, type PersonDetailData } from '../components/PersonDetail';
-import { PrintButton } from '../components/PrintButton';
+import { PageSkeleton } from '../components/ui/Skeleton';
 
 /**
  * Página `/me/:slug`: versión "para compartir" del detalle de una persona.
@@ -24,12 +24,7 @@ export function Me() {
   }, [slug]);
 
   if (error) return <p className="error-msg">{error}</p>;
-  if (!data) return <p className="muted">Cargando…</p>;
+  if (!data) return <PageSkeleton label="Cargando persona" />;
 
-  return (
-    <>
-      <PrintButton />
-      <PersonDetail data={data} />
-    </>
-  );
+  return <PersonDetail data={data} />;
 }
