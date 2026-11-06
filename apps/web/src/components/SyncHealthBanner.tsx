@@ -3,7 +3,7 @@ import type { SyncHealthDto, SyncSourceHealthDto } from '@devboard/shared';
 import { api } from '../api/client';
 import { fmtDateTime } from '../lib/format';
 
-const SOURCE_LABEL: Record<keyof SyncHealthDto, string> = { jira: 'Jira', github: 'GitHub' };
+const SOURCE_LABEL: Record<keyof SyncHealthDto, string> = { jira: 'Jira', github: 'GitHub', support: 'Soporte' };
 
 /** Texto del aviso de una fuente stale: "Jira sin datos desde <fecha> — <error>". */
 export function staleMessage(source: keyof SyncHealthDto, h: SyncSourceHealthDto): string {

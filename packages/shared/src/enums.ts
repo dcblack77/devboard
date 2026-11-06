@@ -29,6 +29,8 @@ export enum Role {
 export enum SyncSource {
   Jira = 'jira',
   GitHub = 'github',
+  /** Backup del tablero de soporte (`settings.supportProject`) en `support_tickets`. */
+  Support = 'support',
 }
 
 /** Tipos de snapshot histórico. */

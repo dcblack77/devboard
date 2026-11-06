@@ -63,6 +63,16 @@ export interface JiraIssueFields {
   updated?: string;
   parent?: JiraParentRef | null;
   priority?: unknown;
+  labels?: string[];
+  reporter?: JiraUserRef | null;
+  issuelinks?: JiraIssueLink[];
+}
+
+/** Enlace entre issues (`fields.issuelinks`): solo uno de outward/inward viene relleno. */
+export interface JiraIssueLink {
+  type?: { name: string };
+  outwardIssue?: { key: string };
+  inwardIssue?: { key: string };
 }
 
 export interface JiraRawIssue {

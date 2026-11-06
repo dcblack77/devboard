@@ -79,6 +79,26 @@ describe('Home — banner de salud de sincronización', () => {
     expect(banner.textContent).toContain('GitHub sin datos desde nunca — GitHub 401');
   });
 
+  it('no muestra soporte cuando no está stale (sin tablero configurado)', async () => {
+    const fetchMock = mockFetch({ jira: okHealth(), github: okHealth(), support: { lastOkAt: null, stale: false, lastError: null } });
+
+    render(<Home />);
+
+    await screen.findByText('Inicio');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/sync/status'), expect.anything()));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('muestra banner de Soporte cuando está stale', async () => {
+    mockFetch({ jira: okHealth(), github: okHealth(), support: { lastOkAt: null, stale: true, lastError: 'Jira 401' } });
+
+    render(<Home />);
+
+    const banner = await screen.findByRole('alert');
+    expect(banner.textContent).toContain('Soporte sin datos desde nunca — Jira 401');
+    expect(banner.textContent).not.toContain('Jira sin datos');
+  });
+
   it('no muestra banner cuando ambas fuentes están sanas', async () => {
     const fetchMock = mockFetch({ jira: okHealth(), github: okHealth() });
 

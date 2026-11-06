@@ -19,6 +19,9 @@ import { DrizzleJiraRepo } from '../../integrations/jira/repo.drizzle.js';
 import type { StatusAliasMap } from '../../integrations/jira/types.js';
 import { GithubSync } from '../../integrations/github/sync.js';
 import { DrizzleGithubRepo } from '../../integrations/github/repo.drizzle.js';
+import { JiraClient } from '../../integrations/jira/client.js';
+import { SupportSync } from '../../integrations/support/sync.js';
+import { DrizzleSupportRepo } from '../../integrations/support/repo.drizzle.js';
 
 const DEFAULT_FINAL_STATUS = 'Finalizada';
 
@@ -77,6 +80,45 @@ async function buildJiraSync(): Promise<SourceSync | null> {
   });
 }
 
+/** Fin del último run correcto de una fuente en `sync_runs` (null si nunca). */
+async function lastOkFinishedAt(source: string): Promise<Date | null> {
+  const db = getDb();
+  const [last] = await db
+    .select({ finishedAt: syncRuns.finishedAt })
+    .from(syncRuns)
+    .where(and(eq(syncRuns.source, source), eq(syncRuns.ok, true)))
+    .orderBy(desc(syncRuns.startedAt))
+    .limit(1);
+  return last?.finishedAt ?? null;
+}
+
+/**
+ * Backup del tablero de soporte. Usa las mismas credenciales que Jira; sin ellas no se
+ * registra (Jira ya deja la fila 'sin credenciales'). El tablero se lee en cada run de
+ * `settings.supportProject`; si está vacío el run devuelve `skipped`.
+ */
+async function buildSupportSync(): Promise<SourceSync | null> {
+  const env = loadEnv();
+  if (!env.JIRA_BASE_URL || !env.JIRA_API_TOKEN) return null;
+  if (env.JIRA_AUTH_MODE === 'basic' && !env.JIRA_EMAIL) return null;
+
+  const db = getDb();
+  return new SupportSync({
+    client: new JiraClient({
+      baseUrl: env.JIRA_BASE_URL,
+      email: env.JIRA_EMAIL ?? '',
+      apiToken: env.JIRA_API_TOKEN,
+      authMode: env.JIRA_AUTH_MODE,
+    }),
+    repo: new DrizzleSupportRepo(db),
+    loadSettings: async () => {
+      const [row] = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+      return { project: row?.supportProject || null };
+    },
+    lastOkFinishedAt: () => lastOkFinishedAt('support'),
+  });
+}
+
 async function buildGithubSync(): Promise<SourceSync | null> {
   const env = loadEnv();
   const repos = (env.GITHUB_REPOS ?? '')
@@ -100,27 +142,23 @@ async function buildGithubSync(): Promise<SourceSync | null> {
     settings: { org: env.GITHUB_ORG, repos, since, issueKeyRegex },
     token: env.GITHUB_TOKEN,
     repo: new DrizzleGithubRepo(db),
-    lastSync: {
-      async lastOkFinishedAt(source: string): Promise<Date | null> {
-        const [last] = await db
-          .select({ finishedAt: syncRuns.finishedAt })
-          .from(syncRuns)
-          .where(and(eq(syncRuns.source, source), eq(syncRuns.ok, true)))
-          .orderBy(desc(syncRuns.startedAt))
-          .limit(1);
-        return last?.finishedAt ?? null;
-      },
-    },
+    lastSync: { lastOkFinishedAt },
   });
 }
 
-/** Registra JiraSync y GithubSync si hay credenciales suficientes. Idempotente. */
+/** Registra JiraSync, SupportSync y GithubSync si hay credenciales suficientes. Idempotente. */
 export async function registerRealSources(): Promise<void> {
   const jira = await buildJiraSync().catch((err) => {
     logger.error({ err }, 'No se pudo construir JiraSync');
     return null;
   });
   if (jira) registerSource(jira);
+
+  const support = await buildSupportSync().catch((err) => {
+    logger.error({ err }, 'No se pudo construir SupportSync');
+    return null;
+  });
+  if (support) registerSource(support);
 
   const github = await buildGithubSync().catch((err) => {
     logger.error({ err }, 'No se pudo construir GithubSync');

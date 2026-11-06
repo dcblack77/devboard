@@ -63,6 +63,7 @@ describe('GET /api/sync/status — runs + health', () => {
     expect(res.body.health).toEqual({
       jira: { lastOkAt: null, stale: true, lastError: null },
       github: { lastOkAt: null, stale: true, lastError: null },
+      support: { lastOkAt: null, stale: false, lastError: null },
     });
   });
 

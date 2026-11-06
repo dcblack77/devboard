@@ -52,6 +52,8 @@ export interface SyncSourceHealthDto {
 export interface SyncHealthDto {
   jira: SyncSourceHealthDto;
   github: SyncSourceHealthDto;
+  /** Tablero de soporte: `stale=false` si no está registrado o no hay tablero configurado. */
+  support: SyncSourceHealthDto;
 }
 
 /** Respuesta de `GET /api/sync/status`: últimas ejecuciones + salud por fuente. */

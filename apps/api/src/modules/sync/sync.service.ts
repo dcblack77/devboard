@@ -51,6 +51,8 @@ export function detectSuspiciousZeroRun(
     }
     return null;
   }
+  // Soporte: un tablero nuevo puede estar vacío y el incremental suele traer 0; la auth ya
+  // la valida `whoAmI()` antes de buscar.
   return null;
 }
 
@@ -167,7 +169,19 @@ export class SyncService {
         lastError: last?.ok === false ? (last.error ?? null) : null,
       };
     };
-    const [jira, github] = await Promise.all([one(SyncSource.Jira), one(SyncSource.GitHub)]);
-    return { jira, github };
+    const supportHealth = async (): Promise<SyncSourceHealthDto> => {
+      // No registrada (sin credenciales Jira) ⇒ no es un fallo de datos que avisar.
+      if (!getRegisteredSources().some((s) => s.name === SyncSource.Support)) {
+        return { lastOkAt: null, stale: false, lastError: null };
+      }
+      const h = await one(SyncSource.Support);
+      if (h.lastError !== null) return h;
+      // Sin tablero de soporte configurado el run es ok con `skipped: 1`: nunca stale.
+      const lastOk = await this.runs.lastOkRun(SyncSource.Support);
+      if (lastOk?.counts?.skipped === 1) return { ...h, stale: false };
+      return h;
+    };
+    const [jira, github, support] = await Promise.all([one(SyncSource.Jira), one(SyncSource.GitHub), supportHealth()]);
+    return { jira, github, support };
   }
 }

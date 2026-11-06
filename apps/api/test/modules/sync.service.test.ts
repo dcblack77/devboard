@@ -16,6 +16,7 @@ vi.mock('../../src/config/logger.js', () => ({
 
 const { SyncService, detectSuspiciousZeroRun } = await import('../../src/modules/sync/sync.service.js');
 const { InMemorySyncRunsRepo } = await import('../fixtures/in-memory-sync-runs.repo.js');
+const registry = await import('../../src/modules/sync/registry.js');
 
 describe('detectSuspiciousZeroRun', () => {
   it('jira: 0 issues tras un run con N>0 ⇒ error con N', () => {
@@ -124,5 +125,53 @@ describe('SyncService.runOne', () => {
     repo.seed({ source: 'jira', ok: true, counts: { issues: 100 }, startedAt: new Date('2026-10-01T07:00:00Z') });
     await service.runOne('github', async () => ({ counts: { prs: 0, apiCalls: 0 } }));
     expect(repo.rows.at(-1)!.ok).toBe(true);
+  });
+});
+
+describe('soporte: detección y salud', () => {
+  const { registerSource, clearRegisteredSourcesForTests } = registry;
+  let repo: InstanceType<typeof InMemorySyncRunsRepo>;
+  let service: InstanceType<typeof SyncService>;
+  const now = new Date('2026-11-06T12:00:00Z');
+  const minutesAgo = (m: number) => new Date(now.getTime() - m * 60_000);
+  const fakeSupport = { name: 'support', run: async () => ({ counts: {} }) };
+
+  beforeEach(() => {
+    repo = new InMemorySyncRunsRepo();
+    service = new SyncService(repo);
+    clearRegisteredSourcesForTests();
+  });
+
+  it('support: 0 tickets nunca es sospechoso (tablero nuevo o incremental vacío)', () => {
+    expect(detectSuspiciousZeroRun('support', { tickets: 0, full: 1 }, { tickets: 30, full: 1 })).toBeNull();
+    expect(detectSuspiciousZeroRun('support', { tickets: 0, full: 0 }, { tickets: 30, full: 0 })).toBeNull();
+  });
+
+  it('support no registrado ⇒ stale=false', async () => {
+    const h = await service.health(now);
+    expect(h.support).toEqual({ lastOkAt: null, stale: false, lastError: null });
+  });
+
+  it('support registrado pero sin tablero (último ok skipped) ⇒ stale=false aunque sea viejo', async () => {
+    registerSource(fakeSupport);
+    repo.seed({ source: 'support', ok: true, counts: { skipped: 1 }, startedAt: minutesAgo(600) });
+    const h = await service.health(now);
+    expect(h.support.stale).toBe(false);
+  });
+
+  it('support registrado con fallo ⇒ stale=true con lastError', async () => {
+    registerSource(fakeSupport);
+    repo.seed({ source: 'support', ok: true, counts: { tickets: 4, full: 0 }, startedAt: minutesAgo(30) });
+    repo.seed({ source: 'support', ok: false, error: 'Jira 401', startedAt: minutesAgo(5) });
+    const h = await service.health(now);
+    expect(h.support).toMatchObject({ stale: true, lastError: 'Jira 401' });
+  });
+
+  it('support registrado con ok reciente ⇒ stale=false', async () => {
+    registerSource(fakeSupport);
+    repo.seed({ source: 'support', ok: true, counts: { tickets: 4, full: 0 }, startedAt: minutesAgo(10) });
+    const h = await service.health(now);
+    expect(h.support.stale).toBe(false);
+    expect(h.support.lastOkAt).not.toBeNull();
   });
 });
