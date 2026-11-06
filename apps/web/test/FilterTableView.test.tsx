@@ -62,4 +62,25 @@ describe('FilterTable (render)', () => {
     expect(bar.querySelectorAll('select.pill')).toHaveLength(1);
     expect(bar.querySelector('.cnt')!.textContent).toBe('130 filas');
   });
+
+  it('sin variant la tabla no lleva clases ni títulos de la variante moderna', () => {
+    const cols: Column<Row>[] = [
+      { key: 'name', header: 'Nombre', accessor: (r) => r.name, cellTitle: (r) => r.name, cellClass: 'x', align: 'center' },
+    ];
+    const { container } = render(<FilterTable rows={rows.slice(0, 1)} columns={cols} />);
+    expect(container.querySelector('table')!.outerHTML).toBe(
+      '<table><thead><tr><th style="cursor: pointer;">Nombre</th></tr></thead><tbody><tr><td>fila 0</td></tr></tbody></table>',
+    );
+  });
+
+  it('variant moderna: clase ft-modern, centrado, clase y title de celda', () => {
+    const cols: Column<Row>[] = [
+      { key: 'name', header: 'Nombre', accessor: (r) => r.name, cellTitle: (r) => r.name, cellClass: 'x', align: 'center' },
+    ];
+    const { container } = render(<FilterTable rows={rows.slice(0, 1)} columns={cols} variant="modern" />);
+    expect(container.querySelector('table')!.className).toBe('ft-modern');
+    const td = container.querySelector('tbody td')!;
+    expect(td.className).toBe('c x');
+    expect(td.getAttribute('title')).toBe('fila 0');
+  });
 });

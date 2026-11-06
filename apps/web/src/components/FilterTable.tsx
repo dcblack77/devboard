@@ -11,6 +11,12 @@ export interface Column<T> {
   /** Renderizado alternativo de la celda (por defecto se usa el valor de `accessor`). */
   render?: (row: T) => React.ReactNode;
   numeric?: boolean;
+  /** Solo `variant="modern"`: tooltip de la celda (p. ej. el título completo truncado). */
+  cellTitle?: (row: T) => string | undefined;
+  /** Solo `variant="modern"`: centra la columna. */
+  align?: 'center';
+  /** Solo `variant="modern"`: clase extra para las celdas de la columna. */
+  cellClass?: string;
 }
 
 /**
@@ -104,6 +110,15 @@ export function FilterTable<T>({
   /** En la variante moderna la tabla hace scroll horizontal dentro de su contenedor (móvil). */
   const wrapTable = (table: React.ReactNode) => (modern ? <div className="ft-scroll">{table}</div> : table);
 
+  /** Clase de th/td: `n` para numéricas; en la variante moderna, además centrado y clase propia. */
+  function cellCls(col: Column<T>, body = false): string | undefined {
+    if (!modern) return col.numeric ? 'n' : undefined;
+    const cls = [col.align === 'center' ? 'c' : col.numeric ? 'n' : '', body ? col.cellClass ?? '' : '']
+      .filter(Boolean)
+      .join(' ');
+    return cls || undefined;
+  }
+
   function toggleSort(key: string) {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -169,13 +184,13 @@ export function FilterTable<T>({
         <span className="cnt">{sorted.length} filas</span>
       </div>
       {wrapTable(
-      <table>
+      <table className={modern ? 'ft-modern' : undefined}>
         <thead>
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={col.numeric ? 'n' : undefined}
+                className={cellCls(col)}
                 onClick={() => toggleSort(col.key)}
                 style={{ cursor: 'pointer' }}
               >
@@ -189,7 +204,7 @@ export function FilterTable<T>({
           {paged.map((row, i) => (
             <tr key={i}>
               {columns.map((col) => (
-                <td key={col.key} className={col.numeric ? 'n' : undefined}>
+                <td key={col.key} className={cellCls(col, true)} title={modern ? col.cellTitle?.(row) : undefined}>
                   {col.render ? col.render(row) : col.accessor(row)}
                 </td>
               ))}

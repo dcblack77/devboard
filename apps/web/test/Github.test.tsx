@@ -13,7 +13,7 @@ vi.mock('../src/components/charts/LineChart', () => ({
   ),
 }));
 
-import { Github, noApprovalEdge, prev4Delta } from '../src/pages/Github';
+import { Github, ageLevel, fmtAge, initials, noApprovalEdge, prev4Delta } from '../src/pages/Github';
 import { Kpi } from '../src/components/Kpi';
 import { axisTicks, fullTick } from '../src/components/MergedPrsChart';
 
@@ -201,6 +201,90 @@ describe('Github (Code review)', () => {
     ]);
     // Sin 8 semanas de histórico no se inventa delta.
     expect(container.querySelector('.kpi-delta')).toBeNull();
+  });
+});
+
+describe('Tablas de Code review', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+    localStorage.clear();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  function stubWith(extra: { prs?: unknown[]; waiting?: unknown[]; stale?: unknown[] }) {
+    const data = {
+      reviewStats: { ...DATA.reviewStats, waiting: extra.waiting ?? WAITING, stale: extra.stale ?? [] },
+      prs: extra.prs ?? DATA.prs,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(data), { status: 200, headers: { 'content-type': 'application/json' } })),
+    );
+  }
+
+  it('pills de estado con color según el estado en español', async () => {
+    stubWith({
+      prs: [
+        pr(1, { state: 'mergeada' }),
+        pr(2, { state: 'abierta', merged: null, hToMerge: null }),
+        pr(3, { state: 'borrador', merged: null, hToMerge: null }),
+        pr(4, { state: 'cerrada sin merge', merged: null, hToMerge: null }),
+      ],
+    });
+    const { container } = render(<Github />);
+    await screen.findByText('Resumen del equipo');
+    const prsSection = [...container.querySelectorAll('details')].at(-1)!;
+    const pills = [...prsSection.querySelectorAll('tbody .st-pill')].map((p) => [p.textContent, p.className]);
+    expect(pills).toEqual([
+      ['mergeada', 'st-pill st-merged'],
+      ['abierta', 'st-pill st-open'],
+      ['borrador', 'st-pill st-draft'],
+      ['cerrada sin merge', 'st-pill st-closed'],
+    ]);
+    const dashes = [...prsSection.querySelectorAll('tbody span[title]')].map((d) => d.getAttribute('title'));
+    expect(dashes).toEqual(['Aún no mergeada', 'Aún no mergeada', 'Cerrada sin merge']);
+  });
+
+  it('esperando/estancadas: PR en dos líneas, iniciales y badge de antigüedad; estado vacío', async () => {
+    stubWith({ waiting: [pr(40, { state: 'abierta', hOpen: 165.3 * 24, author: 'Ana García', repo: 'org/api', title: 'Arregla login' })] });
+    const { container } = render(<Github />);
+    await screen.findByText('Resumen del equipo');
+    const [waiting, stale] = [...container.querySelectorAll('.cr-pair details')];
+    const row = waiting!.querySelector('tbody tr')!;
+    expect(row.querySelector('.pr-num')!.textContent).toBe('#41');
+    expect(row.querySelector('.pr-line1')!.textContent).toBe('#41 Arregla login');
+    expect(row.querySelector('.pr-repo')!.textContent).toBe('org/api');
+    expect(row.querySelector('.avatar')!.textContent).toBe('AG');
+    const badge = row.querySelector('.age-badge')!;
+    expect(badge.textContent).toBe('165 d');
+    expect(badge.className).toBe('age-badge age-old');
+    expect(stale!.querySelector('.empty-state')!.textContent).toBe('No hay PRs estancadas 🎉');
+  });
+
+  it('Por repositorio abierta por defecto en pantallas ≥ 1280 px', async () => {
+    stubWith({});
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(min-width: 1280px)', media: q }));
+    const { container } = render(<Github />);
+    await screen.findByText('Resumen del equipo');
+    expect(container.querySelector('details')!.open).toBe(true);
+    expect(container.querySelector('.repo-bar > span')).toBeTruthy();
+  });
+
+  it('formato y nivel de antigüedad', () => {
+    expect(fmtAge(5)).toBe('5.0 h');
+    expect(fmtAge(3.5 * 24)).toBe('3.5 d');
+    expect(fmtAge(165.3 * 24)).toBe('165 d');
+    expect(ageLevel(6.9 * 24)).toBe('age-new');
+    expect(ageLevel(7 * 24)).toBe('age-mid');
+    expect(ageLevel(30 * 24)).toBe('age-mid');
+    expect(ageLevel(31 * 24)).toBe('age-old');
+    expect(initials('alice')).toBe('AL');
+    expect(initials('bob.smith')).toBe('BS');
   });
 });
 

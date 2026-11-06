@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
 import { Kpi, type KpiDelta } from '../components/Kpi';
-import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
 import { MergedPrsChart } from '../components/MergedPrsChart';
 import { FilterTable, type Column } from '../components/FilterTable';
@@ -70,10 +69,17 @@ type SectionId = 'repos' | 'waiting' | 'stale' | 'prs';
 const SECTIONS_KEY = 'devboard.cr.sections';
 const SECTION_DEFAULTS: Record<SectionId, boolean> = { repos: false, waiting: true, stale: true, prs: true };
 
+/** «Por repositorio» abierta por defecto en pantallas anchas (≥ 1280 px); lo guardado manda. */
+function sectionDefaults(): Record<SectionId, boolean> {
+  const wide =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1280px)').matches;
+  return { ...SECTION_DEFAULTS, repos: wide };
+}
+
 function loadSections(): Record<SectionId, boolean> {
   try {
     const raw = JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? 'null') as Record<string, unknown> | null;
-    const out = { ...SECTION_DEFAULTS };
+    const out = sectionDefaults();
     if (raw && typeof raw === 'object') {
       for (const k of Object.keys(out) as SectionId[]) {
         if (typeof raw[k] === 'boolean') out[k] = raw[k] as boolean;
@@ -81,7 +87,7 @@ function loadSections(): Record<SectionId, boolean> {
     }
     return out;
   } catch {
-    return { ...SECTION_DEFAULTS };
+    return sectionDefaults();
   }
 }
 
@@ -160,9 +166,65 @@ function Collapsible({
   );
 }
 
-function PrList({ prs }: { prs: AnalyzedPr[] }) {
+/** Antigüedad en horas → texto: «x h» (< 24 h), «3.5 d» (≤ 10 d) o «165 d» (> 10 d). */
+export function fmtAge(h: number | null | undefined): string {
+  if (h === null || h === undefined || Number.isNaN(h)) return '—';
+  if (h / 24 > 10) return `${Math.round(h / 24)} d`;
+  return fmtHours(h);
+}
+
+/** Nivel de urgencia por antigüedad: < 7 d neutro, 7–30 d ámbar, > 30 d rojo. */
+export function ageLevel(h: number | null | undefined): 'age-new' | 'age-mid' | 'age-old' {
+  const d = (h ?? 0) / 24;
+  if (d > 30) return 'age-old';
+  if (d >= 7) return 'age-mid';
+  return 'age-new';
+}
+
+/** Iniciales (máx. 2) de un nombre o login: «Ana García» → «AG», «alice» → «AL». */
+export function initials(name: string): string {
+  const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+}
+
+/** Estados de PR (la API los da en español; se aceptan también las claves en inglés). */
+const STATE_PILL: Record<string, string> = {
+  mergeada: 'st-merged',
+  merged: 'st-merged',
+  abierta: 'st-open',
+  open: 'st-open',
+  borrador: 'st-draft',
+  draft: 'st-draft',
+  'cerrada sin merge': 'st-closed',
+  closed: 'st-closed',
+};
+
+/** Pill de estado de PR con color semántico (contraste AA). */
+export function StatePill({ state }: { state: string }) {
+  return <span className={`st-pill ${STATE_PILL[state] ?? 'st-other'}`}>{state}</span>;
+}
+
+/** Explicación del «—» en «Tiempo a merge» según el estado. */
+function noMergeTitle(state: string): string {
+  return STATE_PILL[state] === 'st-closed' ? 'Cerrada sin merge' : 'Aún no mergeada';
+}
+
+function InfoIcon() {
   return (
-    <table>
+    <svg className="info-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 7v4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="4.75" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PrList({ prs, empty }: { prs: AnalyzedPr[]; empty: string }) {
+  if (prs.length === 0) return <p className="empty-state">{empty}</p>;
+  return (
+    <table className="pr-list">
       <thead>
         <tr>
           <th>PR</th>
@@ -173,14 +235,29 @@ function PrList({ prs }: { prs: AnalyzedPr[] }) {
       <tbody>
         {prs.slice(0, 15).map((p) => (
           <tr key={`${p.repo}#${p.number}`}>
-            <td><a href={p.url} target="_blank" rel="noreferrer">{p.repo} #{p.number}</a></td>
-            <td>{p.author}</td>
-            <td className="n">{fmtHours(p.hOpen)}</td>
+            <td className="pr-cell">
+              {p.title ? (
+                <>
+                  <a href={p.url} target="_blank" rel="noreferrer" className="pr-line1" title={`${p.repo} #${p.number} · ${p.title}`}>
+                    <span className="pr-num">#{p.number}</span> {p.title}
+                  </a>
+                  <span className="pr-repo">{p.repo}</span>
+                </>
+              ) : (
+                <a href={p.url} target="_blank" rel="noreferrer" className="pr-line1" title={`${p.repo} #${p.number}`}>
+                  {p.repo} <span className="pr-num">#{p.number}</span>
+                </a>
+              )}
+            </td>
+            <td className="author-cell">
+              <span className="avatar" aria-hidden="true">{initials(p.author)}</span>
+              {p.author}
+            </td>
+            <td className="n">
+              <span className={`age-badge ${ageLevel(p.hOpen)}`}>{fmtAge(p.hOpen)}</span>
+            </td>
           </tr>
         ))}
-        {prs.length === 0 ? (
-          <tr><td colSpan={3} className="muted">Ninguna.</td></tr>
-        ) : null}
       </tbody>
     </table>
   );
@@ -239,12 +316,14 @@ export function Github() {
     { key: 'number', header: 'PR', accessor: (r) => r.number, numeric: true, render: (r) => (
         <a href={r.url} target="_blank" rel="noreferrer">#{r.number}</a>
       ) },
-    { key: 'title', header: 'Título', accessor: (r) => r.title },
-    { key: 'author', header: 'Autor', accessor: (r) => r.author, filterOptions: authors },
-    { key: 'state', header: 'Estado', accessor: (r) => r.state, filterOptions: states, render: (r) => <Tag value={r.state} /> },
-    { key: 'approvals', header: 'Aprob.', accessor: (r) => r.approvals, numeric: true },
-    { key: 'hToMerge', header: 'Tiempo a merge', accessor: (r) => r.hToMerge ?? -1, numeric: true, render: (r) => fmtHours(r.hToMerge) },
+    { key: 'title', header: 'Título', accessor: (r) => r.title, cellClass: 'td-title', cellTitle: (r) => r.title },
+    { key: 'author', header: 'Autor', accessor: (r) => r.author, filterOptions: authors, cellClass: 'td-nowrap' },
+    { key: 'state', header: 'Estado', accessor: (r) => r.state, filterOptions: states, render: (r) => <StatePill state={r.state} /> },
+    { key: 'approvals', header: 'Aprob.', accessor: (r) => r.approvals, numeric: true, align: 'center' },
+    { key: 'hToMerge', header: 'Tiempo a merge', accessor: (r) => r.hToMerge ?? -1, numeric: true, render: (r) =>
+        r.hToMerge === null ? <span className="muted" title={noMergeTitle(r.state)}>—</span> : fmtHours(r.hToMerge) },
   ];
+  const maxRepoMerged = Math.max(1, ...rs.repos.map((r) => r.merged));
 
   return (
     <main className="cr">
@@ -296,7 +375,7 @@ export function Github() {
 
       <Collapsible title="Por repositorio" count={rs.repos.length} open={sections.repos} onToggle={(o) => toggleSection('repos', o)}>
         <div className="table-scroll">
-          <table>
+          <table className="ft-modern">
             <thead>
               <tr>
                 <th>Repo</th>
@@ -312,7 +391,14 @@ export function Github() {
                 <tr key={r.repo}>
                   <td>{r.repo}</td>
                   <td className="n">{r.prs}</td>
-                  <td className="n">{r.merged}</td>
+                  <td className="n">
+                    <span className="repo-bar-cell">
+                      <span className="repo-bar" aria-hidden="true">
+                        <span style={{ width: `${(r.merged / maxRepoMerged) * 100}%` }} />
+                      </span>
+                      {r.merged}
+                    </span>
+                  </td>
                   <td className="n">{r.open}</td>
                   <td className="n">{fmtHours(r.hFirstReviewMean)}</td>
                   <td className="n">{fmtHours(r.hToMergeMean)}</td>
@@ -327,12 +413,12 @@ export function Github() {
 
       <div className="cr-pair">
         <Collapsible title="Esperando revisión" count={rs.waiting.length} open={sections.waiting} onToggle={(o) => toggleSection('waiting', o)}>
-          <p className="q">Sin ninguna review y por encima del umbral configurado.</p>
-          <PrList prs={rs.waiting} />
+          <p className="q"><InfoIcon />Sin ninguna review y por encima del umbral configurado.</p>
+          <PrList prs={rs.waiting} empty="No hay PRs esperando revisión 🎉" />
         </Collapsible>
         <Collapsible title="Estancadas" count={rs.stale.length} open={sections.stale} onToggle={(o) => toggleSection('stale', o)}>
-          <p className="q">Con revisión iniciada pero abiertas hace más de una semana.</p>
-          <PrList prs={rs.stale} />
+          <p className="q"><InfoIcon />Con revisión iniciada pero abiertas hace más de una semana.</p>
+          <PrList prs={rs.stale} empty="No hay PRs estancadas 🎉" />
         </Collapsible>
       </div>
 
