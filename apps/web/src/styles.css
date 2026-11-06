@@ -515,3 +515,7 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 /* Resumen de Incidencias en Inicio/Corporativo (SupportSummaryCards). */
 .ssc-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; margin: 6px 0 0; }
 .ssc-link { white-space: nowrap; }
+
+/* Sistema (g1): filtros dentro de la cabecera. */
+.sys-filters { margin-bottom: 0; }
+.sys-batches-table { margin-top: 14px; }

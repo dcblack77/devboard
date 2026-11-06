@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import type { SystemResponse, DoraRepoDto, PracticeDto, KanbanStateDto, ClosureDayDto } from '@devboard/shared';
 import { api } from '../api/client';
-import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { FilterTable } from '../components/FilterTable';
+import { PageShell } from '../components/ui/PageShell';
+import { Section } from '../components/ui/Section';
+import { KpiGroup } from '../components/ui/KpiGroup';
+import { SkeletonKpis, SkeletonRows } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { StatusPill } from '../components/ui/StatusPill';
+import { MODERN_TABLE } from '../components/ui/tables';
+import { TimeSeriesChart } from '../components/ui/TimeSeriesChart';
 
 type Months = 3 | 6 | 12;
 type PracticeGrain = 'quarter' | 'month';
@@ -33,8 +40,6 @@ function num(n: number | null | undefined): number {
 interface Bar {
   label: string;
   value: number;
-  /** Parte destacada dentro de la barra (p. ej. cierres contados dentro del total). */
-  inner?: number;
   title: string;
 }
 
@@ -50,9 +55,6 @@ function MiniBars({ name, bars, showLabels = true }: { name: string; bars: Bar[]
         {bars.map((b, i) => (
           <div key={i} className="sys-bar" title={b.title}>
             <div className="sys-bar-fill" style={{ height: `${(b.value / max) * 100}%` }}>
-              {b.inner !== undefined ? (
-                <div className="sys-bar-inner" style={{ height: `${b.value ? (b.inner / b.value) * 100 : 0}%` }} />
-              ) : null}
             </div>
           </div>
         ))}
@@ -94,7 +96,7 @@ export function System() {
 
   if (error)
     return (
-      <main className="sys">
+      <main className="page sys">
         <p className="error-msg">{error}</p>
       </main>
     );
@@ -107,62 +109,72 @@ export function System() {
   const deploysPerWeek = activeRepos.reduce((s, r) => s + r.deploysPerWeek, 0);
   const practiceRows = data ? (grain === 'quarter' ? data.practice.byQuarter : data.practice.byMonth) : [];
   const totalPrs = data ? data.practice.byQuarter.reduce((s, p) => s + p.prs, 0) : 0;
+  const definitions = Object.entries(data?.definitions ?? {});
+
+  const filters = (
+    <div className="sys-filters noprint">
+      <label>
+        Periodo
+        <select value={months} onChange={(e) => setMonths(Number(e.target.value) as Months)} aria-label="Meses">
+          <option value={3}>3 meses</option>
+          <option value={6}>6 meses</option>
+          <option value={12}>12 meses</option>
+        </select>
+      </label>
+      <label>
+        Repositorio
+        <select value={repo} onChange={(e) => setRepo(e.target.value)} aria-label="Repositorio">
+          <option value="all">Todos</option>
+          {repos.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
 
   return (
-    <main className="sys">
-      <div className="sys-head">
-        <div>
-          <h1>Sistema</h1>
-          <p className="lead">Del commit a producción: DORA por repositorio, flujo del ticket, práctica de PR y lotes de cierre.</p>
+    <PageShell
+      title="Sistema"
+      lead="Del commit a producción: DORA por repositorio, flujo del ticket, práctica de PR y lotes de cierre."
+      actions={filters}
+      className="sys"
+    >
+      {!data || !flow ? (
+        <div aria-busy="true" aria-label="Cargando sistema">
+          <SkeletonKpis count={6} />
+          <SkeletonRows />
         </div>
-        <div className="sys-filters noprint">
-          <label>
-            Periodo
-            <select value={months} onChange={(e) => setMonths(Number(e.target.value) as Months)} aria-label="Meses">
-              <option value={3}>3 meses</option>
-              <option value={6}>6 meses</option>
-              <option value={12}>12 meses</option>
-            </select>
-          </label>
-          <label>
-            Repositorio
-            <select value={repo} onChange={(e) => setRepo(e.target.value)} aria-label="Repositorio">
-              <option value="all">Todos</option>
-              {repos.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
+      ) : (
+        <>
+          <section aria-label="Resumen">
+            <KpiGroup label="Entrega">
+              <Kpi value={totalDeploys} label="Despliegues a producción" sub={`${activeRepos.length} de ${data.repos.length} repos con despliegues`} />
+              <Kpi value={deploysPerWeek.toFixed(1)} label="Despliegues / semana" sub="suma de repos" />
+              <Kpi value={totalPrs} label="PRs" sub="en el periodo" />
+            </KpiGroup>
+            <KpiGroup label="Flujo">
+              <Kpi value={`${fmtDays(flow.cycleKanbanH)} d`} label="Ciclo hasta Done p50" sub={`${flow.tickets} tickets`} />
+              <Kpi value={fmtRatio(flow.flowEfficiency)} label="Flow efficiency" />
+              <Kpi value={fmtRatio(flow.reworkPct)} label="Retrabajo" sub="tickets que vuelven atrás" />
+            </KpiGroup>
+          </section>
 
-      {!data ? <p className="muted">Cargando…</p> : null}
-
-      {data && flow ? (
-        <section className="kpis sys-summary" aria-label="Resumen">
-          <Kpi value={totalDeploys} label="Despliegues a producción" sub={`${activeRepos.length} de ${data.repos.length} repos con despliegues`} />
-          <Kpi value={deploysPerWeek.toFixed(1)} label="Despliegues / semana" sub="suma de repos" />
-          <Kpi value={totalPrs} label="PRs" sub="en el periodo" />
-          <Kpi value={`${fmtDays(flow.cycleKanbanH)} d`} label="Ciclo hasta Done p50" sub={`${flow.tickets} tickets`} />
-          <Kpi value={fmtRatio(flow.flowEfficiency)} label="Flow efficiency" />
-          <Kpi value={fmtRatio(flow.reworkPct)} label="Retrabajo" sub="tickets que vuelven atrás" />
-        </section>
-      ) : null}
-
-      <Block title="DORA por repo" plain>
-        {data ? (
-          <div className="card sys-card">
+          <Section pageKey="system" id="dora" title="DORA por repo" count={doraRows.length}>
             <label className="sys-toggle noprint">
               <input type="checkbox" checked={showIdle} onChange={(e) => setShowIdle(e.target.checked)} />
               Mostrar repos sin despliegues ({idleCount})
             </label>
-            <div className="table-scroll">
+            {doraRows.length === 0 ? (
+              <EmptyState>No hay repos con despliegues en el periodo.</EmptyState>
+            ) : (
               <FilterTable<DoraRepoDto>
+                {...MODERN_TABLE}
                 rows={doraRows}
                 columns={[
-                  { key: 'repo', header: 'Repo', accessor: (r) => r.repo },
+                  { key: 'repo', header: 'Repo', accessor: (r) => r.repo, filterOptions: data.repos.map((r) => r.repo), cellClass: 'td-nowrap' },
                   { key: 'deploys', header: 'Despliegues', accessor: (r) => r.deploys, numeric: true },
                   { key: 'perWeek', header: '/semana', accessor: (r) => r.deploysPerWeek.toFixed(1), numeric: true },
                   { key: 'lead', header: 'Lead time p50 (d)', accessor: (r) => num(r.leadTimeH.p50), render: (r) => fmtDays(r.leadTimeH.p50), numeric: true },
@@ -176,14 +188,10 @@ export function System() {
                   { key: 'toProd', header: 'Merge→prod h', accessor: (r) => num(r.mergeToProdH), render: (r) => fmtH(r.mergeToProdH), numeric: true },
                 ]}
               />
-            </div>
-          </div>
-        ) : null}
-      </Block>
+            )}
+          </Section>
 
-      <Block title="Flujo del ticket a producción" plain>
-        {flow ? (
-          <>
+          <Section pageKey="system" id="flow" title="Flujo del ticket a producción" count={flow.states.length}>
             <div className="kpis">
               <Kpi value={`${fmtDays(flow.cycleKanbanH)} d`} label="Ciclo hasta Done p50" sub={`p85 ${fmtDays(flow.cycleKanbanP85H)} d · ${flow.tickets} tickets`} />
               <Kpi value={`${fmtDays(flow.engineeringH)} d`} label="Tiempo de ingeniería" sub={`En curso + In review (mediana) · ${flow.tickets} tickets`} />
@@ -208,24 +216,21 @@ export function System() {
                   }))}
                 />
               </div>
-              <div className="card sys-card table-scroll">
+              <div className="card sys-card">
                 <FilterTable<KanbanStateDto>
+                  {...MODERN_TABLE}
                   rows={flow.states}
                   columns={[
-                    { key: 'status', header: 'Estado', accessor: (s) => s.status },
+                    { key: 'status', header: 'Estado', accessor: (s) => s.status, render: (s) => <StatusPill status={s.status} /> },
                     { key: 'p50', header: 'Mediana (d)', accessor: (s) => num(s.p50H), render: (s) => fmtDays(s.p50H), numeric: true },
                     { key: 'pct', header: '% tickets', accessor: (s) => num(s.pctOfTickets), render: (s) => fmtRatio(s.pctOfTickets), numeric: true },
                   ]}
                 />
               </div>
             </div>
-          </>
-        ) : null}
-      </Block>
+          </Section>
 
-      <Block title="Práctica de PR" plain>
-        {data ? (
-          <div className="card sys-card">
+          <Section pageKey="system" id="practice" title="Práctica de PR" count={practiceRows.length}>
             <div className="sys-seg noprint" role="group" aria-label="Agrupar por">
               <button type="button" aria-pressed={grain === 'quarter'} onClick={() => setGrain('quarter')}>
                 Por trimestre
@@ -234,8 +239,11 @@ export function System() {
                 Por mes
               </button>
             </div>
-            <div className="table-scroll">
+            {practiceRows.length === 0 ? (
+              <EmptyState>No hay PRs en el periodo.</EmptyState>
+            ) : (
               <FilterTable<PracticeDto>
+                {...MODERN_TABLE}
                 key={grain}
                 rows={practiceRows}
                 columns={[
@@ -249,34 +257,26 @@ export function System() {
                   { key: 'noappr', header: '% merge sin aprobación', accessor: (p) => num(p.pctMergedWithoutHumanApproval), render: (p) => fmtRatio(p.pctMergedWithoutHumanApproval), numeric: true },
                 ]}
               />
-            </div>
-          </div>
-        ) : null}
-      </Block>
+            )}
+          </Section>
 
-      <Block title="Lotes de cierre" lead="Cierres por día, por día de la semana y por hora (UTC). Lote = día con 5 o más cierres." plain>
-        {data ? (
-          <>
-            <div className="card sys-card">
-              <h4>Cierres diarios</h4>
-              <p className="q">Total por día; en oscuro, los tipos contados (Historia, Tarea, Error).</p>
-              <MiniBars
-                name="Cierres diarios"
-                showLabels={false}
-                bars={data.batches.days.map((d: ClosureDayDto) => ({
-                  label: d.date,
-                  value: d.closedAll,
-                  inner: d.closed,
-                  title: `${d.date}: ${d.closed} contados · ${d.closedAll} en total`,
-                }))}
-              />
-              {data.batches.days.length > 0 ? (
-                <div className="sys-range muted small">
-                  <span>{data.batches.days[0].date}</span>
-                  <span>{data.batches.days[data.batches.days.length - 1].date}</span>
-                </div>
-              ) : null}
-            </div>
+          <Section
+            pageKey="system"
+            id="batches"
+            title="Lotes de cierre"
+            count={data.batches.batches.length}
+            note="Cierres por día, por día de la semana y por hora (UTC). Lote = día con 5 o más cierres."
+          >
+            <TimeSeriesChart<ClosureDayDto>
+              items={data.batches.days}
+              series={[
+                { label: 'Contados', date: (d) => d.date, value: (d) => d.closed },
+                { label: 'Total', date: (d) => d.date, value: (d) => d.closedAll, color: '--muted' },
+              ]}
+              title={(noun) => `Cierres por ${noun}`}
+              storageKey="devboard.system.closures"
+              defaults={{ preset: 'all' }}
+            />
             <div className="sys-grid">
               <div className="card sys-card">
                 <h4>Por día de la semana</h4>
@@ -293,40 +293,46 @@ export function System() {
                 />
               </div>
             </div>
-            <div className="card sys-card">
-              <h4>Lotes ({data.batches.batches.length})</h4>
-              {data.batches.batches.length === 0 ? (
-                <p className="muted">Sin lotes en el periodo.</p>
-              ) : (
-                <ul className="sys-batches">
+            {data.batches.batches.length === 0 ? (
+              <EmptyState>Sin lotes en el periodo.</EmptyState>
+            ) : (
+              <table className="ft-modern sys-batches-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th className="num">Contados</th>
+                    <th className="num">Total</th>
+                    <th className="num">Vía QA</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {data.batches.batches.map((d: ClosureDayDto) => (
-                    <li key={d.date}>
-                      <strong>{d.date}</strong> <span>{d.closed} contados · {d.closedAll} en total</span>
-                      {d.viaQaNegocio ? <span className="muted"> · {d.viaQaNegocio} vía QA</span> : null}
-                    </li>
+                    <tr key={d.date}>
+                      <td className="td-nowrap">{d.date}</td>
+                      <td className="num">{d.closed}</td>
+                      <td className="num">{d.closedAll}</td>
+                      <td className="num">{d.viaQaNegocio}</td>
+                    </tr>
                   ))}
-                </ul>
-              )}
-            </div>
-          </>
-        ) : null}
-      </Block>
+                </tbody>
+              </table>
+            )}
+          </Section>
 
-      <Block title="Definiciones" plain>
-        <details className="card sys-card">
-          <summary>Cómo se calcula cada indicador</summary>
-          <dl className="sys-defs">
-            {Object.entries(data?.definitions ?? {}).map(([k, v]) => (
-              <div key={k}>
-                <dt>
-                  <strong>{k}</strong>
-                </dt>
-                <dd>{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </details>
-      </Block>
-    </main>
+          <Section pageKey="system" id="defs" title="Definiciones" count={definitions.length} defaultOpen={false}>
+            <dl className="sys-defs">
+              {definitions.map(([k, v]) => (
+                <div key={k}>
+                  <dt>
+                    <strong>{k}</strong>
+                  </dt>
+                  <dd>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </Section>
+        </>
+      )}
+    </PageShell>
   );
 }
