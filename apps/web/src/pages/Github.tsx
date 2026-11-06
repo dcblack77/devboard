@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
-import { Kpi } from '../components/Kpi';
+import { Kpi, type KpiDelta } from '../components/Kpi';
 import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
 import { MergedPrsChart } from '../components/MergedPrsChart';
@@ -83,6 +83,55 @@ function loadSections(): Record<SectionId, boolean> {
   } catch {
     return { ...SECTION_DEFAULTS };
   }
+}
+
+/**
+ * Variación (%) de la suma de las 4 últimas semanas frente a las 4 anteriores, a partir de
+ * `weekly` (orden cronológico). `null` si no hay 8 semanas o el periodo anterior es 0.
+ */
+export function prev4Delta(weekly: ReadonlyArray<WeeklyReviewStats>, key: 'merged' | 'hotfix'): number | null {
+  if (weekly.length < 8) return null;
+  const sum = (ws: ReadonlyArray<WeeklyReviewStats>) => ws.reduce((s, w) => s + (w[key] ?? 0), 0);
+  const cur = sum(weekly.slice(-4));
+  const prev = sum(weekly.slice(-8, -4));
+  if (prev === 0) return null;
+  return ((cur - prev) / prev) * 100;
+}
+
+const toDelta = (pct: number | null, good: KpiDelta['good']): KpiDelta | null => (pct === null ? null : { pct, good });
+
+/** Umbrales de presentación: «Sin aprobación» ámbar > 10 %, rojo > 20 %; hotfixes ámbar > 5. */
+export function noApprovalEdge(pct: number): 'amber' | 'red' | undefined {
+  if (pct > 20) return 'red';
+  if (pct > 10) return 'amber';
+  return undefined;
+}
+
+/** Esqueleto de carga: tarjetas KPI y dos tablas grises mientras llegan los datos. */
+function CrSkeleton() {
+  return (
+    <main className="cr" aria-busy="true" aria-label="Cargando code review">
+      <div className="skeleton sk-title" />
+      <div className="skeleton sk-line" />
+      <div className="kpis sk-kpis">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="kpi">
+            <div className="skeleton sk-v" />
+            <div className="skeleton sk-l" />
+          </div>
+        ))}
+      </div>
+      <div className="cr-pair">
+        {[0, 1].map((i) => (
+          <div key={i} className="card">
+            {Array.from({ length: 5 }, (_, j) => (
+              <div key={j} className="skeleton sk-row" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </main>
+  );
 }
 
 /** Sección plegable (<details>) con cabecera tipo tarjeta: título, nº de filas y chevron. */
@@ -168,7 +217,7 @@ export function Github() {
   }, []);
 
   if (error) return <p className="error-msg">{error}</p>;
-  if (!data) return <p className="muted">Cargando…</p>;
+  if (!data) return <CrSkeleton />;
 
   const { reviewStats: rs, prs } = data;
 
@@ -207,20 +256,42 @@ export function Github() {
         <PrintButton />
       </div>
 
-      <Block title="Resumen del equipo">
-        <Kpi value={rs.total} label="PRs totales" />
-        <Kpi value={rs.merged} label="Mergeadas" />
-        <Kpi value={rs.open} label="Abiertas" />
-        <Kpi value={rs.merged4w} label="Mergeadas (4 sem.)" />
-        <Kpi value={fmtHours(rs.hFirstReviewMean)} label="1ª review, media" />
-        <Kpi value={fmtHours(rs.hToMergeMean)} label="Tiempo a merge, media" />
-        <Kpi value={fmtHours(rs.hToMergeMax)} label="Tiempo a merge, la más lenta" />
-        <Kpi
-          value={fmtPct(rs.pctMergedNoApproval)}
-          label="Mergeadas sin aprobación"
-          rag={rs.pctMergedNoApproval > 0 ? 'amber' : 'green'}
-        />
-        <Kpi value={rs.hotfix4w} label="Hotfixes (4 sem.)" />
+      <Block title="Resumen del equipo" plain>
+        <div className="kpi-group">
+          <p className="kpi-group-label">Volumen</p>
+          <div className="kpis">
+            <Kpi value={rs.total} label="PRs totales" />
+            <Kpi value={rs.merged} label="Mergeadas" />
+            <Kpi value={rs.open} label="Abiertas" />
+            <Kpi
+              value={rs.merged4w}
+              label="Mergeadas · 4 sem"
+              title="PRs mergeadas en las últimas 4 semanas (incluye la semana en curso)"
+              delta={toDelta(prev4Delta(rs.weekly, 'merged'), 'up')}
+            />
+            <Kpi
+              value={rs.hotfix4w}
+              label="Hotfixes · 4 sem"
+              title="Hotfixes en las últimas 4 semanas (ámbar si > 5)"
+              edge={rs.hotfix4w > 5 ? 'amber' : undefined}
+              delta={toDelta(prev4Delta(rs.weekly, 'hotfix'), 'down')}
+            />
+          </div>
+        </div>
+        <div className="kpi-group">
+          <p className="kpi-group-label">Velocidad y calidad</p>
+          <div className="kpis">
+            <Kpi value={fmtHours(rs.hFirstReviewMean)} label="1ª review (media)" title="Tiempo medio hasta la primera review" />
+            <Kpi value={fmtHours(rs.hToMergeMean)} label="Tiempo a merge (media)" title="Tiempo medio desde que se abre hasta que se mergea" />
+            <Kpi value={fmtHours(rs.hToMergeMax)} label="Más lenta" title="Tiempo a merge de la PR más lenta" />
+            <Kpi
+              value={fmtPct(rs.pctMergedNoApproval)}
+              label="Sin aprobación"
+              title={`Mergeadas sin aprobación: ${rs.mergedNoApproval} (ámbar > 10 %, rojo > 20 %)`}
+              edge={noApprovalEdge(rs.pctMergedNoApproval)}
+            />
+          </div>
+        </div>
       </Block>
 
       <Collapsible title="Por repositorio" count={rs.repos.length} open={sections.repos} onToggle={(o) => toggleSection('repos', o)}>

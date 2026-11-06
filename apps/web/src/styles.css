@@ -349,10 +349,30 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
 .sup-sla td { padding: 3px 6px 3px 0; }
 
 /* Página Code review: KPIs compactos, secciones plegables y gráfica configurable. */
-main.cr .kpis { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
-main.cr .kpi { padding: 8px 10px; }
-main.cr .kpi .v { font-size: 18px; line-height: 1.25; }
-main.cr .kpi .l { font-size: 12px; color: var(--muted); }
+main.cr .kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); }
+main.cr .kpi { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); box-shadow: var(--shadow-sm); min-width: 0; }
+main.cr .kpi .v { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+main.cr .kpi .l { font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+/* KPI con umbral: borde izquierdo semántico. Delta frente al periodo anterior. */
+.kpi.kpi-edge-amber { border-left: 3px solid var(--amber); }
+.kpi.kpi-edge-red { border-left: 3px solid var(--warn); }
+.kpi-delta { font-size: var(--fs-xs); font-weight: 600; padding: 1px 6px; border-radius: 999px; white-space: nowrap; color: var(--ink-2); background: var(--bg); }
+.kpi-delta.good { color: var(--ok-ink); background: var(--ok-bg); }
+.kpi-delta.bad { color: var(--warn-ink); background: var(--warn-bg); }
+.kpi-group + .kpi-group { margin-top: var(--sp-4); }
+.kpi-group-label { margin: 0 0 var(--sp-2); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+/* Esqueleto de carga. */
+.skeleton { background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%); background-size: 200% 100%; border-radius: var(--r-sm); animation: sk-pulse 1.4s ease-in-out infinite; }
+@keyframes sk-pulse { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.sk-title { width: 260px; height: 36px; margin-bottom: var(--sp-2); }
+.sk-line { width: 420px; max-width: 100%; height: 16px; margin-bottom: var(--sp-6); }
+.sk-v { width: 60%; height: 28px; margin-bottom: 6px; }
+.sk-l { width: 80%; height: 12px; }
+.sk-row { height: 18px; margin: 10px 0; }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .cr-sec > summary .chev { transition: none; }
+}
 main.cr .card { margin-top: 14px; min-width: 0; }
 .cr-sec { padding: 0; }
 .cr-sec > summary { display: flex; align-items: center; gap: 8px; padding: 10px 16px; cursor: pointer; list-style: none; user-select: none; }
@@ -408,7 +428,10 @@ main.cr .card { border-radius: var(--r-md); box-shadow: var(--shadow-sm); }
   main.cr { max-width: none; padding: 0; font-size: 11px; }
   main.cr h1 { font-size: 22px; }
   main.cr .lead { font-size: 12px; }
-  main.cr .card { box-shadow: none; }
+  main.cr .card, main.cr .kpi { box-shadow: none; }
+  main.cr .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  main.cr .kpi .v { font-size: 18px; }
+  .kpi-delta { border: 1px solid currentColor; }
   .cr-sec > summary .chev { display: none; }
   .ft-scroll { overflow: visible; }
 }

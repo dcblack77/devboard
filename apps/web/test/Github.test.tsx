@@ -13,7 +13,8 @@ vi.mock('../src/components/charts/LineChart', () => ({
   ),
 }));
 
-import { Github } from '../src/pages/Github';
+import { Github, noApprovalEdge, prev4Delta } from '../src/pages/Github';
+import { Kpi } from '../src/components/Kpi';
 
 const DAY = 86_400_000;
 const NOW = new Date('2026-11-06T12:00:00Z');
@@ -178,5 +179,58 @@ describe('Github (Code review)', () => {
     fireEvent.change(within(prsSection).getByLabelText('Filas por página'), { target: { value: '0' } });
     expect(prsSection.querySelectorAll('tbody tr')).toHaveLength(26);
     expect(prsSection.querySelector('.fbar-modern')).toBeTruthy();
+  });
+
+  it('agrupa los KPIs en Volumen y Velocidad y calidad con etiquetas cortas', async () => {
+    const { container } = await renderPage();
+    const groups = [...container.querySelectorAll('.kpi-group')];
+    expect(groups.map((g) => g.querySelector('.kpi-group-label')!.textContent)).toEqual(['Volumen', 'Velocidad y calidad']);
+    expect([...groups[0]!.querySelectorAll('.kpi .l')].map((l) => l.textContent)).toEqual([
+      'PRs totales',
+      'Mergeadas',
+      'Abiertas',
+      'Mergeadas · 4 sem',
+      'Hotfixes · 4 sem',
+    ]);
+    expect([...groups[1]!.querySelectorAll('.kpi .l')].map((l) => l.textContent)).toEqual([
+      '1ª review (media)',
+      'Tiempo a merge (media)',
+      'Más lenta',
+      'Sin aprobación',
+    ]);
+    // Sin 8 semanas de histórico no se inventa delta.
+    expect(container.querySelector('.kpi-delta')).toBeNull();
+  });
+});
+
+describe('KPIs de Code review (helpers)', () => {
+  afterEach(() => cleanup());
+  const wk = (merged: number, hotfix = 0) => ({ week: 'w', merged, hotfix, reviews: 0, daysToMergeMean: null });
+
+  it('prev4Delta compara las 4 últimas semanas con las 4 anteriores', () => {
+    const weekly = [wk(10, 4), wk(10, 4), wk(10, 4), wk(10, 4), wk(20, 1), wk(10, 1), wk(10, 1), wk(10, 0)];
+    expect(prev4Delta(weekly, 'merged')).toBeCloseTo(25);
+    expect(prev4Delta(weekly, 'hotfix')).toBeCloseTo(-81.25);
+    expect(prev4Delta(weekly.slice(1), 'merged')).toBeNull();
+    expect(prev4Delta([wk(0), wk(0), wk(0), wk(0), wk(1), wk(1), wk(1), wk(1)], 'merged')).toBeNull();
+  });
+
+  it('umbrales de «Sin aprobación»: ámbar > 10 %, rojo > 20 %', () => {
+    expect(noApprovalEdge(10)).toBeUndefined();
+    expect(noApprovalEdge(11)).toBe('amber');
+    expect(noApprovalEdge(21)).toBe('red');
+  });
+
+  it('Kpi sin props nuevas mantiene el HTML de siempre', () => {
+    const { container } = render(<Kpi value={3} label="X" sub="s" rag="amber" />);
+    expect(container.innerHTML).toBe('<div class="kpi rag-amber"><div class="v">3</div><div class="l">X</div><div class="s">s</div></div>');
+  });
+
+  it('Kpi con delta y borde', () => {
+    const { container } = render(<Kpi value={7} label="Hotfixes" edge="amber" delta={{ pct: -56, good: 'down' }} />);
+    expect(container.querySelector('.kpi')!.className).toBe('kpi kpi-edge-amber');
+    const d = container.querySelector('.kpi-delta')!;
+    expect(d.className).toBe('kpi-delta down good');
+    expect(d.textContent).toBe('▼ 56 %');
   });
 });
