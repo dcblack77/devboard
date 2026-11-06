@@ -3,8 +3,20 @@ import type { InitiativeAdminDto, JiraBoard, JiraBoardKind, Seniority, SettingsD
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
+import { FilterTable, type Column } from '../components/FilterTable';
+import { PageShell } from '../components/ui/PageShell';
+import { Section } from '../components/ui/Section';
+import { SkeletonRows } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { StatusPill } from '../components/ui/StatusPill';
+import { Avatar } from '../components/ui/cells';
+import { MODERN_TABLE } from '../components/ui/tables';
+import { Segmented } from '../components/ui/TimeSeriesChart';
 
 type Tab = 'general' | 'personas' | 'iniciativas' | 'skills' | 'sincronizacion' | 'snapshots';
+
+const PAGE_KEY = 'settings';
+const TAB_KEY = 'devboard.settings.tab';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'general', label: 'General' },
@@ -154,13 +166,13 @@ function BoardsCard({
     setBoardRows(boardRows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const dups = duplicateBoardKeys(boardRows);
   return (
-    <div className="card wide sup-boards">
-      <h4>Tableros de Jira</h4>
+    <>
+      <Section pageKey={PAGE_KEY} id="boards" title="Tableros de Jira" count={boardRows.length}>
       <p className="small muted">
         Puedes tener varios tableros de desarrollo y de soporte. Las métricas se pueden ver juntas (Todos) o por tablero.
       </p>
       <div className="table-scroll">
-        <table className="sup-sla">
+        <table className="ft-modern sup-sla">
           <thead>
             <tr>
               <th>Clave</th>
@@ -222,10 +234,11 @@ function BoardsCard({
           />
         </label>
       </div>
-      <h4>SLA de soporte</h4>
+      </Section>
+      <Section pageKey={PAGE_KEY} id="sla" title="SLA de soporte" count={slaRows.length}>
       <p className="small muted">Objetivos en horas por prioridad de Jira. Deja vacío lo que no aplique.</p>
       <div className="table-scroll">
-        <table className="sup-sla">
+        <table className="ft-modern sup-sla">
           <thead>
             <tr>
               <th>Prioridad</th>
@@ -280,7 +293,8 @@ function BoardsCard({
       >
         Añadir prioridad
       </button>
-    </div>
+      </Section>
+    </>
   );
 }
 
@@ -343,55 +357,42 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
     }
   }
 
+  const text = (rows: number, value: string, set: (v: string) => void) => (
+    <textarea rows={rows} style={{ width: '100%' }} value={value} onChange={(e) => set(e.target.value)} />
+  );
   return (
     <Block plain title="General" lead="Parámetros del equipo y umbrales de semáforos.">
-      <div className="grid">
-        <BoardsCard form={form} setForm={setForm} boardRows={boardRows} setBoardRows={setBoardRows} slaRows={slaRows} setSlaRows={setSlaRows} />
-        <div className="card">
-          <h4>Ventanas y plazos</h4>
+      <BoardsCard form={form} setForm={setForm} boardRows={boardRows} setBoardRows={setBoardRows} slaRows={slaRows} setSlaRows={setSlaRows} />
+      <Section pageKey={PAGE_KEY} id="windows" title="Ventanas y plazos">
+        <div className="settings-grid">
           <label className="small">
             Desde (sinceDate)
             <input value={form.sinceDate ?? ''} onChange={(e) => setForm({ ...form, sinceDate: e.target.value || null })} />
           </label>
           <label className="small">
             Minutos entre sincronizaciones
-            <input
-              type="number"
-              value={form.syncMinutes}
-              onChange={(e) => setForm({ ...form, syncMinutes: Number(e.target.value) })}
-            />
+            <input type="number" value={form.syncMinutes} onChange={(e) => setForm({ ...form, syncMinutes: Number(e.target.value) })} />
           </label>
           <label className="small">
             Días para "requiere atención"
-            <input
-              type="number"
-              value={form.attentionDays}
-              onChange={(e) => setForm({ ...form, attentionDays: Number(e.target.value) })}
-            />
+            <input type="number" value={form.attentionDays} onChange={(e) => setForm({ ...form, attentionDays: Number(e.target.value) })} />
           </label>
           <label className="small">
             Días de review
-            <input
-              type="number"
-              value={form.reviewDays}
-              onChange={(e) => setForm({ ...form, reviewDays: Number(e.target.value) })}
-            />
+            <input type="number" value={form.reviewDays} onChange={(e) => setForm({ ...form, reviewDays: Number(e.target.value) })} />
           </label>
           <label className="small">
             Horas de espera de review
-            <input
-              type="number"
-              value={form.waitReviewHours}
-              onChange={(e) => setForm({ ...form, waitReviewHours: Number(e.target.value) })}
-            />
+            <input type="number" value={form.waitReviewHours} onChange={(e) => setForm({ ...form, waitReviewHours: Number(e.target.value) })} />
           </label>
           <label className="small">
             Regex de hotfix
             <input value={form.hotfixRegex ?? ''} onChange={(e) => setForm({ ...form, hotfixRegex: e.target.value || null })} />
           </label>
         </div>
-        <div className="card">
-          <h4>Sistema (DORA)</h4>
+      </Section>
+      <Section pageKey={PAGE_KEY} id="dora" title="Sistema (DORA)">
+        <div className="settings-grid">
           <label className="small">
             Workflow de despliegue a producción
             <input value={form.deployWorkflow} onChange={(e) => setForm({ ...form, deployWorkflow: e.target.value })} />
@@ -409,23 +410,19 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
             <input value={form.featureBase} onChange={(e) => setForm({ ...form, featureBase: e.target.value })} />
           </label>
         </div>
-        <div className="card">
-          <h4>Umbrales (JSON)</h4>
-          <textarea rows={10} style={{ width: '100%' }} value={thresholdsText} onChange={(e) => setThresholdsText(e.target.value)} />
-        </div>
-        <div className="card">
-          <h4>Flujo de estados (JSON, lista)</h4>
-          <textarea rows={8} style={{ width: '100%' }} value={statusFlowText} onChange={(e) => setStatusFlowText(e.target.value)} />
-        </div>
-        <div className="card">
-          <h4>Alias de estado (JSON, objeto)</h4>
-          <textarea rows={8} style={{ width: '100%' }} value={statusAliasesText} onChange={(e) => setStatusAliasesText(e.target.value)} />
-        </div>
-        <div className="card wide">
-          <h4>Mapa de macro-estado (JSON, objeto)</h4>
-          <textarea rows={8} style={{ width: '100%' }} value={macroMapText} onChange={(e) => setMacroMapText(e.target.value)} />
-        </div>
-      </div>
+      </Section>
+      <Section pageKey={PAGE_KEY} id="thresholds" title="Umbrales (JSON)" defaultOpen={false}>
+        {text(10, thresholdsText, setThresholdsText)}
+      </Section>
+      <Section pageKey={PAGE_KEY} id="flow" title="Flujo de estados (JSON, lista)" defaultOpen={false}>
+        {text(8, statusFlowText, setStatusFlowText)}
+      </Section>
+      <Section pageKey={PAGE_KEY} id="aliases" title="Alias de estado (JSON, objeto)" defaultOpen={false}>
+        {text(8, statusAliasesText, setStatusAliasesText)}
+      </Section>
+      <Section pageKey={PAGE_KEY} id="macro" title="Mapa de macro-estado (JSON, objeto)" defaultOpen={false}>
+        {text(8, macroMapText, setMacroMapText)}
+      </Section>
       <div className="form-actions">
         <button type="button" className="btn" disabled={saving} onClick={save}>
           {saving ? 'Guardando…' : 'Guardar'}
@@ -439,13 +436,19 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
 
 /** Pestaña Personas: tabla editable + sugerencias de nombres/logins sin mapear. */
 function PersonasTab() {
-  const [people, setPeople] = useState<PersonAdmin[]>([]);
+  const [people, setPeople] = useState<PersonAdmin[] | null>(null);
   const [discover, setDiscover] = useState<DiscoverData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
 
   function reload() {
-    adminApi.listPeople().then((r) => setPeople(r.people)).catch(() => setError('No se pudo cargar la lista de personas.'));
+    adminApi
+      .listPeople()
+      .then((r) => setPeople(r.people))
+      .catch(() => {
+        setError('No se pudo cargar la lista de personas.');
+        setPeople((prev) => prev ?? []);
+      });
     adminApi.discover().then((r) => setDiscover(r)).catch(() => undefined);
   }
 
@@ -453,7 +456,7 @@ function PersonasTab() {
 
   async function updatePerson(p: PersonAdmin, patch: Partial<PersonAdmin>) {
     const merged = { ...p, ...patch };
-    setPeople((prev) => prev.map((x) => (x.id === p.id ? merged : x)));
+    setPeople((prev) => (prev ?? []).map((x) => (x.id === p.id ? merged : x)));
     await adminApi.updatePerson(p.id, patch).catch(() => setError('No se pudo actualizar.'));
   }
 
@@ -469,69 +472,73 @@ function PersonasTab() {
     reload();
   }
 
+  const columns: Column<PersonAdmin>[] = [
+    { key: 'name', header: 'Nombre', accessor: (p) => p.name, render: (p) => <input value={p.name} onChange={(e) => updatePerson(p, { name: e.target.value })} /> },
+    {
+      key: 'jira',
+      header: 'Nombres Jira',
+      accessor: (p) => p.jiraNames.join(', '),
+      render: (p) => (
+        <input
+          value={p.jiraNames.join(', ')}
+          onChange={(e) => updatePerson(p, { jiraNames: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+        />
+      ),
+    },
+    {
+      key: 'github',
+      header: 'Logins GitHub',
+      accessor: (p) => p.githubLogins.join(', '),
+      render: (p) => (
+        <input
+          value={p.githubLogins.join(', ')}
+          onChange={(e) => updatePerson(p, { githubLogins: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+        />
+      ),
+    },
+    { key: 'note', header: 'Nota', accessor: (p) => p.note ?? '', render: (p) => <input value={p.note ?? ''} onChange={(e) => updatePerson(p, { note: e.target.value || null })} /> },
+    {
+      key: 'active',
+      header: 'Activo',
+      accessor: (p) => (p.active ? 'Sí' : 'No'),
+      filterOptions: ['Sí', 'No'],
+      render: (p) => <input type="checkbox" checked={p.active} aria-label={`Activo: ${p.name}`} onChange={(e) => updatePerson(p, { active: e.target.checked })} />,
+    },
+    {
+      key: 'del',
+      header: '',
+      accessor: () => '',
+      render: (p) => (
+        <button type="button" className="btn sec" onClick={() => removePerson(p.id)}>
+          Borrar
+        </button>
+      ),
+    },
+  ];
+
   return (
     <Block plain title="Personas" lead="Agrupa nombres de Jira y logins de GitHub bajo una identidad canónica.">
       {error ? <p className="error-msg">{error}</p> : null}
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Nombres Jira</th>
-            <th>Logins GitHub</th>
-            <th>Nota</th>
-            <th>Activo</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {people.map((p) => (
-            <tr key={p.id}>
-              <td>
-                <input value={p.name} onChange={(e) => updatePerson(p, { name: e.target.value })} />
-              </td>
-              <td>
-                <input
-                  value={p.jiraNames.join(', ')}
-                  onChange={(e) => updatePerson(p, { jiraNames: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                />
-              </td>
-              <td>
-                <input
-                  value={p.githubLogins.join(', ')}
-                  onChange={(e) => updatePerson(p, { githubLogins: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                />
-              </td>
-              <td>
-                <input value={p.note ?? ''} onChange={(e) => updatePerson(p, { note: e.target.value || null })} />
-              </td>
-              <td>
-                <input type="checkbox" checked={p.active} onChange={(e) => updatePerson(p, { active: e.target.checked })} />
-              </td>
-              <td>
-                <button type="button" className="btn sec" onClick={() => removePerson(p.id)}>
-                  Borrar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="fbar">
-        <input placeholder="Nombre de la nueva persona" value={newName} onChange={(e) => setNewName(e.target.value)} />
-        <button type="button" className="btn" onClick={createPerson}>
-          Añadir persona
-        </button>
-      </div>
+      <Section pageKey={PAGE_KEY} id="people" title="Personas" count={people?.length}>
+        {people === null ? (
+          <SkeletonRows />
+        ) : people.length === 0 ? (
+          <EmptyState>No hay personas todavía.</EmptyState>
+        ) : (
+          <FilterTable<PersonAdmin> rows={people} columns={columns} {...MODERN_TABLE} />
+        )}
+        <div className="fbar">
+          <input placeholder="Nombre de la nueva persona" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <button type="button" className="btn" onClick={createPerson}>
+            Añadir persona
+          </button>
+        </div>
+      </Section>
       {discover ? (
-        <section>
-          <h3>Sin mapear</h3>
-          <p className="small">
-            Nombres de Jira sin persona: {discover.unmappedJiraNames.join(', ') || '(ninguno)'}
-          </p>
-          <p className="small">
-            Logins de GitHub sin persona: {discover.unmappedGithubLogins.join(', ') || '(ninguno)'}
-          </p>
-        </section>
+        <Section pageKey={PAGE_KEY} id="unmapped" title="Sin mapear" count={discover.unmappedJiraNames.length + discover.unmappedGithubLogins.length}>
+          <p className="small">Nombres de Jira sin persona: {discover.unmappedJiraNames.join(', ') || '(ninguno)'}</p>
+          <p className="small">Logins de GitHub sin persona: {discover.unmappedGithubLogins.join(', ') || '(ninguno)'}</p>
+        </Section>
       ) : null}
     </Block>
   );
@@ -598,105 +605,110 @@ function SkillsTab() {
     await adminApi.setSeniority(p.id, { seniority }).catch(() => setError('No se pudo guardar la seniority.'));
   }
 
+  const skillColumns: Column<SkillDto>[] = [
+    { key: 'name', header: 'Nombre', accessor: (x) => x.name, render: (x) => <input value={x.name} onChange={(e) => editSkill(x.id, { name: e.target.value })} /> },
+    { key: 'cat', header: 'Categoría', accessor: (x) => (x.category === 'competency' ? 'Competencia' : 'Stack'), filterOptions: ['Competencia', 'Stack'] },
+    {
+      key: 'desc',
+      header: 'Descripción',
+      accessor: (x) => x.description ?? '',
+      render: (x) => <input value={x.description ?? ''} onChange={(e) => editSkill(x.id, { description: e.target.value || null })} />,
+    },
+    {
+      key: 'active',
+      header: 'Activa',
+      accessor: (x) => (x.active ? 'Sí' : 'No'),
+      render: (x) => <input type="checkbox" checked={x.active} aria-label={`Activa: ${x.name}`} onChange={(e) => editSkill(x.id, { active: e.target.checked })} />,
+    },
+    {
+      key: 'save',
+      header: '',
+      accessor: () => '',
+      render: (x) => (
+        <button type="button" className="btn sec" onClick={() => saveSkill(x)}>
+          Guardar
+        </button>
+      ),
+    },
+  ];
+  const personColumns: Column<SkillPersonDto>[] = [
+    { key: 'person', header: 'Persona', accessor: (p) => p.name, cellClass: 'author-cell', render: (p) => <Avatar name={p.name} /> },
+    {
+      key: 'seniority',
+      header: 'Seniority',
+      accessor: (p) => p.seniority ?? '',
+      render: (p) => (
+        <select aria-label={`Seniority de ${p.name}`} value={p.seniority ?? ''} onChange={(e) => changeSeniority(p, e.target.value)}>
+          <option value="">—</option>
+          <option value="junior">junior</option>
+          <option value="mid">mid</option>
+          <option value="senior">senior</option>
+        </select>
+      ),
+    },
+    {
+      key: 'role',
+      header: 'Rol',
+      accessor: (p) => p.role ?? '',
+      render: (p) => (
+        <input
+          aria-label={`Rol de ${p.name}`}
+          placeholder="Rol (vacío = sugerido)"
+          value={p.role ?? ''}
+          onChange={(e) => setPeople((prev) => prev.map((x) => (x.id === p.id ? { ...x, role: e.target.value || null } : x)))}
+          onBlur={(e) => saveRole({ ...p, role: savedRoles.current.get(p.id) ?? null }, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+        />
+      ),
+    },
+  ];
+
   return (
     <Block plain title="Skills" lead="Catálogo de competencias y stack (el dominio se calcula automáticamente) y seniority por persona.">
       {error ? <p className="error-msg">{error}</p> : null}
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Categoría</th>
-            <th>Descripción</th>
-            <th>Activa</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {skills.map((s) => (
-            <tr key={s.id}>
-              <td>
-                <input value={s.name} onChange={(e) => editSkill(s.id, { name: e.target.value })} />
-              </td>
-              <td>{s.category === 'competency' ? 'Competencia' : 'Stack'}</td>
-              <td>
-                <input value={s.description ?? ''} onChange={(e) => editSkill(s.id, { description: e.target.value || null })} />
-              </td>
-              <td>
-                <input type="checkbox" checked={s.active} onChange={(e) => editSkill(s.id, { active: e.target.checked })} />
-              </td>
-              <td>
-                <button type="button" className="btn sec" onClick={() => saveSkill(s)}>
-                  Guardar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="fbar">
-        <input placeholder="Nombre de la nueva skill" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-        <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value as 'competency' | 'stack' })}>
-          <option value="competency">Competencia</option>
-          <option value="stack">Stack</option>
-        </select>
-        <input placeholder="Descripción (opcional)" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-        <button type="button" className="btn" onClick={createSkill}>
-          Añadir skill
-        </button>
-      </div>
-      <section>
-        <h3>Seniority y rol</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Persona</th>
-              <th>Seniority</th>
-              <th>Rol</th>
-            </tr>
-          </thead>
-          <tbody>
-            {people.map((p) => (
-              <tr key={p.id}>
-                <td>{p.name}</td>
-                <td>
-                  <select value={p.seniority ?? ''} onChange={(e) => changeSeniority(p, e.target.value)}>
-                    <option value="">—</option>
-                    <option value="junior">junior</option>
-                    <option value="mid">mid</option>
-                    <option value="senior">senior</option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    aria-label={`Rol de ${p.name}`}
-                    placeholder="Rol (vacío = sugerido)"
-                    value={p.role ?? ''}
-                    onChange={(e) => setPeople((prev) => prev.map((x) => (x.id === p.id ? { ...x, role: e.target.value || null } : x)))}
-                    onBlur={(e) => saveRole({ ...p, role: savedRoles.current.get(p.id) ?? null }, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    }}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <Section pageKey={PAGE_KEY} id="catalog" title="Catálogo" count={skills.length}>
+        {skills.length === 0 ? (
+          <EmptyState>No hay skills en el catálogo.</EmptyState>
+        ) : (
+          <FilterTable<SkillDto> rows={skills} columns={skillColumns} {...MODERN_TABLE} />
+        )}
+        <div className="fbar">
+          <input placeholder="Nombre de la nueva skill" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+          <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value as 'competency' | 'stack' })}>
+            <option value="competency">Competencia</option>
+            <option value="stack">Stack</option>
+          </select>
+          <input placeholder="Descripción (opcional)" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          <button type="button" className="btn" onClick={createSkill}>
+            Añadir skill
+          </button>
+        </div>
+      </Section>
+      <Section pageKey={PAGE_KEY} id="seniority" title="Seniority y rol" count={people.length}>
+        <FilterTable<SkillPersonDto> rows={people} columns={personColumns} {...MODERN_TABLE} />
+      </Section>
     </Block>
   );
 }
 
 /** Pestaña Iniciativas: crear/editar/borrar y asignar épicas sin iniciativa. */
 function IniciativasTab() {
-  const [initiatives, setInitiatives] = useState<InitiativeAdmin[]>([]);
+  const [initiatives, setInitiatives] = useState<InitiativeAdmin[] | null>(null);
   const [discover, setDiscover] = useState<DiscoverData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
 
   function reload() {
-    adminApi.listInitiativesAdmin().then((r) => setInitiatives(r.initiatives)).catch(() => setError('No se pudo cargar la lista.'));
+    adminApi
+      .listInitiativesAdmin()
+      .then((r) => setInitiatives(r.initiatives))
+      .catch(() => {
+        setError('No se pudo cargar la lista.');
+        setInitiatives((prev) => prev ?? []);
+      });
     adminApi.discover().then((r) => setDiscover(r)).catch(() => undefined);
   }
 
@@ -736,8 +748,10 @@ function IniciativasTab() {
       lead="Una por épica de Jira (creadas en cada sync). Agrupa varias épicas en una iniciativa manual si lo necesitas; las auto vuelven en el siguiente sync si las borras."
     >
       {error ? <p className="error-msg">{error}</p> : null}
-      <div className="grid">
-        {initiatives.map((i) => (
+      <Section pageKey={PAGE_KEY} id="initiatives" title="Iniciativas" count={initiatives?.length}>
+      {initiatives === null ? <SkeletonRows /> : initiatives.length === 0 ? <EmptyState>No hay iniciativas.</EmptyState> : null}
+      <div className="settings-cards">
+        {(initiatives ?? []).map((i) => (
           <div className="card" key={i.id}>
             <h4>
               {i.name} <span className="muted small">({i.slug})</span>{' '}
@@ -768,6 +782,7 @@ function IniciativasTab() {
           </div>
         ))}
       </div>
+      </Section>
       <div className="fbar">
         <input placeholder="Nombre" value={newName} onChange={(e) => setNewName(e.target.value)} />
         <input placeholder="slug" value={newSlug} onChange={(e) => setNewSlug(e.target.value)} />
@@ -781,7 +796,7 @@ function IniciativasTab() {
 
 /** Pestaña Sincronización: estado de las últimas ejecuciones + botón manual, con refresco mientras haya un run en curso. */
 function SincronizacionTab() {
-  const [runs, setRuns] = useState<SyncRunDto[]>([]);
+  const [runs, setRuns] = useState<SyncRunDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
 
@@ -789,18 +804,21 @@ function SincronizacionTab() {
     api
       .syncStatus()
       .then((s) => setRuns(s.runs))
-      .catch(() => setError('No se pudo consultar el estado de sincronización.'));
+      .catch(() => {
+        setError('No se pudo consultar el estado de sincronización.');
+        setRuns((prev) => prev ?? []);
+      });
   }
 
   useEffect(() => {
     reload();
-    const hasRunning = () => runs.some((r) => !r.finishedAt);
+    const hasRunning = () => (runs ?? []).some((r) => !r.finishedAt);
     const id = setInterval(() => {
       if (hasRunning()) reload();
     }, 5000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runs.length]);
+  }, [runs?.length]);
 
   async function launch() {
     setLaunching(true);
@@ -814,46 +832,62 @@ function SincronizacionTab() {
     }
   }
 
+  const fmtDate = (iso: string) => new Date(iso).toLocaleString('es-ES');
+  const sources = [...new Set((runs ?? []).map((r) => r.source))].sort();
+  const columns: Column<SyncRunDto>[] = [
+    { key: 'source', header: 'Origen', accessor: (r) => r.source, filterOptions: sources },
+    { key: 'start', header: 'Inicio', accessor: (r) => r.startedAt, render: (r) => fmtDate(r.startedAt), cellClass: 'td-nowrap' },
+    { key: 'end', header: 'Fin', accessor: (r) => r.finishedAt ?? '', render: (r) => (r.finishedAt ? fmtDate(r.finishedAt) : '—'), cellClass: 'td-nowrap' },
+    {
+      key: 'result',
+      header: 'Resultado',
+      accessor: (r) => (r.finishedAt === null ? 'en curso…' : r.ok ? 'OK' : 'error'),
+      render: (r) =>
+        r.finishedAt === null ? (
+          <StatusPill status="En curso" label="en curso…" />
+        ) : r.ok ? (
+          <StatusPill status="Done" label="OK" />
+        ) : (
+          <StatusPill status="Blocked" label="error" />
+        ),
+    },
+    { key: 'error', header: 'Error', accessor: (r) => r.error ?? '', cellClass: 'td-title', cellTitle: (r) => r.error ?? undefined },
+  ];
+
   return (
     <Block plain title="Sincronización" lead="Estado de las últimas ejecuciones de sincronización con Jira y GitHub.">
       {error ? <p className="error-msg">{error}</p> : null}
       <button type="button" className="btn" disabled={launching} onClick={launch}>
         {launching ? 'Lanzando…' : 'Sincronizar ahora'}
       </button>
-      <table>
-        <thead>
-          <tr>
-            <th>Origen</th>
-            <th>Inicio</th>
-            <th>Fin</th>
-            <th>Resultado</th>
-            <th>Error</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((r) => (
-            <tr key={r.id}>
-              <td>{r.source}</td>
-              <td>{new Date(r.startedAt).toLocaleString('es-ES')}</td>
-              <td>{r.finishedAt ? new Date(r.finishedAt).toLocaleString('es-ES') : 'en curso…'}</td>
-              <td>{r.ok === null ? '—' : r.ok ? 'OK' : 'error'}</td>
-              <td className="warn">{r.error ?? ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Section pageKey={PAGE_KEY} id="runs" title="Ejecuciones" count={runs?.length}>
+        {runs === null ? (
+          <SkeletonRows />
+        ) : runs.length === 0 ? (
+          <EmptyState>Aún no hay ejecuciones de sincronización.</EmptyState>
+        ) : (
+          <FilterTable<SyncRunDto> rows={runs} columns={columns} {...MODERN_TABLE} />
+        )}
+      </Section>
     </Block>
   );
 }
 
 /** Pestaña Snapshots: lista + botón para guardar una foto ahora + ver payload resumido. */
 function SnapshotsTab() {
-  const [items, setItems] = useState<Array<{ id: number; takenAt: string; kind: string }>>([]);
+  type SnapshotItem = { id: number; takenAt: string; kind: string };
+  const [items, setItems] = useState<SnapshotItem[] | null>(null);
   const [detail, setDetail] = useState<{ id: number; payload: unknown } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function reload() {
-    adminApi.snapshots().then((r) => setItems(r.snapshots)).catch(() => setError('No se pudo cargar la lista de snapshots.'));
+    adminApi
+      .snapshots()
+      .then((r) => setItems(r.snapshots))
+      .catch(() => {
+        setError('No se pudo cargar la lista de snapshots.');
+        setItems((prev) => prev ?? []);
+      });
   }
 
   useEffect(reload, []);
@@ -868,34 +902,36 @@ function SnapshotsTab() {
     if (d) setDetail({ id: d.id, payload: d.payload });
   }
 
+  const columns: Column<SnapshotItem>[] = [
+    { key: 'date', header: 'Fecha', accessor: (s) => s.takenAt, render: (s) => new Date(s.takenAt).toLocaleString('es-ES') },
+    { key: 'kind', header: 'Tipo', accessor: (s) => s.kind, filterOptions: [...new Set((items ?? []).map((s) => s.kind))].sort() },
+    {
+      key: 'view',
+      header: '',
+      accessor: () => '',
+      render: (s) => (
+        <button type="button" className="btn sec" onClick={() => viewDetail(s.id)}>
+          Ver
+        </button>
+      ),
+    },
+  ];
+
   return (
     <Block plain title="Snapshots" lead="Fotos históricas de portada y ranking del equipo, para comparativas en el tiempo.">
       {error ? <p className="error-msg">{error}</p> : null}
       <button type="button" className="btn" onClick={createNow}>
         Guardar foto ahora
       </button>
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((s) => (
-            <tr key={s.id}>
-              <td>{new Date(s.takenAt).toLocaleString('es-ES')}</td>
-              <td>{s.kind}</td>
-              <td>
-                <button type="button" className="btn sec" onClick={() => viewDetail(s.id)}>
-                  Ver
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Section pageKey={PAGE_KEY} id="snapshots" title="Snapshots" count={items?.length}>
+        {items === null ? (
+          <SkeletonRows />
+        ) : items.length === 0 ? (
+          <EmptyState>No hay snapshots guardados.</EmptyState>
+        ) : (
+          <FilterTable<SnapshotItem> rows={items} columns={columns} {...MODERN_TABLE} />
+        )}
+      </Section>
       {detail ? (
         <div className="card wide">
           <h4>Snapshot #{detail.id}</h4>
@@ -910,7 +946,22 @@ function SnapshotsTab() {
 
 /** Página `/settings`: administración por pestañas (rol tl). */
 export function Settings() {
-  const [tab, setTab] = useState<Tab>('general');
+  const [tab, setTabState] = useState<Tab>(() => {
+    try {
+      const v = localStorage.getItem(TAB_KEY);
+      return TABS.some((t) => t.id === v) ? (v as Tab) : 'general';
+    } catch {
+      return 'general';
+    }
+  });
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try {
+      localStorage.setItem(TAB_KEY, t);
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  };
   const [settings, setSettings] = useState<SettingsDto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -922,28 +973,30 @@ export function Settings() {
   }, []);
 
   return (
-    <main>
-      <h1>Ajustes</h1>
-      <p className="lead">Administración del equipo: settings, personas, iniciativas, sincronización y snapshots.</p>
-      <div className="fbar noprint">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={tab === t.id ? 'btn' : 'btn sec'}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+    <PageShell
+      title="Ajustes"
+      lead="Administración del equipo: settings, personas, iniciativas, sincronización y snapshots."
+      print={false}
+      className="settings"
+    >
+      <div className="settings-tabs noprint">
+        <Segmented label="Apartados" options={TABS.map((t) => ({ value: t.id, label: t.label }))} value={tab} onChange={setTab} />
       </div>
       {error ? <p className="error-msg">{error}</p> : null}
-      {tab === 'general' ? (settings ? <GeneralTab settings={settings} onSaved={setSettings} /> : <p className="muted">Cargando…</p>) : null}
+      {tab === 'general' ? (
+        settings ? (
+          <GeneralTab settings={settings} onSaved={setSettings} />
+        ) : error ? null : (
+          <div aria-busy="true" aria-label="Cargando ajustes">
+            <SkeletonRows rows={6} />
+          </div>
+        )
+      ) : null}
       {tab === 'personas' ? <PersonasTab /> : null}
       {tab === 'iniciativas' ? <IniciativasTab /> : null}
       {tab === 'skills' ? <SkillsTab /> : null}
       {tab === 'sincronizacion' ? <SincronizacionTab /> : null}
       {tab === 'snapshots' ? <SnapshotsTab /> : null}
-    </main>
+    </PageShell>
   );
 }
