@@ -61,8 +61,26 @@ export function sortRows<T>(
 
 const PAGE_SIZE = 20;
 
-/** Tabla genérica con filtro de texto libre, filtros por columna, orden y paginación simple. */
-export function FilterTable<T>({ rows, columns }: { rows: T[]; columns: Column<T>[] }) {
+/**
+ * Tabla genérica con filtro de texto libre, filtros por columna, orden y paginación simple.
+ *
+ * Opcionales (sin ellos el comportamiento es el de siempre):
+ * - `pageSizeOptions`: tamaños elegibles en un selector (`0` = todas); el primero es el inicial.
+ * - `variant="modern"`: barra a todo el ancho con buscador con icono y filtros en píldora.
+ */
+export function FilterTable<T>({
+  rows,
+  columns,
+  pageSizeOptions,
+  variant,
+}: {
+  rows: T[];
+  columns: Column<T>[];
+  pageSizeOptions?: number[];
+  variant?: 'modern';
+}) {
+  const modern = variant === 'modern';
+  const [pageSize, setPageSize] = useState<number>(pageSizeOptions?.[0] ?? PAGE_SIZE);
   const [query, setQuery] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -78,9 +96,13 @@ export function FilterTable<T>({ rows, columns }: { rows: T[]; columns: Column<T
     [filtered, columns, sortKey, sortDir],
   );
 
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const size = pageSize > 0 ? pageSize : Math.max(1, sorted.length);
+  const pageCount = Math.max(1, Math.ceil(sorted.length / size));
   const currentPage = Math.min(page, pageCount - 1);
-  const paged = sorted.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const paged = sorted.slice(currentPage * size, (currentPage + 1) * size);
+
+  /** En la variante moderna la tabla hace scroll horizontal dentro de su contenedor (móvil). */
+  const wrapTable = (table: React.ReactNode) => (modern ? <div className="ft-scroll">{table}</div> : table);
 
   function toggleSort(key: string) {
     if (sortKey === key) {
@@ -94,21 +116,42 @@ export function FilterTable<T>({ rows, columns }: { rows: T[]; columns: Column<T
 
   return (
     <div>
-      <div className="fbar noprint">
-        <input
-          type="text"
-          placeholder="Buscar..."
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(0);
-          }}
-        />
+      <div className={modern ? 'fbar fbar-modern noprint' : 'fbar noprint'}>
+        {modern ? (
+          <label className="fsearch">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path d="M20 20l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <input
+              type="search"
+              aria-label="Buscar"
+              placeholder="Buscar..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(0);
+              }}
+            />
+          </label>
+        ) : (
+          <input
+            type="text"
+            placeholder="Buscar..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+            }}
+          />
+        )}
         {columns
           .filter((c) => c.filterOptions)
           .map((col) => (
             <select
               key={col.key}
+              className={modern ? 'pill' : undefined}
+              aria-label={modern ? col.header : undefined}
               value={columnFilters[col.key] ?? ''}
               onChange={(e) => {
                 setColumnFilters((prev) => ({ ...prev, [col.key]: e.target.value }));
@@ -125,6 +168,7 @@ export function FilterTable<T>({ rows, columns }: { rows: T[]; columns: Column<T
           ))}
         <span className="cnt">{sorted.length} filas</span>
       </div>
+      {wrapTable(
       <table>
         <thead>
           <tr>
@@ -152,7 +196,8 @@ export function FilterTable<T>({ rows, columns }: { rows: T[]; columns: Column<T
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>,
+      )}
       <div className="pager noprint">
         <button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>
           Anterior
@@ -163,6 +208,25 @@ export function FilterTable<T>({ rows, columns }: { rows: T[]; columns: Column<T
         <button disabled={currentPage >= pageCount - 1} onClick={() => setPage(currentPage + 1)}>
           Siguiente
         </button>
+        {pageSizeOptions ? (
+          <label className="psize">
+            Filas por página
+            <select
+              aria-label="Filas por página"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(0);
+              }}
+            >
+              {pageSizeOptions.map((n) => (
+                <option key={n} value={n}>
+                  {n > 0 ? n : 'Todas'}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
     </div>
   );

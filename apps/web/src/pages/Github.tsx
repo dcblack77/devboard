@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { Tag } from '../components/Tag';
 import { PrintButton } from '../components/PrintButton';
-import { BarChart } from '../components/charts/BarChart';
+import { MergedPrsChart } from '../components/MergedPrsChart';
 import { FilterTable, type Column } from '../components/FilterTable';
 import { fmtHours, fmtPct } from '../lib/format';
 
@@ -65,14 +65,100 @@ interface GithubData {
   prs: AnalyzedPr[];
 }
 
+type SectionId = 'repos' | 'waiting' | 'stale' | 'prs';
+
+const SECTIONS_KEY = 'devboard.cr.sections';
+const SECTION_DEFAULTS: Record<SectionId, boolean> = { repos: false, waiting: true, stale: true, prs: true };
+
+function loadSections(): Record<SectionId, boolean> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? 'null') as Record<string, unknown> | null;
+    const out = { ...SECTION_DEFAULTS };
+    if (raw && typeof raw === 'object') {
+      for (const k of Object.keys(out) as SectionId[]) {
+        if (typeof raw[k] === 'boolean') out[k] = raw[k] as boolean;
+      }
+    }
+    return out;
+  } catch {
+    return { ...SECTION_DEFAULTS };
+  }
+}
+
+/** Sección plegable (<details>) con cabecera tipo tarjeta: título, nº de filas y chevron. */
+function Collapsible({
+  title,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  count: number;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <details className="card cr-sec" open={open} onToggle={(e) => onToggle(e.currentTarget.open)}>
+      <summary>
+        <h3>{title}</h3>
+        <span className="count">{count}</span>
+        <span className="chev" aria-hidden="true" />
+      </summary>
+      <div className="cr-sec-body">{children}</div>
+    </details>
+  );
+}
+
+function PrList({ prs }: { prs: AnalyzedPr[] }) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>PR</th>
+          <th>Autor</th>
+          <th className="n">Abierta desde hace</th>
+        </tr>
+      </thead>
+      <tbody>
+        {prs.slice(0, 15).map((p) => (
+          <tr key={`${p.repo}#${p.number}`}>
+            <td><a href={p.url} target="_blank" rel="noreferrer">{p.repo} #{p.number}</a></td>
+            <td>{p.author}</td>
+            <td className="n">{fmtHours(p.hOpen)}</td>
+          </tr>
+        ))}
+        {prs.length === 0 ? (
+          <tr><td colSpan={3} className="muted">Ninguna.</td></tr>
+        ) : null}
+      </tbody>
+    </table>
+  );
+}
+
 /**
- * Página Code review (GitHub): KPIs de equipo, gráfica semanal de mergeadas,
- * agregados por repositorio, PRs esperando revisión/estancadas y tabla
- * filtrable de todas las PRs.
+ * Página Code review (GitHub): KPIs compactos, agregados por repositorio,
+ * gráfica configurable de mergeadas, PRs esperando revisión/estancadas y tabla
+ * filtrable de todas las PRs. Las secciones son plegables y recuerdan su estado.
  */
 export function Github() {
   const [data, setData] = useState<GithubData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sections, setSections] = useState(loadSections);
+
+  function toggleSection(id: SectionId, open: boolean) {
+    setSections((prev) => {
+      if (prev[id] === open) return prev;
+      const next = { ...prev, [id]: open };
+      try {
+        localStorage.setItem(SECTIONS_KEY, JSON.stringify(next));
+      } catch {
+        /* sin almacenamiento: se recuerda solo en esta sesión */
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     api
@@ -112,7 +198,7 @@ export function Github() {
   ];
 
   return (
-    <main>
+    <main className="cr">
       <h1>Code review</h1>
       <p className="lead">Métricas de revisión de código del equipo, a partir de GitHub.</p>
       <PrintButton />
@@ -133,105 +219,51 @@ export function Github() {
         <Kpi value={rs.hotfix4w} label="Hotfixes (4 sem.)" />
       </Block>
 
-      {rs.weekly.length > 0 ? (
-        <div className="card wide">
-          <h4>PRs mergeadas por semana</h4>
-          <BarChart
-            data={{
-              labels: rs.weekly.map((w) => w.week),
-              datasets: [
-                { label: 'Mergeadas', data: rs.weekly.map((w) => w.merged), backgroundColor: '#2563eb' },
-              ],
-            }}
-          />
-        </div>
-      ) : null}
-
-      <section>
-        <h3>Por repositorio</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Repo</th>
-              <th className="n">PRs</th>
-              <th className="n">Mergeadas</th>
-              <th className="n">Abiertas</th>
-              <th className="n">1ª review, media</th>
-              <th className="n">Tiempo a merge, media</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rs.repos.map((r) => (
-              <tr key={r.repo}>
-                <td>{r.repo}</td>
-                <td className="n">{r.prs}</td>
-                <td className="n">{r.merged}</td>
-                <td className="n">{r.open}</td>
-                <td className="n">{fmtHours(r.hFirstReviewMean)}</td>
-                <td className="n">{fmtHours(r.hToMergeMean)}</td>
+      <Collapsible title="Por repositorio" count={rs.repos.length} open={sections.repos} onToggle={(o) => toggleSection('repos', o)}>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Repo</th>
+                <th className="n">PRs</th>
+                <th className="n">Mergeadas</th>
+                <th className="n">Abiertas</th>
+                <th className="n">1ª review, media</th>
+                <th className="n">Tiempo a merge, media</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+            </thead>
+            <tbody>
+              {rs.repos.map((r) => (
+                <tr key={r.repo}>
+                  <td>{r.repo}</td>
+                  <td className="n">{r.prs}</td>
+                  <td className="n">{r.merged}</td>
+                  <td className="n">{r.open}</td>
+                  <td className="n">{fmtHours(r.hFirstReviewMean)}</td>
+                  <td className="n">{fmtHours(r.hToMergeMean)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Collapsible>
 
-      <div className="grid">
-        <div className="card">
-          <h4>Esperando revisión</h4>
+      <MergedPrsChart prs={prs} />
+
+      <div className="cr-pair">
+        <Collapsible title="Esperando revisión" count={rs.waiting.length} open={sections.waiting} onToggle={(o) => toggleSection('waiting', o)}>
           <p className="q">Sin ninguna review y por encima del umbral configurado.</p>
-          <table>
-            <thead>
-              <tr>
-                <th>PR</th>
-                <th>Autor</th>
-                <th className="n">Abierta desde hace</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rs.waiting.slice(0, 15).map((p) => (
-                <tr key={`${p.repo}#${p.number}`}>
-                  <td><a href={p.url} target="_blank" rel="noreferrer">{p.repo} #{p.number}</a></td>
-                  <td>{p.author}</td>
-                  <td className="n">{fmtHours(p.hOpen)}</td>
-                </tr>
-              ))}
-              {rs.waiting.length === 0 ? (
-                <tr><td colSpan={3} className="muted">Ninguna.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-        <div className="card">
-          <h4>Estancadas</h4>
+          <PrList prs={rs.waiting} />
+        </Collapsible>
+        <Collapsible title="Estancadas" count={rs.stale.length} open={sections.stale} onToggle={(o) => toggleSection('stale', o)}>
           <p className="q">Con revisión iniciada pero abiertas hace más de una semana.</p>
-          <table>
-            <thead>
-              <tr>
-                <th>PR</th>
-                <th>Autor</th>
-                <th className="n">Abierta desde hace</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rs.stale.slice(0, 15).map((p) => (
-                <tr key={`${p.repo}#${p.number}`}>
-                  <td><a href={p.url} target="_blank" rel="noreferrer">{p.repo} #{p.number}</a></td>
-                  <td>{p.author}</td>
-                  <td className="n">{fmtHours(p.hOpen)}</td>
-                </tr>
-              ))}
-              {rs.stale.length === 0 ? (
-                <tr><td colSpan={3} className="muted">Ninguna.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+          <PrList prs={rs.stale} />
+        </Collapsible>
       </div>
 
-      <section>
-        <h3>Pull requests</h3>
-        <FilterTable rows={prs} columns={columns} />
-      </section>
+      <Collapsible title="Pull requests" count={prs.length} open={sections.prs} onToggle={(o) => toggleSection('prs', o)}>
+        <FilterTable rows={prs} columns={columns} pageSizeOptions={[20, 50, 100, 0]} variant="modern" />
+      </Collapsible>
     </main>
   );
 }
