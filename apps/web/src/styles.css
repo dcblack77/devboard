@@ -537,7 +537,7 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 .init-bar-cell { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .init-bar { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: var(--border, #e5e7eb); overflow: hidden; }
 .init-bar > span { display: block; height: 100%; background: var(--ok, #16a34a); border-radius: 4px; }
-td.init-people { white-space: nowrap; }
+td.init-people { white-space: normal; min-width: 0; }
 .init-person { margin-right: 10px; display: inline-flex; align-items: center; }
 .skills-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 4px 0 12px; }
 .skills-search { padding: 6px 10px; min-width: 220px; border: 1px solid var(--border, #d1d5db); border-radius: 6px; background: inherit; color: inherit; }
@@ -555,3 +555,17 @@ td.init-people { white-space: nowrap; }
 .settings-grid label { display: flex; flex-direction: column; gap: 3px; }
 .settings-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; margin-bottom: 10px; }
 .settings .ft-modern input:not([type="checkbox"]), .settings .ft-modern select { max-width: 100%; }
+
+/* ---- rollout guard: wide tables never push the page sideways ---- */
+main.page table.ft-modern { width: 100%; }
+main.page table.ft-modern td { overflow-wrap: anywhere; }
+main.page table.ft-modern td.author-cell { min-width: 0; }
+main.page table.ft-modern { table-layout: auto; }
+main.page table.ft-modern td.td-title { max-width: 32ch; }
+
+/* ---- Ajustes on phones: editable tables scroll inside their card ---- */
+@media (max-width: 640px) {
+  main.page .settings-tabs { overflow-x: auto; }
+  main.page details.cr-sec .cr-sec-body { overflow-x: auto; }
+  main.page details.cr-sec .cr-sec-body input, main.page details.cr-sec .cr-sec-body select { max-width: 100%; }
+}
