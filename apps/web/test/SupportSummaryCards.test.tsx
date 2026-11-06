@@ -169,7 +169,7 @@ describe('Inicio y Corporativo incluyen el bloque de Incidencias', () => {
     vi.unstubAllGlobals();
   });
 
-  it('Inicio: bloque tras Entrega, con ventana de 3 meses', async () => {
+  it('Inicio: bloque tras el resumen, con ventana de 3 meses', async () => {
     const fetchMock = mockFetch(SUMMARY);
     render(
       <MemoryRouter>
@@ -179,10 +179,10 @@ describe('Inicio y Corporativo incluyen el bloque de Incidencias', () => {
     await screen.findByText('Incidencias');
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/support?months=3&board=ALL'), expect.anything());
     const titles = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
-    expect(titles.indexOf('Incidencias')).toBe(titles.indexOf('Entrega') + 1);
+    expect(titles.indexOf('Incidencias')).toBe(titles.indexOf('Resumen del equipo') + 1);
   });
 
-  it('Corporativo: bloque tras Entrega y calidad, con ventana de 12 meses', async () => {
+  it('Corporativo: bloque tras el resumen ejecutivo, con ventana de 12 meses', async () => {
     const fetchMock = mockFetch(SUMMARY);
     render(
       <MemoryRouter>
@@ -193,7 +193,7 @@ describe('Inicio y Corporativo incluyen el bloque de Incidencias', () => {
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/support?months=12&board=ALL'), expect.anything());
     expect(screen.getByText('Últimos 12 meses')).toBeTruthy();
     const titles = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
-    expect(titles.indexOf('Incidencias')).toBe(titles.indexOf('Entrega y calidad') + 1);
+    expect(titles.indexOf('Incidencias')).toBe(titles.indexOf('Resumen ejecutivo') + 1);
   });
 
   it('Inicio sin soporte configurado no muestra el bloque', async () => {
