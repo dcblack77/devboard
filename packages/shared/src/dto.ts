@@ -407,6 +407,8 @@ export interface SupportSummaryDto {
   aging: { lt2d: number; d2to7: number; d7to30: number; gt30d: number };
   open: SupportOpenTicketDto[];
   definitions: Record<string, string>;
+  /** Fechas por ticket del tablero seleccionado (todas, no solo la ventana); la API las envía ordenadas por `created`. */
+  tickets?: { key: string; created: string; resolved: string | null; priority: string | null }[];
 }
 
 /** Respuesta de `GET /api/support`: sin tablero configurado solo `{ configured: false }`. */

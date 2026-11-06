@@ -515,3 +515,8 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 /* Resumen de Incidencias en Inicio/Corporativo (SupportSummaryCards). */
 .ssc-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; margin: 6px 0 0; }
 .ssc-link { white-space: nowrap; }
+
+/* ---- Incidencias (sup) ---- */
+.sup-filters { margin-bottom: 0; align-items: flex-end; }
+.sup-summary { margin-bottom: var(--sp-4); }
+.sup-note { margin: var(--sp-2) 0 0; }
