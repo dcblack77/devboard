@@ -303,3 +303,93 @@ export interface SystemResponse {
   batches: BatchesDto;
   definitions: Record<string, string>;
 }
+
+// ---- Soporte (GET /api/support) ----
+
+export interface SupportPercentilesDto {
+  p50: number | null;
+  p85: number | null;
+}
+
+export interface SupportWeekDto {
+  /** Semana ISO `YYYY-Www`. */
+  week: string;
+  received: number;
+  resolved: number;
+}
+
+export interface SupportPriorityDto {
+  /** Prioridad de Jira; `Sin prioridad` si el ticket no tiene. */
+  priority: string;
+  count: number;
+  resolutionP50H: number | null;
+  firstResponseTargetH: number | null;
+  firstResponseMetPct: number | null;
+  resolutionTargetH: number | null;
+  resolutionMetPct: number | null;
+}
+
+export interface SupportLabelDto {
+  label: string;
+  count: number;
+  openNow: number;
+}
+
+export interface SupportTypeDto {
+  type: string;
+  count: number;
+}
+
+export interface SupportBreachDto {
+  key: string;
+  summary: string;
+  priority: string | null;
+  ageH: number;
+  targetH: number;
+}
+
+export interface SupportOpenTicketDto {
+  key: string;
+  summary: string;
+  priority: string | null;
+  /** Estado normalizado (alias aplicados). */
+  status: string;
+  ageH: number;
+  /** Su estado actual es el estado "escalado al equipo técnico". */
+  escalated: boolean;
+}
+
+export interface SupportSummaryDto {
+  window: { from: string; to: string };
+  configured: boolean;
+  project: string | null;
+  totals: {
+    received: number;
+    resolved: number;
+    openNow: number;
+    escalatedPct: number | null;
+    reopenedPct: number | null;
+    linkedToMainPct: number | null;
+  };
+  times: {
+    firstActionH: SupportPercentilesDto;
+    resolutionH: SupportPercentilesDto;
+    techTimeH: SupportPercentilesDto;
+  };
+  weekly: SupportWeekDto[];
+  byPriority: SupportPriorityDto[];
+  byLabel: SupportLabelDto[];
+  byType: SupportTypeDto[];
+  sla: {
+    configured: boolean;
+    firstResponseMetPct: number | null;
+    resolutionMetPct: number | null;
+    breachedOpen: SupportBreachDto[];
+  };
+  aging: { lt2d: number; d2to7: number; d7to30: number; gt30d: number };
+  open: SupportOpenTicketDto[];
+  definitions: Record<string, string>;
+}
+
+/** Respuesta de `GET /api/support`: sin tablero configurado solo `{ configured: false }`. */
+export type SupportResponse = { configured: false } | SupportSummaryDto;

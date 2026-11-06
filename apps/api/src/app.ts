@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { HealthController } from './modules/home/health.controller.js';
 import { HomeController } from './modules/home/home.controller.js';
 import { SystemController } from './modules/system/system.controller.js';
+import { SupportController } from './modules/support/support.controller.js';
 import { JiraController } from './modules/jira/jira.controller.js';
 import { GithubController } from './modules/github/github.controller.js';
 import { PeopleController } from './modules/people/people.controller.js';
@@ -39,6 +40,7 @@ export class App extends AppExpress {
       SyncController,
       HomeController,
       SystemController,
+      SupportController,
       JiraController,
       GithubController,
       PeopleController,
