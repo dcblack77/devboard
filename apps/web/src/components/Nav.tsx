@@ -10,6 +10,7 @@ interface NavLinkDef {
 const PUBLIC_LINKS: NavLinkDef[] = [
   { to: '/', label: 'Inicio', end: true },
   { to: '/system', label: 'Sistema' },
+  { to: '/support', label: 'Incidencias' },
   { to: '/corporate', label: 'Corporativo' },
   { to: '/jira', label: 'Entrega' },
   { to: '/github', label: 'Code review' },

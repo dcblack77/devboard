@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { InitiativeAdminDto, Seniority, SettingsDto, SkillDto, SkillPersonDto, SyncRunDto } from '@devboard/shared';
+import type { InitiativeAdminDto, Seniority, SettingsDto, SkillDto, SkillPersonDto, SupportSla, SyncRunDto } from '@devboard/shared';
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
@@ -68,8 +68,149 @@ export function initiativeTagLabel(i: Pick<InitiativeAdmin, 'source' | 'epicKey'
 }
 
 /** Pestaña General: campos simples + JSON editable para flujo/alias/macro-mapa. */
+/** Fila editable del SLA de soporte (horas como texto para permitir vacío). */
+export interface SlaRow {
+  priority: string;
+  firstResponse: string;
+  resolution: string;
+}
+
+export function slaToRows(sla: SupportSla | null | undefined): SlaRow[] {
+  return Object.entries(sla ?? {}).map(([priority, t]) => ({
+    priority,
+    firstResponse: t.firstResponseHours !== undefined ? String(t.firstResponseHours) : '',
+    resolution: t.resolutionHours !== undefined ? String(t.resolutionHours) : '',
+  }));
+}
+
+/** Filas → `SupportSla`: ignora prioridades vacías y omite horas vacías o no positivas. */
+export function rowsToSla(rows: SlaRow[]): SupportSla {
+  const out: SupportSla = {};
+  const hours = (v: string): number | undefined => {
+    const n = Number(v.trim().replace(',', '.'));
+    return v.trim() !== '' && Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  for (const r of rows) {
+    const priority = r.priority.trim();
+    if (!priority) continue;
+    const fr = hours(r.firstResponse);
+    const res = hours(r.resolution);
+    out[priority] = {
+      ...(fr !== undefined ? { firstResponseHours: fr } : {}),
+      ...(res !== undefined ? { resolutionHours: res } : {}),
+    };
+  }
+  return out;
+}
+
+/** Tarjeta "Tableros de Jira": tablero principal, soporte, estado escalado y SLA por prioridad. */
+function BoardsCard({
+  form,
+  setForm,
+  slaRows,
+  setSlaRows,
+}: {
+  form: SettingsDto;
+  setForm: (f: SettingsDto) => void;
+  slaRows: SlaRow[];
+  setSlaRows: (r: SlaRow[]) => void;
+}) {
+  const updateRow = (i: number, patch: Partial<SlaRow>) =>
+    setSlaRows(slaRows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  return (
+    <div className="card wide sup-boards">
+      <h4>Tableros de Jira</h4>
+      <p className="small muted">Sin tablero de soporte, la sección Incidencias queda desactivada.</p>
+      <div className="sup-boards-fields">
+        <label className="small">
+          Principal
+          <input
+            placeholder="MAIN"
+            value={form.jiraProject ?? ''}
+            onChange={(e) => setForm({ ...form, jiraProject: e.target.value || null })}
+          />
+        </label>
+        <label className="small">
+          Soporte
+          <input
+            placeholder="SUP"
+            value={form.supportProject ?? ''}
+            onChange={(e) => setForm({ ...form, supportProject: e.target.value || null })}
+          />
+        </label>
+        <label className="small">
+          Estado escalado al equipo
+          <input
+            value={form.supportTechStatus ?? ''}
+            onChange={(e) => setForm({ ...form, supportTechStatus: e.target.value || null })}
+          />
+        </label>
+      </div>
+      <h4>SLA de soporte</h4>
+      <p className="small muted">Objetivos en horas por prioridad de Jira. Deja vacío lo que no aplique.</p>
+      <div className="table-scroll">
+        <table className="sup-sla">
+          <thead>
+            <tr>
+              <th>Prioridad</th>
+              <th>1ª respuesta (h)</th>
+              <th>Resolución (h)</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {slaRows.map((r, i) => (
+              <tr key={i}>
+                <td>
+                  <input aria-label={`Prioridad ${i + 1}`} value={r.priority} onChange={(e) => updateRow(i, { priority: e.target.value })} />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label={`1ª respuesta (h) ${i + 1}`}
+                    value={r.firstResponse}
+                    onChange={(e) => updateRow(i, { firstResponse: e.target.value })}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label={`Resolución (h) ${i + 1}`}
+                    value={r.resolution}
+                    onChange={(e) => updateRow(i, { resolution: e.target.value })}
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn sec"
+                    aria-label={`Quitar prioridad ${i + 1}`}
+                    onClick={() => setSlaRows(slaRows.filter((_, j) => j !== i))}
+                  >
+                    Quitar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button
+        type="button"
+        className="btn sec"
+        onClick={() => setSlaRows([...slaRows, { priority: '', firstResponse: '', resolution: '' }])}
+      >
+        Añadir prioridad
+      </button>
+    </div>
+  );
+}
+
 function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s: SettingsDto) => void }) {
   const [form, setForm] = useState(settings);
+  const [slaRows, setSlaRows] = useState<SlaRow[]>(() => slaToRows(settings.supportSla));
   const [statusFlowText, setStatusFlowText] = useState(JSON.stringify(settings.statusFlow, null, 2));
   const [statusAliasesText, setStatusAliasesText] = useState(JSON.stringify(settings.statusAliases, null, 2));
   const [macroMapText, setMacroMapText] = useState(JSON.stringify(settings.macroMap, null, 2));
@@ -94,6 +235,9 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
     try {
       const res = await adminApi.putSettings({
         jiraProject: form.jiraProject,
+        supportProject: form.supportProject,
+        supportTechStatus: form.supportTechStatus,
+        supportSla: rowsToSla(slaRows),
         sinceDate: form.sinceDate,
         syncMinutes: form.syncMinutes,
         attentionDays: form.attentionDays,
@@ -111,6 +255,7 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
         featureBase: form.featureBase,
       });
       onSaved(res.settings);
+      setSlaRows(slaToRows(res.settings.supportSla));
       setOk(true);
     } catch {
       setError('No se pudo guardar. Revisa los datos.');
@@ -122,12 +267,9 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
   return (
     <Block plain title="General" lead="Parámetros del equipo y umbrales de semáforos.">
       <div className="grid">
+        <BoardsCard form={form} setForm={setForm} slaRows={slaRows} setSlaRows={setSlaRows} />
         <div className="card">
           <h4>Ventanas y plazos</h4>
-          <label className="small">
-            Proyecto Jira
-            <input value={form.jiraProject ?? ''} onChange={(e) => setForm({ ...form, jiraProject: e.target.value || null })} />
-          </label>
           <label className="small">
             Desde (sinceDate)
             <input value={form.sinceDate ?? ''} onChange={(e) => setForm({ ...form, sinceDate: e.target.value || null })} />

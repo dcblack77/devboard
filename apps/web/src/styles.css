@@ -247,3 +247,17 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
   .sys-bars-plot { height: 80px; }
   .table-scroll { overflow: visible; }
 }
+
+/* ---- Incidencias (soporte) ---- */
+.sup .sys-grid > section.card h2 { font-size: 15px; margin: 0 0 8px; }
+.sup-gap { margin-top: 14px; }
+.sup-note { font-size: 13px; margin: 0; }
+.sup-hbars { margin: 6px 0 0; display: grid; gap: 8px; }
+.sup-hbar { display: grid; grid-template-columns: 56px minmax(0, 1fr) 36px; align-items: center; gap: 8px; font-size: 12px; }
+.sup-hbar-label { color: var(--muted); white-space: nowrap; }
+.sup-hbar-track { display: block; height: 14px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.sup-hbar-fill { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.sup-hbar-value { text-align: right; font-variant-numeric: tabular-nums; }
+.sup-boards-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 8px 14px; margin-bottom: 10px; }
+.sup-sla input { width: 100%; min-width: 70px; }
+.sup-sla td { padding: 3px 6px 3px 0; }
