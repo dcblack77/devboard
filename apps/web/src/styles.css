@@ -8,6 +8,71 @@
   --warn: #d64545;
   --ok: #16a34a;
   --amber: #d97706;
+
+  /* Design tokens (escala tipográfica, espaciado, radios, sombras y colores semánticos). */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 17px;
+  --fs-lg: 20px;
+  --fs-xl: 26px;
+  --fs-2xl: 34px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.07);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Texto secundario (≥ 4.5:1 sobre blanco); --muted queda para texto terciario. */
+  --ink-2: #4b5563;
+  /* Tintes para pills/badges y su texto oscuro (contraste AA a 12 px). */
+  --ok-bg: rgba(22, 163, 74, 0.12);
+  --warn-bg: rgba(214, 69, 69, 0.12);
+  --amber-bg: rgba(217, 119, 6, 0.12);
+  --accent-bg: rgba(37, 99, 235, 0.1);
+  --ok-ink: #166534;
+  --warn-ink: #b91c1c;
+  --amber-ink: #92400e;
+  --accent-ink: #1d4ed8;
+  --th-bg: #f1f3f7;
+  --field-bg: #fff;
+  /* Alto real de la cabecera sticky; lo actualiza Layout con un ResizeObserver. */
+  --hdr-h: 64px;
+}
+
+/* Modo oscuro: de momento solo en las páginas migradas al nuevo sistema (Code review). */
+@media (prefers-color-scheme: dark) {
+  :root:has(main.cr) {
+    color-scheme: dark;
+    --bg: #0f141c;
+    --card: #171d27;
+    --ink: #e6e9ef;
+    --ink-2: #b6beca;
+    --muted: #8b95a3;
+    --line: #2a3240;
+    --accent: #60a5fa;
+    --ok: #22c55e;
+    --warn: #f87171;
+    --amber: #f59e0b;
+    --ok-bg: rgba(34, 197, 94, 0.16);
+    --warn-bg: rgba(248, 113, 113, 0.16);
+    --amber-bg: rgba(245, 158, 11, 0.16);
+    --accent-bg: rgba(96, 165, 250, 0.16);
+    --ok-ink: #86efac;
+    --warn-ink: #fca5a5;
+    --amber-ink: #fcd34d;
+    --accent-ink: #93c5fd;
+    --th-bg: #1d2430;
+    --field-bg: #111720;
+    --shadow-sm: none;
+  }
 }
 * { box-sizing: border-box; }
 body {
@@ -15,7 +80,7 @@ body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: var(--bg);
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.45;
 }
 a { color: var(--accent); text-decoration: none; }
