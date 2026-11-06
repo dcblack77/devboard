@@ -47,9 +47,9 @@
   --hdr-h: 64px;
 }
 
-/* Modo oscuro: de momento solo en las páginas migradas al nuevo sistema (Code review). */
+/* Modo oscuro: de momento solo en las páginas migradas al nuevo sistema (main.cr y PageShell main.page). */
 @media (prefers-color-scheme: dark) {
-  :root:has(main.cr) {
+  :root:has(main.cr, main.page) {
     color-scheme: dark;
     --bg: #0f141c;
     --card: #171d27;
@@ -349,10 +349,10 @@ footer { color: var(--muted); font-size: 12px; margin: 30px 0 10px; line-height:
 .sup-sla td { padding: 3px 6px 3px 0; }
 
 /* Página Code review: KPIs compactos, secciones plegables y gráfica configurable. */
-main.cr .kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); }
-main.cr .kpi { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); box-shadow: var(--shadow-sm); min-width: 0; }
-main.cr .kpi .v { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
-main.cr .kpi .l { font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+:is(main.cr, main.page) .kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); }
+:is(main.cr, main.page) .kpi { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); box-shadow: var(--shadow-sm); min-width: 0; }
+:is(main.cr, main.page) .kpi .v { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+:is(main.cr, main.page) .kpi .l { font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 /* KPI con umbral: borde izquierdo semántico. Delta frente al periodo anterior. */
 .kpi.kpi-edge-amber { border-left: 3px solid var(--amber); }
 .kpi.kpi-edge-red { border-left: 3px solid var(--warn); }
@@ -373,7 +373,7 @@ main.cr .kpi .l { font-size: var(--fs-sm); color: var(--ink-2); white-space: now
   .skeleton { animation: none; }
   .cr-sec > summary .chev { transition: none; }
 }
-main.cr .card { margin-top: 14px; min-width: 0; }
+:is(main.cr, main.page) .card { margin-top: 14px; min-width: 0; }
 .cr-sec { padding: 0; }
 .cr-sec > summary { display: flex; align-items: center; gap: 8px; padding: 10px 16px; cursor: pointer; list-style: none; user-select: none; }
 .cr-sec > summary::-webkit-details-marker { display: none; }
@@ -396,32 +396,35 @@ main.cr .card { margin-top: 14px; min-width: 0; }
 .cr-date, .card label.cr-date { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-sm); color: var(--ink-2); }
 .card label.cr-date input { display: inline-block; width: auto; margin-top: 0; }
 /* Segmented control dentro de Code review: fondo --bg y opción activa como «pastilla». */
-main.cr .sys-seg { background: var(--bg); border-radius: var(--r-sm); padding: 2px; gap: 2px; }
-main.cr .sys-seg button { background: transparent; border-radius: 4px; font-size: var(--fs-sm); padding: 4px 12px; color: var(--ink-2); }
-main.cr .sys-seg button + button { border-left: 0; }
-main.cr .sys-seg button[aria-pressed='true'] { background: var(--card); color: var(--accent-ink); font-weight: 600; box-shadow: var(--shadow-sm); }
+:is(main.cr, main.page) .sys-seg { background: var(--bg); border-radius: var(--r-sm); padding: 2px; gap: 2px; }
+:is(main.cr, main.page) .sys-seg button { background: transparent; border-radius: 4px; font-size: var(--fs-sm); padding: 4px 12px; color: var(--ink-2); }
+:is(main.cr, main.page) .sys-seg button + button { border-left: 0; }
+:is(main.cr, main.page) .sys-seg button[aria-pressed='true'] { background: var(--card); color: var(--accent-ink); font-weight: 600; box-shadow: var(--shadow-sm); }
 .cr-chart-head h4 { font-size: var(--fs-md); }
 .cr-total { font-size: var(--fs-sm); color: var(--ink-2); }
 .ch.cr-ch { height: 320px; }
 
 /* Code review: layout ancho y fluido, cabecera de página con acción a la derecha. */
-main.cr { max-width: 1600px; padding: var(--sp-6) clamp(16px, 3vw, 48px); font-size: var(--fs-base); }
-@media (min-width: 1921px) { main.cr { max-width: 1800px; } }
+:is(main.cr, main.page) { max-width: 1600px; padding: var(--sp-6) clamp(16px, 3vw, 48px); font-size: var(--fs-base); }
+@media (min-width: 1921px) { :is(main.cr, main.page) { max-width: 1800px; } }
 .cr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-2); }
-.cr-head h1, main.cr h1 { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.15; margin: 0 0 var(--sp-1); letter-spacing: -0.01em; }
-.cr-head .lead, main.cr > .lead { font-size: var(--fs-md); color: var(--ink-2); margin: 0; }
+.cr-head h1, :is(main.cr, main.page) h1 { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.15; margin: 0 0 var(--sp-1); letter-spacing: -0.01em; }
+.cr-head .lead, :is(main.cr, main.page) > .lead { font-size: var(--fs-md); color: var(--ink-2); margin: 0; }
 .cr-head .btn { flex: none; margin-top: 6px; }
-main.cr h2 { font-size: var(--fs-lg); margin: var(--sp-7) 0 var(--sp-3); }
-main.cr .card { border-radius: var(--r-md); box-shadow: var(--shadow-sm); }
+.cr-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.cr-actions .btn { margin-top: 0; }
+.cr-head > .cr-actions { margin-top: 6px; }
+:is(main.cr, main.page) h2 { font-size: var(--fs-lg); margin: var(--sp-7) 0 var(--sp-3); }
+:is(main.cr, main.page) .card { border-radius: var(--r-md); box-shadow: var(--shadow-sm); }
 
 /* Tablas de Code review: celdas PR en dos líneas, autor con iniciales y badge de antigüedad. */
-main.cr .cr-sec > summary h3 { font-size: var(--fs-md); }
+:is(main.cr, main.page) .cr-sec > summary h3 { font-size: var(--fs-md); }
 .cr-sec > summary .count { font-size: var(--fs-xs); font-weight: 600; color: var(--accent-ink); background: var(--accent-bg); border-color: transparent; padding: 1px 8px; }
-main.cr .card .q { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-2); }
+:is(main.cr, main.page) .card .q { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-2); }
 .info-ico { flex: none; color: var(--ink-2); }
-main.cr table { font-size: var(--fs-sm); }
-main.cr th { background: var(--th-bg); color: var(--ink-2); font-size: var(--fs-xs); text-transform: none; }
-main.cr td, main.cr th { padding: 8px 10px; vertical-align: middle; }
+:is(main.cr, main.page) table { font-size: var(--fs-sm); }
+:is(main.cr, main.page) th { background: var(--th-bg); color: var(--ink-2); font-size: var(--fs-xs); text-transform: none; }
+:is(main.cr, main.page) td, :is(main.cr, main.page) th { padding: 8px 10px; vertical-align: middle; }
 /* Ancho fijo de columnas: el título se recorta con ellipsis en lugar de desbordar la tarjeta. */
 table.pr-list { table-layout: fixed; }
 table.pr-list th:nth-child(2) { width: 170px; }
@@ -446,6 +449,11 @@ table.pr-list th:nth-child(3) { width: 150px; white-space: nowrap; }
 .st-pill.st-open { color: var(--accent-ink); background: var(--accent-bg); }
 .st-pill.st-draft { color: var(--ink-2); background: var(--bg); border-color: var(--line); border-style: dashed; }
 .st-pill.st-closed { color: var(--ink-2); background: var(--bg); border-color: var(--line); }
+.st-pill.st-ok { color: var(--ok-ink); background: var(--ok-bg); }
+.st-pill.st-accent { color: var(--accent-ink); background: var(--accent-bg); }
+.st-pill.st-amber { color: var(--amber-ink); background: var(--amber-bg); }
+.st-pill.st-warn { color: var(--warn-ink); background: var(--warn-bg); }
+.st-pill.st-muted { color: var(--ink-2); background: var(--bg); border-color: var(--line); }
 
 /* Tabla moderna (Pull requests y Por repositorio): filas de 40 px, hover, zebra suave. */
 table.ft-modern td { height: 40px; }
@@ -461,8 +469,8 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 .repo-bar > span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 @media (min-width: 1024px) {
   /* Cabecera de tabla sticky bajo la cabecera de la app (el scroll horizontal anularía sticky). */
-  main.cr .ft-scroll { overflow: visible; }
-  main.cr .ft-scroll table.ft-modern thead th { position: sticky; top: var(--hdr-h); z-index: 2; }
+  :is(main.cr, main.page) .ft-scroll { overflow: visible; }
+  :is(main.cr, main.page) .ft-scroll table.ft-modern thead th { position: sticky; top: var(--hdr-h); z-index: 2; }
 }
 
 /* FilterTable variant="modern": barra a todo el ancho, buscador con icono y filtros en píldora. */
@@ -478,8 +486,8 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 .pager .psize select { border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: inherit; background: #fff; }
 
 @media (max-width: 640px) {
-  main.cr { padding: 14px; }
-  main.cr .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(main.cr, main.page) { padding: 14px; }
+  :is(main.cr, main.page) .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fbar-modern .fsearch { flex-basis: 100%; width: auto; }
   .fbar-modern select.pill { flex: 1 1 120px; max-width: none; }
   .fbar-modern .cnt { margin-left: 0; width: 100%; text-align: right; }
@@ -487,12 +495,12 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 @media print {
   header { padding: 0 0 8px; }
   .sync-box { display: none !important; }
-  main.cr { max-width: none; padding: 0; font-size: 11px; }
-  main.cr h1 { font-size: 22px; }
-  main.cr .lead { font-size: 12px; }
-  main.cr .card, main.cr .kpi { box-shadow: none; }
-  main.cr .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  main.cr .kpi .v { font-size: 18px; }
+  :is(main.cr, main.page) { max-width: none; padding: 0; font-size: 11px; }
+  :is(main.cr, main.page) h1 { font-size: 22px; }
+  :is(main.cr, main.page) .lead { font-size: 12px; }
+  :is(main.cr, main.page) .card, :is(main.cr, main.page) .kpi { box-shadow: none; }
+  :is(main.cr, main.page) .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  :is(main.cr, main.page) .kpi .v { font-size: 18px; }
   .ch.cr-ch { height: 260px; }
   .kpi-delta { border: 1px solid currentColor; }
   .st-pill, .age-badge { border: 1px solid currentColor !important; }
