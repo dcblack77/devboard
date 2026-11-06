@@ -544,3 +544,14 @@ td.init-people { white-space: nowrap; }
 .skills-legend { display: inline-flex; align-items: center; gap: 12px; }
 .skills-legend-item { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 .skills-person { display: inline-flex; align-items: center; margin-right: 6px; }
+/* ---- Incidencias (sup) ---- */
+.sup-filters { margin-bottom: 0; align-items: flex-end; }
+.sup-summary { margin-bottom: var(--sp-4); }
+.sup-note { margin: var(--sp-2) 0 0; }
+
+/* ---- Ajustes (settings) ---- */
+.settings-tabs { margin-bottom: var(--sp-4); }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px 14px; }
+.settings-grid label { display: flex; flex-direction: column; gap: 3px; }
+.settings-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; margin-bottom: 10px; }
+.settings .ft-modern input:not([type="checkbox"]), .settings .ft-modern select { max-width: 100%; }

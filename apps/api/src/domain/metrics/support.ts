@@ -158,8 +158,19 @@ function metRatio(values: (number | null)[], target: number | undefined): { met:
 /** Parte del resumen que no depende del selector de tablero (lo rellena el controlador). */
 type BoardFields = 'boards' | 'boardNames' | 'selectedBoard' | 'byBoard';
 
+/** Fechas por ticket (todos los del tablero seleccionado) para re-agrupar la gráfica en el cliente. */
+export interface SupportTicketDatesDto {
+  key: string;
+  created: string;
+  resolved: string | null;
+  priority: string | null;
+}
+
 /** Resumen de soporte para la ventana `[from, to]` (cohorte = tickets creados en la ventana). */
-export function supportSummary(input: SupportInput, window: Window): Omit<SupportSummaryDto, BoardFields> {
+export function supportSummary(
+  input: SupportInput,
+  window: Window,
+): Omit<SupportSummaryDto, BoardFields> & { tickets: SupportTicketDatesDto[] } {
   const all = input.tickets.map((t) => analyze(t, input));
   const cohort = all.filter((a) => inWindow(a.t.createdAt, window));
   const openAll = all.filter((a) => a.open).sort((a, b) => b.ageH - a.ageH);
@@ -298,6 +309,14 @@ export function supportSummary(input: SupportInput, window: Window): Omit<Suppor
       escalated: tech !== null && a.status === tech,
     })),
     definitions: SUPPORT_DEFINITIONS,
+    tickets: [...input.tickets]
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .map((t) => ({
+        key: t.key,
+        created: t.createdAt.toISOString(),
+        resolved: t.resolvedAt?.toISOString() ?? null,
+        priority: t.priority,
+      })),
   };
 }
 

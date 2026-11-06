@@ -101,7 +101,7 @@ describe('GET /api/support', () => {
     expect(res.status).toBe(200);
     expect(loadSupportTickets).toHaveBeenCalledWith(['SUP']);
     expect(Object.keys(res.body).sort()).toEqual(
-      ['aging', 'boardNames', 'boards', 'byBoard', 'byLabel', 'byPriority', 'byType', 'configured', 'definitions', 'open', 'project', 'selectedBoard', 'sla', 'times', 'totals', 'weekly', 'window'].sort(),
+      ['aging', 'boardNames', 'boards', 'byBoard', 'byLabel', 'byPriority', 'byType', 'configured', 'definitions', 'open', 'project', 'selectedBoard', 'sla', 'tickets', 'times', 'totals', 'weekly', 'window'].sort(),
     );
     expect(res.body.configured).toBe(true);
     expect(res.body.project).toBe('SUP'); // un solo tablero: Todos = ese tablero

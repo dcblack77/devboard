@@ -98,7 +98,7 @@ describe('Support', () => {
       expect(container.querySelector('main')?.textContent).toContain('Configura el tablero de soporte en Ajustes → Tableros de Jira.'),
     );
     expect(container.querySelector('a[href="/settings"]')).toBeTruthy();
-    expect(container.querySelector('main.sys.sup')).toBeTruthy();
+    expect(container.querySelector('main.page.sup')).toBeTruthy();
   });
 
   it('does not link to settings for non-TL users', async () => {
@@ -128,7 +128,7 @@ describe('Support', () => {
     expect(within(summary).getByText('25%')).toBeTruthy();
     expect(within(summary).getByText('2.0 d')).toBeTruthy(); // resolution p50 48h
     expect(within(summary).getByText('3.0 h')).toBeTruthy(); // first action p50
-    for (const t of ['SLA', 'Recibidas vs resueltas por semana', 'Por prioridad', 'Antigüedad de abiertas', 'Por producto (etiqueta)', 'Por tipo', 'Abiertas', 'Definiciones']) {
+    for (const t of ['Recibidas vs resueltas por semana', 'Por prioridad', 'Antigüedad de abiertas', 'Por producto (etiqueta)', 'Por tipo', 'Abiertas', 'Definiciones']) {
       expect(screen.getByRole('heading', { name: t })).toBeTruthy();
     }
     expect(screen.getByTestId('bar-chart').textContent).toBe('Recibidas,Resueltas');
@@ -187,7 +187,7 @@ describe('Support', () => {
         ['SUP', 'Soporte clientes'],
         ['HELP', 'HELP'],
       ]);
-      const table = screen.getByRole('heading', { name: 'Por tablero' }).closest('section') as HTMLElement;
+      const table = screen.getByRole('heading', { name: 'Por tablero' }).closest('details') as HTMLElement;
       expect(within(table).getByText('HELP')).toBeTruthy();
       expect(within(table).getByText('30')).toBeTruthy();
     });
