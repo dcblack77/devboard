@@ -119,11 +119,44 @@ describe('JiraClient.epicsWithChildren', () => {
     }) as unknown as typeof fetch;
 
     const client = new JiraClient(config(fetchMock));
-    const epics = await client.epicsWithChildren('DEV');
+    const epics = await client.epicsWithChildren(['DEV']);
 
     expect(epics).toHaveLength(1);
     expect(epics[0].key).toBe('DEV-1');
     expect(epics[0].children).toHaveLength(1);
     expect(epics[0].children[0].key).toBe('DEV-2');
+  });
+});
+
+describe('JiraClient · varios tableros de desarrollo', () => {
+  function capture() {
+    const jqls: string[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      jqls.push(url.searchParams.get('jql') ?? '');
+      return jsonResponse({ issues: [], isLast: true });
+    }) as unknown as typeof fetch;
+    return { client: new JiraClient(config(fetchMock)), jqls };
+  }
+
+  it('fetchWindow usa project in (A, B)', async () => {
+    const { client, jqls } = capture();
+    await client.fetchWindow(['MAIN', 'OPS'], '2026-01-01');
+    expect(jqls).toEqual(['project in (MAIN, OPS) AND updated >= "2026-01-01" ORDER BY created ASC']);
+  });
+
+  it('epicsWithChildren usa project in (A, B) en las dos consultas', async () => {
+    const { client, jqls } = capture();
+    await client.epicsWithChildren(['MAIN', 'OPS']);
+    expect(jqls).toEqual([
+      'project in (MAIN, OPS) AND issuetype = Epic ORDER BY created ASC',
+      'project in (MAIN, OPS) AND issuetype != Epic AND parent is not EMPTY ORDER BY created ASC',
+    ]);
+  });
+
+  it('con un solo tablero también usa project in (A)', async () => {
+    const { client, jqls } = capture();
+    await client.fetchWindow(['MAIN'], '2026-01-01');
+    expect(jqls[0]).toBe('project in (MAIN) AND updated >= "2026-01-01" ORDER BY created ASC');
   });
 });

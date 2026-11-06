@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type {
   Role,
+  SupportBoardRowDto,
   SupportBreachDto,
   SupportLabelDto,
   SupportOpenTicketDto,
@@ -74,10 +75,19 @@ function uniq(values: Array<string | null>): string[] {
 
 /**
  * Página Incidencias: métricas del tablero de soporte (volumen, tiempos, SLA, antigüedad,
- * reparto por prioridad/etiqueta/tipo y tickets abiertos). Filtro: meses.
+ * reparto por prioridad/etiqueta/tipo y tickets abiertos). Filtros: meses y tablero (`?board=`,
+ * solo si hay más de un tablero de soporte; "Todos" agrega).
  */
 export function Support({ role = null }: { role?: Role | null }) {
   const [months, setMonths] = useState<Months>(12);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const board = (searchParams.get('board') ?? 'ALL').toUpperCase() || 'ALL';
+  const setBoard = (b: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (b === 'ALL') next.delete('board');
+    else next.set('board', b);
+    setSearchParams(next, { replace: true });
+  };
   const [data, setData] = useState<SupportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,10 +95,17 @@ export function Support({ role = null }: { role?: Role | null }) {
     setData(null);
     setError(null);
     api
-      .support({ months })
+      .support({ months, board })
       .then(setData)
       .catch(() => setError('No se pudieron cargar los datos de incidencias.'));
-  }, [months]);
+  }, [months, board]);
+
+  // Últimos tableros conocidos: el selector no desaparece mientras se recarga.
+  const [boardInfo, setBoardInfo] = useState<{ boards: string[]; boardNames: Record<string, string | null> }>({ boards: [], boardNames: {} });
+  useEffect(() => {
+    if (data && isConfigured(data)) setBoardInfo({ boards: data.boards ?? [], boardNames: data.boardNames ?? {} });
+  }, [data]);
+  const { boards, boardNames } = boardInfo;
 
   const head = (
     <div className="sys-head">
@@ -97,6 +114,19 @@ export function Support({ role = null }: { role?: Role | null }) {
         <p className="lead">Tablero de soporte: volumen, tiempos de respuesta y resolución, SLA y tickets abiertos.</p>
       </div>
       <div className="sys-filters noprint">
+        {boards.length > 1 ? (
+          <label>
+            Tablero
+            <select value={board} onChange={(e) => setBoard(e.target.value)} aria-label="Tablero">
+              <option value="ALL">Todos</option>
+              {boards.map((b) => (
+                <option key={b} value={b}>
+                  {boardNames[b] || b}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label>
           Periodo
           <select value={months} onChange={(e) => setMonths(Number(e.target.value) as Months)} aria-label="Meses">
@@ -151,7 +181,11 @@ export function Support({ role = null }: { role?: Role | null }) {
       {head}
 
       <section className="kpis sys-summary" aria-label="Resumen">
-        <Kpi value={totals.received} label="Recibidas" sub={data.project ? `tablero ${data.project}` : undefined} />
+        <Kpi
+          value={totals.received}
+          label="Recibidas"
+          sub={data.project ? `tablero ${data.boardNames?.[data.project] || data.project}` : `${data.boards.length} tableros`}
+        />
         <Kpi value={totals.resolved} label="Resueltas" />
         <Kpi value={totals.openNow} label="Abiertas ahora" />
         <Kpi value={fmtRatio(totals.escalatedPct)} label="Escaladas al equipo" sub="pasan por el equipo técnico" />
@@ -160,6 +194,25 @@ export function Support({ role = null }: { role?: Role | null }) {
         <Kpi value={fmtHours(times.firstActionH.p50)} label="1ª acción p50" sub={`p85 ${fmtHours(times.firstActionH.p85)}`} />
         <Kpi value={fmtHours(times.techTimeH.p50)} label="Tiempo en equipo técnico p50" sub={`p85 ${fmtHours(times.techTimeH.p85)}`} />
       </section>
+
+      {data.boards.length > 1 ? (
+        <section className="card sys-card" aria-label="Por tablero">
+          <h2>Por tablero</h2>
+          <div className="table-scroll">
+            <FilterTable<SupportBoardRowDto>
+              rows={data.byBoard}
+              columns={[
+                { key: 'board', header: 'Tablero', accessor: (r) => data.boardNames?.[r.board] || r.board },
+                { key: 'received', header: 'Recibidas', accessor: (r) => r.received, numeric: true },
+                { key: 'resolved', header: 'Resueltas', accessor: (r) => r.resolved, numeric: true },
+                { key: 'open', header: 'Abiertas ahora', accessor: (r) => r.openNow, numeric: true },
+                { key: 'res', header: 'Resolución p50', accessor: (r) => num(r.resolutionP50H), render: (r) => fmtHours(r.resolutionP50H), numeric: true },
+                { key: 'esc', header: '% escaladas', accessor: (r) => num(r.escalatedPct), render: (r) => fmtRatio(r.escalatedPct), numeric: true },
+              ]}
+            />
+          </div>
+        </section>
+      ) : null}
 
       <Block title="SLA" plain>
         {sla.configured ? (

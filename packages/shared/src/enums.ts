@@ -29,7 +29,7 @@ export enum Role {
 export enum SyncSource {
   Jira = 'jira',
   GitHub = 'github',
-  /** Backup del tablero de soporte (`settings.supportProject`) en `support_tickets`. */
+  /** Backup de los tableros de soporte (`settings.jiraBoards`, kind support) en `support_tickets`. */
   Support = 'support',
 }
 

@@ -1,15 +1,16 @@
 /**
- * Lectura de `support_tickets` de un proyecto, ya convertidos a la entrada del dominio
+ * Lectura de `support_tickets` de uno o varios tableros, ya convertidos a la entrada del dominio
  * (`SupportTicketInput`). Separado del controlador para poder mockearlo en tests.
  */
-import { eq } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { getDb } from '../../db/client.js';
 import { supportTickets } from '../../db/schema.js';
 import type { SupportStatusChange } from '../../integrations/support/repo.js';
 import type { SupportTicketInput } from '../../domain/metrics/support.js';
 
-export async function loadSupportTickets(project: string): Promise<SupportTicketInput[]> {
-  const rows = await getDb().select().from(supportTickets).where(eq(supportTickets.project, project));
+export async function loadSupportTickets(projects: string[]): Promise<SupportTicketInput[]> {
+  if (projects.length === 0) return [];
+  const rows = await getDb().select().from(supportTickets).where(inArray(supportTickets.project, projects));
   return rows.map((r) => ({
     key: r.key,
     summary: r.summary,

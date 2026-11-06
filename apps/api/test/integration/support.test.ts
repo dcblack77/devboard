@@ -30,8 +30,10 @@ const NOW = new Date('2026-07-01T00:00:00Z');
 const at = (h: number) => new Date(NOW.getTime() - h * 3_600_000);
 
 const BASE_SETTINGS = {
-  jiraProject: 'MAIN',
-  supportProject: 'SUP',
+  jiraBoards: [
+    { key: 'MAIN', kind: 'dev', name: null },
+    { key: 'SUP', kind: 'support', name: 'Soporte' },
+  ],
   supportTechStatus: 'Escalated',
   supportSla: { High: { resolutionHours: 24 } },
   statusAliases: { 'Por hacer': 'To Do' },
@@ -85,8 +87,8 @@ beforeEach(() => {
 });
 
 describe('GET /api/support', () => {
-  it('returns configured:false only when no support project is set', async () => {
-    vi.mocked(getMetricsContext).mockResolvedValue({ now: NOW, settings: { ...BASE_SETTINGS, supportProject: null } } as never);
+  it('returns configured:false only when there are no support boards', async () => {
+    vi.mocked(getMetricsContext).mockResolvedValue({ now: NOW, settings: { ...BASE_SETTINGS, jiraBoards: [{ key: 'MAIN', kind: 'dev' }] } } as never);
     const res = await request(baseUrl).get('/api/support');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ configured: false });
@@ -97,14 +99,17 @@ describe('GET /api/support', () => {
     vi.mocked(getMetricsContext).mockResolvedValue({ now: NOW, settings: BASE_SETTINGS } as never);
     const res = await request(baseUrl).get('/api/support?months=6');
     expect(res.status).toBe(200);
-    expect(loadSupportTickets).toHaveBeenCalledWith('SUP');
+    expect(loadSupportTickets).toHaveBeenCalledWith(['SUP']);
     expect(Object.keys(res.body).sort()).toEqual(
-      ['aging', 'byLabel', 'byPriority', 'byType', 'configured', 'definitions', 'open', 'project', 'sla', 'times', 'totals', 'weekly', 'window'].sort(),
+      ['aging', 'boardNames', 'boards', 'byBoard', 'byLabel', 'byPriority', 'byType', 'configured', 'definitions', 'open', 'project', 'selectedBoard', 'sla', 'times', 'totals', 'weekly', 'window'].sort(),
     );
     expect(res.body.configured).toBe(true);
-    expect(res.body.project).toBe('SUP');
+    expect(res.body.project).toBe('SUP'); // un solo tablero: Todos = ese tablero
+    expect(res.body.selectedBoard).toBe('ALL');
+    expect(res.body.boards).toEqual(['SUP']);
+    expect(res.body.boardNames).toEqual({ SUP: 'Soporte' });
     expect(res.body.totals.received).toBe(2);
-    expect(res.body.totals.linkedToMainPct).toBe(0.5);
+    expect(res.body.totals.linkedToDevPct).toBe(0.5);
     expect(res.body.totals.escalatedPct).toBe(0.5);
     expect(res.body.open[0]).toMatchObject({ key: 'SUP-2', escalated: true });
     expect(res.body.sla.breachedOpen).toHaveLength(1);
@@ -119,5 +124,71 @@ describe('GET /api/support', () => {
     expect(r3.body.totals.openNow).toBe(1);
     const bad = await request(baseUrl).get('/api/support?months=5');
     expect(new Date(bad.body.window.from).getUTCFullYear()).toBe(2025);
+  });
+
+  describe('varios tableros de soporte', () => {
+    const MULTI = {
+      ...BASE_SETTINGS,
+      jiraBoards: [
+        { key: 'MAIN', kind: 'dev', name: null },
+        { key: 'SUP', kind: 'support', name: 'Soporte' },
+        { key: 'OPS', kind: 'dev', name: null },
+        { key: 'HELP', kind: 'support', name: null },
+      ],
+    };
+    const HELP_TICKETS = [
+      {
+        key: 'HELP-1',
+        summary: 'printer',
+        type: 'Task',
+        status: 'To Do',
+        priority: 'Low',
+        labels: [],
+        createdAt: at(10),
+        resolvedAt: null,
+        linkedKeys: ['OPS-3'],
+        statusChanges: [],
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(getMetricsContext).mockResolvedValue({ now: NOW, settings: MULTI } as never);
+      vi.mocked(loadSupportTickets).mockImplementation(async (projects: string[]) =>
+        [...(projects.includes('SUP') ? TICKETS : []), ...(projects.includes('HELP') ? HELP_TICKETS : [])] as never,
+      );
+    });
+
+    it('board=ALL (por defecto) agrega todos los tableros de soporte y devuelve byBoard', async () => {
+      const res = await request(baseUrl).get('/api/support?months=12');
+      expect(res.status).toBe(200);
+      expect(loadSupportTickets).toHaveBeenCalledWith(['SUP', 'HELP']);
+      expect(res.body.selectedBoard).toBe('ALL');
+      expect(res.body.boards).toEqual(['SUP', 'HELP']);
+      expect(res.body.project).toBeNull();
+      expect(res.body.totals.received).toBe(3);
+      // SUP-1 -> MAIN-7 y HELP-1 -> OPS-3: los dos tableros dev cuentan.
+      expect(res.body.totals.linkedToDevPct).toBeCloseTo(2 / 3);
+      expect(res.body.byBoard).toEqual([
+        expect.objectContaining({ board: 'SUP', received: 2, resolved: 1, openNow: 1, escalatedPct: 0.5 }),
+        expect.objectContaining({ board: 'HELP', received: 1, resolved: 0, openNow: 1, escalatedPct: 0 }),
+      ]);
+    });
+
+    it('board=HELP filtra a ese tablero pero byBoard sigue cubriendo todos', async () => {
+      const res = await request(baseUrl).get('/api/support?months=12&board=help');
+      expect(res.status).toBe(200);
+      expect(res.body.selectedBoard).toBe('HELP');
+      expect(res.body.project).toBe('HELP');
+      expect(res.body.totals.received).toBe(1);
+      expect(res.body.open.map((o: { key: string }) => o.key)).toEqual(['HELP-1']);
+      expect(res.body.byBoard.map((r: { board: string }) => r.board)).toEqual(['SUP', 'HELP']);
+    });
+
+    it('board que no es de soporte responde 400', async () => {
+      for (const board of ['MAIN', 'NOPE']) {
+        const res = await request(baseUrl).get(`/api/support?board=${board}`);
+        expect(res.status, board).toBe(400);
+      }
+    });
   });
 });

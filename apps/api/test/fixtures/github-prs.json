@@ -1,6 +1,6 @@
 {
   "settings": {
-    "jiraProject": "PROJ",
+    "jiraBoards": [{ "key": "PROJ", "kind": "dev" }, { "key": "SUP", "kind": "support" }],
     "waitReviewHours": 48
   },
   "now": "2026-02-10T12:00:00.000Z",

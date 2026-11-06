@@ -5,10 +5,11 @@
  */
 import type { SettingsDto, SupportSla, Thresholds } from './dto.js';
 import type { SnapshotKind } from './enums.js';
+import type { JiraBoard } from './boards.js';
 
 /** Cuerpo de `PUT /api/settings`: todos los campos editables de `SettingsDto` menos `id`. */
 export interface UpdateSettingsRequest {
-  jiraProject?: string | null;
+  jiraBoards?: JiraBoard[];
   sinceDate?: string | null;
   syncMinutes?: number;
   attentionDays?: number;
@@ -24,7 +25,6 @@ export interface UpdateSettingsRequest {
   deployBranches?: string;
   ciWorkflowRegex?: string;
   featureBase?: string;
-  supportProject?: string | null;
   supportTechStatus?: string | null;
   supportSla?: SupportSla;
 }

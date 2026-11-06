@@ -10,7 +10,10 @@ process.env.NODE_ENV = 'test';
 
 const FAKE_SETTINGS = {
   id: 1,
-  jiraProject: 'PROJ',
+  jiraBoards: [
+    { key: 'PROJ', kind: 'dev', name: null },
+    { key: 'SUP', kind: 'support', name: 'Soporte' },
+  ],
   sinceDate: null,
   syncMinutes: 30,
   attentionDays: 5,
@@ -36,7 +39,6 @@ const FAKE_SETTINGS = {
   deployBranches: '^main$|hotfix',
   ciWorkflowRegex: '^CI',
   featureBase: 'develop',
-  supportProject: 'SUP',
   supportTechStatus: 'Escalated',
   supportSla: { High: { firstResponseHours: 4, resolutionHours: 24 } },
 };
@@ -96,7 +98,10 @@ describe('/api/settings — autenticación y validación', () => {
     await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
     const res = await agent.get('/api/settings');
     expect(res.status).toBe(200);
-    expect(res.body.settings.jiraProject).toBe('PROJ');
+    expect(res.body.settings.jiraBoards).toEqual([
+      { key: 'PROJ', kind: 'dev', name: null },
+      { key: 'SUP', kind: 'support', name: 'Soporte' },
+    ]);
   });
 
   it('PUT /api/settings con payload inválido (tipo incorrecto) responde 400', async () => {
@@ -164,58 +169,114 @@ describe('/api/settings — autenticación y validación', () => {
   });
 });
 
-describe('/api/settings — tableros de Jira (principal/soporte)', () => {
+describe('/api/settings — tableros de Jira (lista dev/support)', () => {
   async function tlAgent() {
     const agent = request.agent(baseUrl);
     await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
     return agent;
   }
 
-  it('GET devuelve los campos de soporte', async () => {
+  it('GET devuelve la lista de tableros y los campos de soporte globales', async () => {
     const agent = await tlAgent();
     const res = await agent.get('/api/settings');
     expect(res.status).toBe(200);
     expect(res.body.settings).toMatchObject({
-      supportProject: 'SUP',
+      jiraBoards: [{ key: 'PROJ', kind: 'dev' }, { key: 'SUP', kind: 'support' }],
       supportTechStatus: 'Escalated',
       supportSla: { High: { firstResponseHours: 4, resolutionHours: 24 } },
     });
+    expect(res.body.settings).not.toHaveProperty('jiraProject');
+    expect(res.body.settings).not.toHaveProperty('supportProject');
   });
 
-  it('PUT supportProject " sup " se guarda normalizado como "SUP"', async () => {
+  it('PUT jiraBoards normaliza clave (trim + mayúsculas) y nombre ("" -> null)', async () => {
     updateSpy.mockClear();
     const agent = await tlAgent();
-    const res = await agent.put('/api/settings').send({ supportProject: ' sup ' });
+    const res = await agent.put('/api/settings').send({
+      jiraBoards: [
+        { key: ' main ', kind: 'dev', name: '  Producto  ' },
+        { key: 'sup', kind: 'support', name: '   ' },
+        { key: 'ops', kind: 'dev' },
+      ],
+    });
     expect(res.status).toBe(200);
-    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supportProject: 'SUP' }));
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jiraBoards: [
+          { key: 'MAIN', kind: 'dev', name: 'Producto' },
+          { key: 'SUP', kind: 'support', name: null },
+          { key: 'OPS', kind: 'dev', name: null },
+        ],
+      }),
+    );
   });
 
-  it('PUT supportProject "" se guarda como null', async () => {
+  it('PUT jiraBoards vacío está permitido', async () => {
     updateSpy.mockClear();
     const agent = await tlAgent();
-    const res = await agent.put('/api/settings').send({ supportProject: '', supportTechStatus: '' });
+    const res = await agent.put('/api/settings').send({ jiraBoards: [] });
     expect(res.status).toBe(200);
-    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supportProject: null, supportTechStatus: null }));
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ jiraBoards: [] }));
   });
 
-  it('PUT jiraProject " main " se normaliza a "MAIN"', async () => {
+  it('PUT supportTechStatus "" se guarda como null', async () => {
     updateSpy.mockClear();
     const agent = await tlAgent();
-    const res = await agent.put('/api/settings').send({ jiraProject: ' main ' });
+    const res = await agent.put('/api/settings').send({ supportTechStatus: '' });
     expect(res.status).toBe(200);
-    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ jiraProject: 'MAIN' }));
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supportTechStatus: null }));
   });
 
-  it('PUT supportProject con clave inválida responde 400', async () => {
+  it('PUT jiraBoards con claves duplicadas (tras normalizar) responde 400', async () => {
+    updateSpy.mockClear();
     const agent = await tlAgent();
-    const res = await agent.put('/api/settings').send({ supportProject: 's up!' });
+    const res = await agent.put('/api/settings').send({
+      jiraBoards: [
+        { key: 'MAIN', kind: 'dev' },
+        { key: ' main', kind: 'support' },
+      ],
+    });
+    expect(res.status).toBe(400);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it('PUT jiraBoards con tipo desconocido responde 400', async () => {
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ jiraBoards: [{ key: 'MAIN', kind: 'ops' }] });
     expect(res.status).toBe(400);
   });
 
-  it('PUT jiraProject con clave inválida responde 400', async () => {
+  it('PUT jiraBoards con clave inválida responde 400', async () => {
     const agent = await tlAgent();
-    const res = await agent.put('/api/settings').send({ jiraProject: '1abc' });
+    for (const key of ['1abc', 's up!', 'A', '']) {
+      const res = await agent.put('/api/settings').send({ jiraBoards: [{ key, kind: 'dev' }] });
+      expect(res.status, key).toBe(400);
+    }
+  });
+
+  it('PUT jiraBoards con nombre de más de 40 caracteres responde 400', async () => {
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ jiraBoards: [{ key: 'MAIN', kind: 'dev', name: 'x'.repeat(41) }] });
     expect(res.status).toBe(400);
+  });
+
+  it('PUT jiraBoards con más de 10 tableros responde 400', async () => {
+    const agent = await tlAgent();
+    const boards = Array.from({ length: 11 }, (_, i) => ({ key: `B${i}X`, kind: 'dev' }));
+    const res = await agent.put('/api/settings').send({ jiraBoards: boards });
+    expect(res.status).toBe(400);
+    const ok = await agent.put('/api/settings').send({ jiraBoards: boards.slice(0, 10) });
+    expect(ok.status).toBe(200);
+  });
+
+  it('los campos antiguos jiraProject/supportProject ya no se guardan', async () => {
+    updateSpy.mockClear();
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ jiraProject: 'MAIN', supportProject: 'SUP', attentionDays: 6 });
+    expect(res.status).toBe(200);
+    const saved = updateSpy.mock.calls[0][0] as Record<string, unknown>;
+    expect(saved).not.toHaveProperty('jiraProject');
+    expect(saved).not.toHaveProperty('supportProject');
   });
 
   it('PUT supportSla con horas negativas responde 400', async () => {

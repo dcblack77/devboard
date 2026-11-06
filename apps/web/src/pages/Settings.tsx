@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { InitiativeAdminDto, Seniority, SettingsDto, SkillDto, SkillPersonDto, SupportSla, SyncRunDto } from '@devboard/shared';
+import type { InitiativeAdminDto, JiraBoard, JiraBoardKind, Seniority, SettingsDto, SkillDto, SkillPersonDto, SupportSla, SyncRunDto } from '@devboard/shared';
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
 import { Block } from '../components/Block';
@@ -103,41 +103,117 @@ export function rowsToSla(rows: SlaRow[]): SupportSla {
   return out;
 }
 
-/** Tarjeta "Tableros de Jira": tablero principal, soporte, estado escalado y SLA por prioridad. */
+/** Fila editable de un tablero de Jira (texto libre; se normaliza al guardar). */
+export interface BoardRow {
+  key: string;
+  kind: JiraBoardKind;
+  name: string;
+}
+
+export function boardsToRows(boards: JiraBoard[] | null | undefined): BoardRow[] {
+  return (boards ?? []).map((b) => ({ key: b.key, kind: b.kind, name: b.name ?? '' }));
+}
+
+/** Filas → `JiraBoard[]`: clave recortada en mayúsculas, nombre vacío → null, filas sin clave fuera. */
+export function rowsToBoards(rows: BoardRow[]): JiraBoard[] {
+  return rows
+    .map((r) => ({ key: r.key.trim().toUpperCase(), kind: r.kind, name: r.name.trim() || null }))
+    .filter((b) => b.key !== '');
+}
+
+/** Claves repetidas (tras normalizar), en orden de aparición. */
+export function duplicateBoardKeys(rows: BoardRow[]): string[] {
+  const seen = new Set<string>();
+  const dup = new Set<string>();
+  for (const b of rowsToBoards(rows)) {
+    if (seen.has(b.key)) dup.add(b.key);
+    seen.add(b.key);
+  }
+  return [...dup];
+}
+
+/** Tarjeta "Tableros de Jira": lista de tableros (dev/soporte), estado escalado y SLA por prioridad. */
 function BoardsCard({
   form,
   setForm,
+  boardRows,
+  setBoardRows,
   slaRows,
   setSlaRows,
 }: {
   form: SettingsDto;
   setForm: (f: SettingsDto) => void;
+  boardRows: BoardRow[];
+  setBoardRows: (r: BoardRow[]) => void;
   slaRows: SlaRow[];
   setSlaRows: (r: SlaRow[]) => void;
 }) {
   const updateRow = (i: number, patch: Partial<SlaRow>) =>
     setSlaRows(slaRows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const updateBoard = (i: number, patch: Partial<BoardRow>) =>
+    setBoardRows(boardRows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const dups = duplicateBoardKeys(boardRows);
   return (
     <div className="card wide sup-boards">
       <h4>Tableros de Jira</h4>
+      <p className="small muted">
+        Puedes tener varios tableros de desarrollo y de soporte. Las métricas se pueden ver juntas (Todos) o por tablero.
+      </p>
+      <div className="table-scroll">
+        <table className="sup-sla">
+          <thead>
+            <tr>
+              <th>Clave</th>
+              <th>Tipo</th>
+              <th>Nombre (opcional)</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {boardRows.map((b, i) => (
+              <tr key={i}>
+                <td>
+                  <input aria-label={`Clave ${i + 1}`} placeholder="MAIN" value={b.key} onChange={(e) => updateBoard(i, { key: e.target.value })} />
+                </td>
+                <td>
+                  <select
+                    aria-label={`Tipo ${i + 1}`}
+                    value={b.kind}
+                    onChange={(e) => updateBoard(i, { kind: e.target.value as JiraBoardKind })}
+                  >
+                    <option value="dev">Desarrollo</option>
+                    <option value="support">Soporte</option>
+                  </select>
+                </td>
+                <td>
+                  <input aria-label={`Nombre ${i + 1}`} maxLength={40} value={b.name} onChange={(e) => updateBoard(i, { name: e.target.value })} />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn sec"
+                    aria-label={`Quitar tablero ${i + 1}`}
+                    onClick={() => setBoardRows(boardRows.filter((_, j) => j !== i))}
+                  >
+                    Quitar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {dups.length > 0 ? <p className="small warn">Clave repetida: {dups.join(', ')}</p> : null}
+      <button
+        type="button"
+        className="btn sec"
+        disabled={boardRows.length >= 10}
+        onClick={() => setBoardRows([...boardRows, { key: '', kind: 'dev', name: '' }])}
+      >
+        + Añadir tablero
+      </button>
       <p className="small muted">Sin tablero de soporte, la sección Incidencias queda desactivada.</p>
       <div className="sup-boards-fields">
-        <label className="small">
-          Principal
-          <input
-            placeholder="MAIN"
-            value={form.jiraProject ?? ''}
-            onChange={(e) => setForm({ ...form, jiraProject: e.target.value || null })}
-          />
-        </label>
-        <label className="small">
-          Soporte
-          <input
-            placeholder="SUP"
-            value={form.supportProject ?? ''}
-            onChange={(e) => setForm({ ...form, supportProject: e.target.value || null })}
-          />
-        </label>
         <label className="small">
           Estado escalado al equipo
           <input
@@ -211,6 +287,7 @@ function BoardsCard({
 function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s: SettingsDto) => void }) {
   const [form, setForm] = useState(settings);
   const [slaRows, setSlaRows] = useState<SlaRow[]>(() => slaToRows(settings.supportSla));
+  const [boardRows, setBoardRows] = useState<BoardRow[]>(() => boardsToRows(settings.jiraBoards));
   const [statusFlowText, setStatusFlowText] = useState(JSON.stringify(settings.statusFlow, null, 2));
   const [statusAliasesText, setStatusAliasesText] = useState(JSON.stringify(settings.statusAliases, null, 2));
   const [macroMapText, setMacroMapText] = useState(JSON.stringify(settings.macroMap, null, 2));
@@ -230,12 +307,13 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
     if (!macro.ok) return setError(`Mapa de macro-estado: ${macro.error}`);
     const thresholds = validateSettingsJson(thresholdsText, 'record');
     if (!thresholds.ok) return setError(`Umbrales: ${thresholds.error}`);
+    const dups = duplicateBoardKeys(boardRows);
+    if (dups.length > 0) return setError(`Tableros de Jira: hay claves repetidas (${dups.join(', ')}).`);
 
     setSaving(true);
     try {
       const res = await adminApi.putSettings({
-        jiraProject: form.jiraProject,
-        supportProject: form.supportProject,
+        jiraBoards: rowsToBoards(boardRows),
         supportTechStatus: form.supportTechStatus,
         supportSla: rowsToSla(slaRows),
         sinceDate: form.sinceDate,
@@ -256,6 +334,7 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
       });
       onSaved(res.settings);
       setSlaRows(slaToRows(res.settings.supportSla));
+      setBoardRows(boardsToRows(res.settings.jiraBoards));
       setOk(true);
     } catch {
       setError('No se pudo guardar. Revisa los datos.');
@@ -267,7 +346,7 @@ function GeneralTab({ settings, onSaved }: { settings: SettingsDto; onSaved: (s:
   return (
     <Block plain title="General" lead="Parámetros del equipo y umbrales de semáforos.">
       <div className="grid">
-        <BoardsCard form={form} setForm={setForm} slaRows={slaRows} setSlaRows={setSlaRows} />
+        <BoardsCard form={form} setForm={setForm} boardRows={boardRows} setBoardRows={setBoardRows} slaRows={slaRows} setSlaRows={setSlaRows} />
         <div className="card">
           <h4>Ventanas y plazos</h4>
           <label className="small">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { supportSummary, type SupportInput, type SupportTicketInput } from '../../../src/domain/metrics/support.js';
+import { supportByBoard, supportSummary, type SupportInput, type SupportTicketInput } from '../../../src/domain/metrics/support.js';
 
 const BASE = new Date('2026-01-05T00:00:00Z'); // lunes, 2026-W02
 const t = (h: number) => new Date(BASE.getTime() + h * 3_600_000);
@@ -76,7 +76,7 @@ const TICKETS: SupportTicketInput[] = [
 const INPUT: SupportInput = {
   project: 'SUP',
   tickets: TICKETS,
-  mainProject: 'MAIN',
+  devProjects: ['MAIN'],
   techStatus: 'Escalated',
   sla: { High: { firstResponseHours: 4, resolutionHours: 24 }, Low: { resolutionHours: 48 } },
   aliases: { 'Por hacer': 'To Do', Backlog: 'To Do' },
@@ -99,22 +99,28 @@ describe('supportSummary · totals', () => {
   it('escalated, reopened and linked-to-main percentages over the cohort', () => {
     expect(s.totals.escalatedPct).toBeCloseTo(0.4);
     expect(s.totals.reopenedPct).toBeCloseTo(0.2);
-    expect(s.totals.linkedToMainPct).toBeCloseTo(0.4);
+    expect(s.totals.linkedToDevPct).toBeCloseTo(0.4);
   });
 
-  it('null escalated/linked when tech status or main project are not configured', () => {
-    const r = supportSummary({ ...INPUT, techStatus: null, mainProject: null }, window);
+  it('null escalated/linked when tech status or dev boards are not configured', () => {
+    const r = supportSummary({ ...INPUT, techStatus: null, devProjects: [] }, window);
     expect(r.totals.escalatedPct).toBeNull();
-    expect(r.totals.linkedToMainPct).toBeNull();
+    expect(r.totals.linkedToDevPct).toBeNull();
     expect(r.times.techTimeH).toEqual({ p50: null, p85: null });
     expect(r.open.every((o) => !o.escalated)).toBe(true);
   });
 
-  it('configured false without project', () => {
-    const r = supportSummary({ ...INPUT, project: null, tickets: [] }, window);
-    expect(r.configured).toBe(false);
-    expect(r.totals.received).toBe(0);
-    expect(r.totals.escalatedPct).toBeNull();
+  it('linked-to-dev counts links to any dev board', () => {
+    // SUP-1 -> MAIN-1, SUP-4 -> MAIN-2 / OTHER-3: con OTHER también como dev no cambia; solo OTHER -> 1/5.
+    expect(supportSummary({ ...INPUT, devProjects: ['MAIN', 'OTHER'] }, window).totals.linkedToDevPct).toBeCloseTo(0.4);
+    expect(supportSummary({ ...INPUT, devProjects: ['OTHER'] }, window).totals.linkedToDevPct).toBeCloseTo(0.2);
+  });
+
+  it('project null (Todos) keeps configured true', () => {
+    const r = supportSummary({ ...INPUT, project: null }, window);
+    expect(r.configured).toBe(true);
+    expect(r.project).toBeNull();
+    expect(r.totals.received).toBe(5);
   });
 });
 
@@ -227,5 +233,19 @@ describe('supportSummary · aging', () => {
     for (const k of ['firstAction', 'resolution', 'escalated', 'reopened', 'slaMet', 'hours']) {
       expect(typeof s.definitions[k]).toBe('string');
     }
+  });
+});
+
+describe('supportByBoard', () => {
+  it('one row per support board with its own totals over the window', () => {
+    const help = [
+      ticket({ key: 'HELP-1', createdAt: t(1), resolvedAt: t(5), status: 'Done' }),
+      ticket({ key: 'HELP-2', createdAt: t(2) }),
+    ];
+    const rows = supportByBoard({ ...INPUT, tickets: [...TICKETS, ...help] }, ['SUP', 'HELP', 'NONE'], window);
+    expect(rows.map((r) => r.board)).toEqual(['SUP', 'HELP', 'NONE']);
+    expect(rows[0]).toMatchObject({ received: 5, resolved: 3, openNow: 3, escalatedPct: 0.4 });
+    expect(rows[1]).toMatchObject({ board: 'HELP', received: 2, resolved: 1, openNow: 1, resolutionP50H: 4, escalatedPct: 0 });
+    expect(rows[2]).toMatchObject({ board: 'NONE', received: 0, resolved: 0, openNow: 0, resolutionP50H: null, escalatedPct: null });
   });
 });

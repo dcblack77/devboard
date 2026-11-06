@@ -7,7 +7,7 @@
  * no acceden a la base de datos.
  */
 import type { pullRequests, prReviews, prReviewRequests } from '../../db/schema.js';
-import type { SettingsDto } from '@devboard/shared';
+import { boardOf, devBoards, type SettingsDto } from '@devboard/shared';
 
 export type PullRequestRow = typeof pullRequests.$inferSelect;
 export type PrReviewRow = typeof prReviews.$inferSelect;
@@ -119,7 +119,7 @@ export interface ReviewStats {
 export type SemaphoreColor = 'g' | 'a' | 'r' | '';
 
 /** Ajustes mínimos que necesita esta pieza de dominio (subconjunto de `SettingsDto`). */
-export type GithubMetricsSettings = Pick<SettingsDto, 'jiraProject' | 'waitReviewHours'>;
+export type GithubMetricsSettings = Pick<SettingsDto, 'jiraBoards' | 'waitReviewHours'>;
 
 const WAIT_REVIEW_HOURS_DEFAULT = 48;
 const STALE_HOURS = 24 * 7;
@@ -155,9 +155,10 @@ function isBotLogin(login: string, botPatterns: string[]): boolean {
   return botPatterns.some((b) => lower.includes(b));
 }
 
-function buildIssueKeyRegex(jiraProject: string | null): RegExp | null {
-  if (!jiraProject) return null;
-  return new RegExp(`\\b${jiraProject}-\\d+\\b`, 'gi');
+/** Regex de claves de issue de cualquier tablero de desarrollo (null si no hay ninguno). */
+function buildIssueKeyRegex(devKeys: string[]): RegExp | null {
+  if (devKeys.length === 0) return null;
+  return new RegExp(`\\b(?:${devKeys.join('|')})-\\d+\\b`, 'gi');
 }
 
 function extractIssueKeys(text: string, regex: RegExp | null): string[] {
@@ -194,7 +195,8 @@ export function analyzePullRequests(
     requestsByPr.set(rr.prId, list);
   }
 
-  const issueKeyRegex = buildIssueKeyRegex(settings.jiraProject);
+  const devKeys = devBoards(settings).map((b) => b.key.toUpperCase());
+  const issueKeyRegex = buildIssueKeyRegex(devKeys);
   const botPatterns = DEFAULT_BOT_PATTERNS;
 
   const out: AnalyzedPr[] = [];
@@ -237,9 +239,7 @@ export function analyzePullRequests(
 
     const combinedText = `${pr.title} ${pr.headRef ?? ''}`;
     const issueKeysAll = extractIssueKeys(combinedText, issueKeyRegex);
-    const issueKeys = settings.jiraProject
-      ? issueKeysAll.filter((k) => k.startsWith(`${settings.jiraProject!.toUpperCase()}-`))
-      : issueKeysAll;
+    const issueKeys = devKeys.length > 0 ? issueKeysAll.filter((k) => devKeys.includes(boardOf(k))) : issueKeysAll;
     const hotfix = DEFAULT_HOTFIX_REGEX.test(combinedText);
 
     out.push({

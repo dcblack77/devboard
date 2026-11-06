@@ -10,6 +10,7 @@ import {
   type PullRequestRow,
   type PrReviewRow,
   type PrReviewRequestRow,
+  type GithubMetricsSettings,
 } from '../../../src/domain/metrics/github.js';
 import { DEFAULT_THRESHOLDS } from '@devboard/shared';
 import fixture from '../../fixtures/github-prs.json' with { type: 'json' };
@@ -36,7 +37,7 @@ const reviewRequests: PrReviewRequestRow[] = (fixture.reviewRequests as any[]).m
   at: new Date(rr.at),
 }));
 
-const settings = fixture.settings;
+const settings = fixture.settings as GithubMetricsSettings;
 const now = new Date(fixture.now);
 const weeks = fixture.weeks;
 const canon = (login: string): string => login; // sin canonicalización en el fixture
@@ -224,5 +225,21 @@ describe('reviewSemaphores', () => {
   it('sin PRs estancadas → verde', () => {
     const sem = reviewSemaphores(st.people.ana!, DEFAULT_THRESHOLDS);
     expect(sem.stalePrs).toBe('g');
+  });
+});
+
+describe('analyzePullRequests · varios tableros de desarrollo', () => {
+  it('extrae claves de cualquier tablero dev y descarta las de soporte u otros', () => {
+    const pr: PullRequestRow = { ...prs[0]!, id: 'demo-repo#999', number: 999, title: 'MAIN-1 OPS-2 SUP-3 ZZZ-4 arreglos', headRef: 'feat/ops-9' };
+    const multi: GithubMetricsSettings = {
+      jiraBoards: [
+        { key: 'MAIN', kind: 'dev' },
+        { key: 'OPS', kind: 'dev' },
+        { key: 'SUP', kind: 'support' },
+      ],
+      waitReviewHours: 48,
+    };
+    const [a] = analyzePullRequests([pr], [], [], multi, now, canon);
+    expect(a!.issueKeys).toEqual(['MAIN-1', 'OPS-2', 'OPS-9']);
   });
 });

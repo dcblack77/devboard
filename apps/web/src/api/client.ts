@@ -78,7 +78,8 @@ export const api = {
   home: () => request<HomeResponse>('/home'),
   system: (params: { months: number; repo: string }) =>
     request<SystemResponse>(`/system?months=${params.months}&repo=${encodeURIComponent(params.repo)}`),
-  support: (params: { months: number }) => request<SupportResponse>(`/support?months=${params.months}`),
+  support: (params: { months: number; board: string }) =>
+    request<SupportResponse>(`/support?months=${params.months}&board=${encodeURIComponent(params.board)}`),
   jira: () => request<JiraResponse>('/jira'),
   github: () => request<GithubResponse>('/github'),
   people: () => request<PeopleResponse>('/people'),

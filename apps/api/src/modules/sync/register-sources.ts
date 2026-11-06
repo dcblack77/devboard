@@ -22,6 +22,8 @@ import { DrizzleGithubRepo } from '../../integrations/github/repo.drizzle.js';
 import { JiraClient } from '../../integrations/jira/client.js';
 import { SupportSync } from '../../integrations/support/sync.js';
 import { DrizzleSupportRepo } from '../../integrations/support/repo.drizzle.js';
+import { devProjectKeys, supportProjectKeys } from '../../integrations/jira/boards.js';
+import type { JiraBoard } from '@devboard/shared';
 
 const DEFAULT_FINAL_STATUS = 'Finalizada';
 
@@ -41,8 +43,8 @@ async function recordMissingCredentials(source: string): Promise<void> {
 
 async function buildJiraSync(): Promise<SourceSync | null> {
   const env = loadEnv();
-  // El tablero principal ya no es obligatorio al arrancar: se resuelve en cada run desde
-  // `settings.jiraProject` (Ajustes → Tableros de Jira) con fallback a JIRA_PROJECT.
+  // Los tableros de desarrollo no son obligatorios al arrancar: se resuelven en cada run desde
+  // `settings.jiraBoards` (Ajustes → Tableros de Jira) con fallback a JIRA_PROJECT.
   if (!env.JIRA_BASE_URL || !env.JIRA_API_TOKEN) {
     logger.warn('Jira: faltan credenciales (JIRA_BASE_URL/JIRA_API_TOKEN), se omite');
     await recordMissingCredentials('jira');
@@ -68,7 +70,7 @@ async function buildJiraSync(): Promise<SourceSync | null> {
     loadSettings: async () => {
       const [row] = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
       return {
-        project: row?.jiraProject || env.JIRA_PROJECT || null,
+        projects: devProjectKeys(row?.jiraBoards as JiraBoard[] | undefined, env.JIRA_PROJECT),
         sinceDate: row?.sinceDate ?? env.SINCE_DATE ?? '2024-01-01',
         statusAliases: (row?.statusAliases as StatusAliasMap) ?? {},
         macroMap: (row?.macroMap as Record<string, string>) ?? {},
@@ -93,9 +95,9 @@ async function lastOkFinishedAt(source: string): Promise<Date | null> {
 }
 
 /**
- * Backup del tablero de soporte. Usa las mismas credenciales que Jira; sin ellas no se
- * registra (Jira ya deja la fila 'sin credenciales'). El tablero se lee en cada run de
- * `settings.supportProject`; si está vacío el run devuelve `skipped`.
+ * Backup de los tableros de soporte. Usa las mismas credenciales que Jira; sin ellas no se
+ * registra (Jira ya deja la fila 'sin credenciales'). Los tableros se leen en cada run de
+ * `settings.jiraBoards` (kind support); sin ninguno el run devuelve `skipped`.
  */
 async function buildSupportSync(): Promise<SourceSync | null> {
   const env = loadEnv();
@@ -113,7 +115,7 @@ async function buildSupportSync(): Promise<SourceSync | null> {
     repo: new DrizzleSupportRepo(db),
     loadSettings: async () => {
       const [row] = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
-      return { project: row?.supportProject || null };
+      return { projects: supportProjectKeys(row?.jiraBoards as JiraBoard[] | undefined) };
     },
     lastOkFinishedAt: () => lastOkFinishedAt('support'),
   });
@@ -136,7 +138,10 @@ async function buildGithubSync(): Promise<SourceSync | null> {
   const sinceRaw = env.SINCE_DATE ?? '2024-01-01';
   const since = new Date(sinceRaw);
 
-  const issueKeyRegex = env.JIRA_PROJECT ? new RegExp(`\\b${env.JIRA_PROJECT}-\\d+\\b`, 'gi') : undefined;
+  // Claves de issue en título/rama: cualquier tablero de desarrollo (fallback JIRA_PROJECT).
+  const [row] = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+  const devKeys = devProjectKeys(row?.jiraBoards as JiraBoard[] | undefined, env.JIRA_PROJECT);
+  const issueKeyRegex = devKeys.length > 0 ? new RegExp(`\\b(?:${devKeys.join('|')})-\\d+\\b`, 'gi') : undefined;
 
   return new GithubSync({
     settings: { org: env.GITHUB_ORG, repos, since, issueKeyRegex },

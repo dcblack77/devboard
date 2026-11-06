@@ -14,7 +14,11 @@ const BASE = {
   window: { from: '2025-11-06T00:00:00.000Z', to: '2026-11-06T00:00:00.000Z' },
   configured: true,
   project: 'SUP',
-  totals: { received: 40, resolved: 35, openNow: 6, escalatedPct: 0.25, reopenedPct: 0.05, linkedToMainPct: 0.1 },
+  boards: ['SUP'],
+  boardNames: { SUP: null },
+  selectedBoard: 'ALL',
+  byBoard: [{ board: 'SUP', received: 40, resolved: 35, openNow: 6, resolutionP50H: 48, escalatedPct: 0.25 }],
+  totals: { received: 40, resolved: 35, openNow: 6, escalatedPct: 0.25, reopenedPct: 0.05, linkedToDevPct: 0.1 },
   times: {
     firstActionH: { p50: 3, p85: 10 },
     resolutionH: { p50: 48, p85: 120 },
@@ -73,9 +77,9 @@ function stub(body: unknown) {
   return fn;
 }
 
-function renderPage(role: 'tl' | 'viewer' | null = 'tl') {
+function renderPage(role: 'tl' | 'viewer' | null = 'tl', url = '/incidencias') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[url]}>
       <Support role={role} />
     </MemoryRouter>,
   );
@@ -108,9 +112,9 @@ describe('Support', () => {
     const fn = stub(BASE);
     renderPage();
     await screen.findByLabelText('Resumen');
-    expect(String((fn.mock.calls[0] as unknown[])[0])).toContain('/api/support?months=12');
+    expect(String((fn.mock.calls[0] as unknown[])[0])).toContain('/api/support?months=12&board=ALL');
     fireEvent.change(screen.getByLabelText('Meses'), { target: { value: '3' } });
-    await waitFor(() => expect(fn.mock.calls.some((c) => String((c as unknown[])[0]).includes('/api/support?months=3'))).toBe(true));
+    await waitFor(() => expect(fn.mock.calls.some((c) => String((c as unknown[])[0]).includes('/api/support?months=3&board=ALL'))).toBe(true));
   });
 
   it('renders summary KPIs and the sections', async () => {
@@ -151,5 +155,51 @@ describe('Support', () => {
     expect(container.querySelector('.kpi.rag-red')?.textContent).toContain('70%');
     expect(screen.getByRole('heading', { name: 'Fuera de SLA (abiertas)' })).toBeTruthy();
     expect(screen.getAllByText('SUP-1').length).toBeGreaterThan(1);
+  });
+
+  describe('board selector', () => {
+    const MULTI = {
+      ...BASE,
+      project: null,
+      boards: ['SUP', 'HELP'],
+      boardNames: { SUP: 'Soporte clientes', HELP: null },
+      byBoard: [
+        { board: 'SUP', received: 30, resolved: 28, openNow: 4, resolutionP50H: 48, escalatedPct: 0.3 },
+        { board: 'HELP', received: 10, resolved: 7, openNow: 2, resolutionP50H: 12, escalatedPct: null },
+      ],
+    };
+
+    it('is hidden with a single support board and there is no per-board table', async () => {
+      stub(BASE);
+      renderPage();
+      await screen.findByLabelText('Resumen');
+      expect(screen.queryByLabelText('Tablero')).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Por tablero' })).toBeNull();
+    });
+
+    it('is shown with two boards (Todos + names) and renders the per-board table', async () => {
+      stub(MULTI);
+      renderPage();
+      await screen.findByLabelText('Resumen');
+      const select = screen.getByLabelText('Tablero') as HTMLSelectElement;
+      expect([...select.options].map((o) => [o.value, o.textContent])).toEqual([
+        ['ALL', 'Todos'],
+        ['SUP', 'Soporte clientes'],
+        ['HELP', 'HELP'],
+      ]);
+      const table = screen.getByRole('heading', { name: 'Por tablero' }).closest('section') as HTMLElement;
+      expect(within(table).getByText('HELP')).toBeTruthy();
+      expect(within(table).getByText('30')).toBeTruthy();
+    });
+
+    it('fetches with the board from the URL and refetches when the board changes', async () => {
+      const fn = stub(MULTI);
+      renderPage('tl', '/incidencias?board=HELP');
+      await screen.findByLabelText('Resumen');
+      expect(String((fn.mock.calls[0] as unknown[])[0])).toContain('/api/support?months=12&board=HELP');
+      expect((screen.getByLabelText('Tablero') as HTMLSelectElement).value).toBe('HELP');
+      fireEvent.change(screen.getByLabelText('Tablero'), { target: { value: 'SUP' } });
+      await waitFor(() => expect(fn.mock.calls.some((c) => String((c as unknown[])[0]).includes('board=SUP'))).toBe(true));
+    });
   });
 });

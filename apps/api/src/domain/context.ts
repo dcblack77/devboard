@@ -76,7 +76,7 @@ export interface MetricsContext {
 function toSettingsDto(row: typeof settingsTable.$inferSelect): SettingsDto {
   return {
     id: row.id,
-    jiraProject: row.jiraProject,
+    jiraBoards: (row.jiraBoards as SettingsDto['jiraBoards']) ?? [],
     sinceDate: row.sinceDate,
     syncMinutes: row.syncMinutes,
     attentionDays: row.attentionDays,
@@ -92,7 +92,6 @@ function toSettingsDto(row: typeof settingsTable.$inferSelect): SettingsDto {
     deployBranches: row.deployBranches,
     ciWorkflowRegex: row.ciWorkflowRegex,
     featureBase: row.featureBase,
-    supportProject: row.supportProject,
     supportTechStatus: row.supportTechStatus,
     supportSla: row.supportSla as SettingsDto['supportSla'],
   };
@@ -201,7 +200,7 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
     reviewDays: settingsDto.reviewDays,
   };
   const githubSettings: GithubMetricsSettings = {
-    jiraProject: settingsDto.jiraProject,
+    jiraBoards: settingsDto.jiraBoards,
     waitReviewHours: settingsDto.waitReviewHours,
   };
 

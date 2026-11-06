@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { DEFAULT_THRESHOLDS, MacroStatus } from '@devboard/shared';
+import { DEFAULT_THRESHOLDS, MacroStatus, legacyBoards } from '@devboard/shared';
 import { getDb } from './client.js';
 import { settings } from './schema.js';
 import { loadEnv } from '../config/env.js';
@@ -56,7 +56,7 @@ export async function seedSettings(): Promise<void> {
 
   await db.insert(settings).values({
     id: 1,
-    jiraProject: env.JIRA_PROJECT ?? null,
+    jiraBoards: legacyBoards(env.JIRA_PROJECT, null),
     sinceDate: env.SINCE_DATE ?? null,
     syncMinutes: env.SYNC_MINUTES,
     attentionDays: 5,

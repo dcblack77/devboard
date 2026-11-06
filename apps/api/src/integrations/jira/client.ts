@@ -38,6 +38,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Cláusula JQL `project in (A, B)`. Las claves vienen validadas de Ajustes
+ * (`^[A-Z][A-Z0-9_]{1,19}$`), así que no hace falta entrecomillarlas.
+ */
+export function projectScope(projects: string[]): string {
+  return `project in (${projects.join(', ')})`;
+}
+
 export class JiraClient {
   private readonly baseUrl: string;
   private readonly authHeader: string;
@@ -168,14 +176,15 @@ export class JiraClient {
     return out;
   }
 
-  /** Épicas del proyecto + hijos (sin ventana temporal), agrupados por épica. */
-  async epicsWithChildren(project: string): Promise<EpicWithChildren[]> {
+  /** Épicas de los tableros de desarrollo + hijos (sin ventana temporal), agrupados por épica. */
+  async epicsWithChildren(projects: string[]): Promise<EpicWithChildren[]> {
+    const scope = projectScope(projects);
     const epics = await this.searchAll(
-      `project = ${project} AND issuetype = Epic ORDER BY created ASC`,
+      `${scope} AND issuetype = Epic ORDER BY created ASC`,
       ['summary', 'status', 'assignee', 'created'],
     );
     const children = await this.searchAll(
-      `project = ${project} AND issuetype != Epic AND parent is not EMPTY ORDER BY created ASC`,
+      `${scope} AND issuetype != Epic AND parent is not EMPTY ORDER BY created ASC`,
       ['summary', 'status', 'assignee', 'issuetype', 'parent', 'resolutiondate'],
     );
 
@@ -207,9 +216,9 @@ export class JiraClient {
   }
 
   /** Ventana temporal: issues actualizados desde sinceDate, con changelog completo. */
-  async fetchWindow(project: string, sinceDate: string): Promise<JiraRawIssue[]> {
+  async fetchWindow(projects: string[], sinceDate: string): Promise<JiraRawIssue[]> {
     return this.searchAll(
-      `project = ${project} AND updated >= "${sinceDate}" ORDER BY created ASC`,
+      `${projectScope(projects)} AND updated >= "${sinceDate}" ORDER BY created ASC`,
       ['summary', 'status', 'assignee', 'issuetype', 'created', 'resolutiondate', 'parent', 'priority'],
       { expand: 'changelog' },
     );

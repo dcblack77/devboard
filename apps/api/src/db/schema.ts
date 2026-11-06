@@ -6,7 +6,8 @@ import { bigint, boolean, index, integer, jsonb, pgTable, primaryKey, serial, sm
  */
 export const settings = pgTable('settings', {
   id: integer('id').primaryKey().default(1),
-  jiraProject: text('jira_project'),
+  /** Tableros de Jira `[{ key, kind: 'dev'|'support', name? }]` (ver `@devboard/shared` boards.ts). */
+  jiraBoards: jsonb('jira_boards').notNull().default([]),
   sinceDate: text('since_date'),
   syncMinutes: integer('sync_minutes').notNull().default(30),
   attentionDays: integer('attention_days').notNull().default(5),
@@ -26,9 +27,7 @@ export const settings = pgTable('settings', {
   ciWorkflowRegex: text('ci_workflow_regex').notNull().default('^CI'),
   /** Rama base cuyos PRs cuentan como "feature PR". */
   featureBase: text('feature_base').notNull().default('develop'),
-  /** Clave Jira del tablero de soporte (null = sin soporte configurado). */
-  supportProject: text('support_project'),
-  /** Estado del tablero de soporte que significa "escalado al equipo técnico". */
+  /** Estado de soporte que significa "escalado al equipo técnico" (todos los tableros de soporte). */
   supportTechStatus: text('support_tech_status'),
   /** SLA de soporte por prioridad: `{ [prioridad]: { firstResponseHours?, resolutionHours? } }`. */
   supportSla: jsonb('support_sla').notNull().default({}),

@@ -25,7 +25,8 @@ function isUniqueViolation(err: unknown): boolean {
 export type { SourceSync };
 
 export interface JiraSyncSettings {
-  project: string;
+  /** Claves de los tableros de desarrollo (JQL `project in (...)`). */
+  projects: string[];
   /** Fecha ISO (YYYY-MM-DD) o expresión relativa tipo "-30d" para la ventana. */
   sinceDate: string;
   statusAliases: StatusAliasMap;
@@ -33,11 +34,11 @@ export interface JiraSyncSettings {
   finalStatus: string;
 }
 
-/** Ajustes resueltos en cada run; `project` puede faltar si no hay tablero principal configurado. */
-export type JiraSyncRuntimeSettings = Omit<JiraSyncSettings, 'project'> & { project: string | null | undefined };
+/** Ajustes resueltos en cada run; `projects` puede venir vacío si no hay tableros de desarrollo. */
+export type JiraSyncRuntimeSettings = JiraSyncSettings;
 
-/** Mensaje de error cuando no hay tablero principal ni en settings ni en env. */
-export const MISSING_MAIN_BOARD_ERROR = 'Jira: falta el tablero principal (Ajustes → Tableros de Jira)';
+/** Mensaje de error cuando no hay tablero de desarrollo ni en settings ni en env. */
+export const MISSING_DEV_BOARD_ERROR = 'Jira: falta un tablero de desarrollo (Ajustes → Tableros de Jira)';
 
 export interface JiraSyncDeps {
   config: JiraConfig;
@@ -79,14 +80,14 @@ export class JiraSync implements SourceSync {
     // (acceso anónimo), lo que dejaría un run ok=true vacío. /myself sí falla (401).
     await this.client.whoAmI();
 
-    // El tablero se lee en cada run: cambiarlo en Ajustes no requiere reiniciar.
-    const { project: rawProject, sinceDate, statusAliases, macroMap, finalStatus } = await this.loadSettings();
-    const project = rawProject?.trim();
-    if (!project) throw new Error(MISSING_MAIN_BOARD_ERROR);
+    // Los tableros se leen en cada run: cambiarlos en Ajustes no requiere reiniciar.
+    const { projects: rawProjects, sinceDate, statusAliases, macroMap, finalStatus } = await this.loadSettings();
+    const projects = [...new Set((rawProjects ?? []).map((p) => p.trim()).filter(Boolean))];
+    if (projects.length === 0) throw new Error(MISSING_DEV_BOARD_ERROR);
 
     const [windowIssues, epicIndex] = await Promise.all([
-      this.client.fetchWindow(project, sinceDate),
-      this.client.epicsWithChildren(project),
+      this.client.fetchWindow(projects, sinceDate),
+      this.client.epicsWithChildren(projects),
     ]);
 
     // épicas a las que pertenece cada issue (para epicKey en `issues`)

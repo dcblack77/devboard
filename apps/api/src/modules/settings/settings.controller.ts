@@ -12,6 +12,8 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   Role,
+  JIRA_BOARD_KEY_RE,
+  MAX_JIRA_BOARDS,
   type CreateInitiativeRequest,
   type CreatePersonRequest,
   type DiscoverResponse,
@@ -57,15 +59,33 @@ const regexString = z.string().min(1).refine(
   { message: 'Regex inválida' },
 );
 
-/** Clave de proyecto Jira: se recorta y pasa a mayúsculas; `''` -> null. */
-const JIRA_KEY_RE = /^[A-Z][A-Z0-9_]{1,19}$/;
-const jiraProjectKey = z
-  .string()
-  .transform((v) => v.trim().toUpperCase())
-  .transform((v) => (v === '' ? null : v))
-  .refine((v) => v === null || JIRA_KEY_RE.test(v), { message: 'Clave de proyecto Jira inválida' })
-  .nullable()
-  .optional();
+/** Tablero de Jira: clave recortada en mayúsculas, tipo dev/support y nombre opcional (`''` -> null). */
+const jiraBoardSchema = z.object({
+  key: z
+    .string()
+    .transform((v) => v.trim().toUpperCase())
+    .refine((v) => JIRA_BOARD_KEY_RE.test(v), { message: 'Clave de proyecto Jira inválida' }),
+  kind: z.enum(['dev', 'support']),
+  name: z
+    .string()
+    .transform((v) => v.trim())
+    .refine((v) => v.length <= 40, { message: 'Nombre demasiado largo (máx. 40)' })
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+});
+
+const jiraBoardsSchema = z
+  .array(jiraBoardSchema)
+  .max(MAX_JIRA_BOARDS, { message: `Máximo ${MAX_JIRA_BOARDS} tableros` })
+  .superRefine((boards, ctx) => {
+    const seen = new Set<string>();
+    boards.forEach((b, i) => {
+      if (seen.has(b.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [i, 'key'], message: `Clave repetida: ${b.key}` });
+      seen.add(b.key);
+    });
+  });
 
 /** Texto libre opcional: `''` (tras recortar) -> null. */
 const nullableText = z
@@ -85,7 +105,7 @@ const supportSlaSchema = z.record(
 
 /** Validación de `PUT /api/settings`: todos los campos opcionales (actualización parcial). */
 const updateSettingsSchema = z.object({
-  jiraProject: jiraProjectKey,
+  jiraBoards: jiraBoardsSchema.optional(),
   sinceDate: z.string().nullable().optional(),
   syncMinutes: z.number().int().positive().optional(),
   attentionDays: z.number().int().positive().optional(),
@@ -101,7 +121,6 @@ const updateSettingsSchema = z.object({
   deployBranches: regexString.optional(),
   ciWorkflowRegex: regexString.optional(),
   featureBase: z.string().min(1).optional(),
-  supportProject: jiraProjectKey,
   supportTechStatus: nullableText,
   supportSla: supportSlaSchema.optional(),
 }) satisfies z.ZodType<UpdateSettingsRequest>;

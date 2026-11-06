@@ -1,3 +1,4 @@
+import type { JiraBoard } from './boards.js';
 import type { MacroStatus, Role, SnapshotKind, SyncSource } from './enums.js';
 
 /** Respuesta de `GET /api/health`. */
@@ -143,7 +144,8 @@ export type SupportSla = Record<string, SupportSlaTarget>;
 /** Fila singleton `settings`. */
 export interface SettingsDto {
   id: number;
-  jiraProject: string | null;
+  /** Tableros de Jira (desarrollo y soporte). Ver `boards.ts`. */
+  jiraBoards: JiraBoard[];
   sinceDate: string | null;
   syncMinutes: number;
   attentionDays: number;
@@ -163,9 +165,7 @@ export interface SettingsDto {
   ciWorkflowRegex: string;
   /** Rama base cuyos PRs cuentan como "feature PR". */
   featureBase: string;
-  /** Clave Jira del tablero de soporte (null = sin soporte). */
-  supportProject: string | null;
-  /** Estado de soporte que significa "escalado al equipo técnico". */
+  /** Estado de soporte que significa "escalado al equipo técnico" (todos los tableros de soporte). */
   supportTechStatus: string | null;
   /** SLA de soporte por prioridad. */
   supportSla: SupportSla;
@@ -359,17 +359,35 @@ export interface SupportOpenTicketDto {
   escalated: boolean;
 }
 
+/** Fila de "Por tablero" en Incidencias (siempre sobre todos los tableros de soporte). */
+export interface SupportBoardRowDto {
+  board: string;
+  received: number;
+  resolved: number;
+  openNow: number;
+  resolutionP50H: number | null;
+  escalatedPct: number | null;
+}
+
 export interface SupportSummaryDto {
   window: { from: string; to: string };
   configured: boolean;
+  /** Tablero mostrado; null cuando se agregan varios (`Todos`). */
   project: string | null;
+  /** Claves de los tableros de soporte configurados. */
+  boards: string[];
+  /** Nombre visible por clave (null si no tiene). */
+  boardNames: Record<string, string | null>;
+  /** `ALL` o la clave seleccionada. */
+  selectedBoard: string;
+  byBoard: SupportBoardRowDto[];
   totals: {
     received: number;
     resolved: number;
     openNow: number;
     escalatedPct: number | null;
     reopenedPct: number | null;
-    linkedToMainPct: number | null;
+    linkedToDevPct: number | null;
   };
   times: {
     firstActionH: SupportPercentilesDto;

@@ -4,7 +4,7 @@
  * configurados. Sin acceso a BD: recibe los tickets ya cargados. Todas las duraciones en
  * horas naturales (calendario).
  */
-import type { SupportResponse, SupportSla, SupportSummaryDto } from '@devboard/shared';
+import { boardOf, type SupportBoardRowDto, type SupportResponse, type SupportSla, type SupportSummaryDto } from '@devboard/shared';
 import { quantile, type Window } from './system.js';
 import { hours, weekKey } from './time.js';
 
@@ -28,11 +28,11 @@ export interface SupportTicketInput {
 }
 
 export interface SupportInput {
-  /** Clave del tablero de soporte (null = no configurado). */
+  /** Tablero mostrado (null = varios agregados, `Todos`). */
   project: string | null;
   tickets: SupportTicketInput[];
-  /** Clave del tablero principal (para "enlazado a desarrollo"). */
-  mainProject: string | null;
+  /** Claves de los tableros de desarrollo (para "enlazado a desarrollo"). */
+  devProjects: string[];
   /** Estado normalizado que significa "escalado al equipo técnico". */
   techStatus: string | null;
   sla: SupportSla;
@@ -57,7 +57,8 @@ export const SUPPORT_DEFINITIONS: Record<string, string> = {
   techTime:
     'Tiempo en técnico: suma de todas las estancias de un ticket en el estado de escalado; si sigue ahí, cuenta hasta ahora.',
   reopened: 'Reabierto: ticket de la cohorte con algún cambio que sale del estado final del flujo.',
-  linkedToMain: 'Enlazado a desarrollo: ticket de la cohorte con algún enlace a un issue del tablero principal.',
+  linkedToDev: 'Enlazado a desarrollo: ticket de la cohorte con algún enlace a un issue de cualquier tablero de desarrollo.',
+  byBoard: 'Por tablero: recibidas, resueltas, abiertas, resolución p50 y % escaladas de cada tablero de soporte en el periodo.',
   slaMet:
     'SLA cumplido: la duración medida es menor o igual que el objetivo de su prioridad. Los tickets sin esa duración (sin acción o sin resolver) no cuentan en el denominador.',
   breachedOpen: 'SLA incumplido abierto: ticket sin resolver cuya antigüedad supera el objetivo de resolución de su prioridad.',
@@ -72,7 +73,7 @@ interface Analyzed {
   everTech: boolean;
   techH: number | null;
   reopened: boolean;
-  linkedToMain: boolean;
+  linkedToDev: boolean;
   open: boolean;
   ageH: number;
 }
@@ -131,7 +132,7 @@ function analyze(t: SupportTicketInput, input: SupportInput): Analyzed {
     everTech,
     techH,
     reopened: changes.some((c) => c.from === input.finalStatus),
-    linkedToMain: input.mainProject !== null && t.linkedKeys.some((k) => k.startsWith(`${input.mainProject}-`)),
+    linkedToDev: t.linkedKeys.some((k) => input.devProjects.includes(boardOf(k))),
     open: t.resolvedAt === null,
     ageH: hours(t.createdAt, input.now),
   };
@@ -154,8 +155,11 @@ function metRatio(values: (number | null)[], target: number | undefined): { met:
   return { met: measured.filter((v) => v <= target).length, total: measured.length };
 }
 
+/** Parte del resumen que no depende del selector de tablero (lo rellena el controlador). */
+type BoardFields = 'boards' | 'boardNames' | 'selectedBoard' | 'byBoard';
+
 /** Resumen de soporte para la ventana `[from, to]` (cohorte = tickets creados en la ventana). */
-export function supportSummary(input: SupportInput, window: Window): SupportSummaryDto {
+export function supportSummary(input: SupportInput, window: Window): Omit<SupportSummaryDto, BoardFields> {
   const all = input.tickets.map((t) => analyze(t, input));
   const cohort = all.filter((a) => inWindow(a.t.createdAt, window));
   const openAll = all.filter((a) => a.open).sort((a, b) => b.ageH - a.ageH);
@@ -258,7 +262,7 @@ export function supportSummary(input: SupportInput, window: Window): SupportSumm
 
   return {
     window: { from: window.from.toISOString(), to: window.to.toISOString() },
-    configured: input.project !== null,
+    configured: true,
     project: input.project,
     totals: {
       received: cohort.length,
@@ -266,8 +270,8 @@ export function supportSummary(input: SupportInput, window: Window): SupportSumm
       openNow: openAll.length,
       escalatedPct: tech === null ? null : pct(cohort.filter((a) => a.everTech).length, cohort.length),
       reopenedPct: pct(cohort.filter((a) => a.reopened).length, cohort.length),
-      linkedToMainPct:
-        input.mainProject === null ? null : pct(cohort.filter((a) => a.linkedToMain).length, cohort.length),
+      linkedToDevPct:
+        input.devProjects.length === 0 ? null : pct(cohort.filter((a) => a.linkedToDev).length, cohort.length),
     },
     times: {
       firstActionH: p5085(num(cohort.map((a) => a.firstActionH))),
@@ -295,6 +299,29 @@ export function supportSummary(input: SupportInput, window: Window): SupportSumm
     })),
     definitions: SUPPORT_DEFINITIONS,
   };
+}
+
+/**
+ * Fila "Por tablero" de cada tablero de soporte en la ventana (en el orden de `boards`):
+ * recibidas, resueltas, abiertas ahora, resolución p50 y % escaladas de la cohorte.
+ */
+export function supportByBoard(input: SupportInput, boards: string[], window: Window): SupportBoardRowDto[] {
+  const all = input.tickets.map((t) => analyze(t, input));
+  return boards.map((board) => {
+    const mine = all.filter((a) => boardOf(a.t.key) === board);
+    const cohort = mine.filter((a) => inWindow(a.t.createdAt, window));
+    return {
+      board,
+      received: cohort.length,
+      resolved: mine.filter((a) => inWindow(a.t.resolvedAt, window)).length,
+      openNow: mine.filter((a) => a.open).length,
+      resolutionP50H: quantile(
+        cohort.flatMap((a) => (a.resolutionH === null ? [] : [a.resolutionH])),
+        0.5,
+      ),
+      escalatedPct: input.techStatus === null ? null : pct(cohort.filter((a) => a.everTech).length, cohort.length),
+    };
+  });
 }
 
 /** Respuesta para un tablero de soporte sin configurar. */
