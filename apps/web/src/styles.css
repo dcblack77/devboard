@@ -515,3 +515,15 @@ table.ft-modern thead th { background: var(--card); border-bottom: 1px solid var
 /* Resumen de Incidencias en Inicio/Corporativo (SupportSummaryCards). */
 .ssc-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; margin: 6px 0 0; }
 .ssc-link { white-space: nowrap; }
+
+/* Personas / Team / detalle de persona (g3). */
+.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+.people-grid > .cr-sec { margin: 0; }
+.people-who, .team-sum-who { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-weight: 600; }
+.person-search { margin: 0 0 12px; }
+.team-sum-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.team-sum-bar .person-search { margin: 0; }
+.team-sum-actions { display: flex; gap: 8px; }
+.team-sum-list { display: grid; gap: 8px; }
+.person-flow { margin-bottom: 14px; }
+.person-flow h4 { margin: 0 0 6px; }
