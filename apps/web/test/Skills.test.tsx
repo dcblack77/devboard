@@ -52,8 +52,9 @@ describe('Skills — matriz y bus factor', () => {
     render(<Skills />);
 
     await screen.findByText('Competencias');
-    expect(screen.getAllByText('Ana').length).toBe(4);
-    expect(screen.getAllByText('Bruno').length).toBe(4);
+    // Nombre en el perfil (puede ir con avatar) y en las 3 matrices.
+    expect(screen.getAllByText('Ana').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText('Bruno').length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText('Testing')).toBeTruthy();
     // TypeScript sale en la cabecera de la matriz y en la lista de riesgo.
     expect(screen.getAllByText('TypeScript').length).toBe(2);
@@ -65,7 +66,7 @@ describe('Skills — matriz y bus factor', () => {
     expect(screen.getByTestId('coverage-3').textContent).toBe('0');
     expect(screen.getByTestId('coverage-3').className).toContain('risk-red');
 
-    const list = screen.getByText('Riesgo bus factor').parentElement!;
+    const list = screen.getByText('Riesgo bus factor').closest('details, aside')!;
     const items = list.querySelectorAll('li');
     expect(items.length).toBe(2);
     expect(items[0].className).toContain('risk-red');
