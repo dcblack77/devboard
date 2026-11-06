@@ -26,7 +26,43 @@ export const settings = pgTable('settings', {
   ciWorkflowRegex: text('ci_workflow_regex').notNull().default('^CI'),
   /** Rama base cuyos PRs cuentan como "feature PR". */
   featureBase: text('feature_base').notNull().default('develop'),
+  /** Clave Jira del tablero de soporte (null = sin soporte configurado). */
+  supportProject: text('support_project'),
+  /** Estado del tablero de soporte que significa "escalado al equipo técnico". */
+  supportTechStatus: text('support_tech_status'),
+  /** SLA de soporte por prioridad: `{ [prioridad]: { firstResponseHours?, resolutionHours? } }`. */
+  supportSla: jsonb('support_sla').notNull().default({}),
 });
+
+/**
+ * Tickets del tablero de soporte (Jira). Se guardan aparte de `issues` porque no siguen el
+ * flujo de entrega del equipo: interesa el tiempo de respuesta/resolución y el escalado.
+ * `statusChanges`: `[{ at: ISO, from: string | null, to: string }]` en orden cronológico.
+ */
+export const supportTickets = pgTable(
+  'support_tickets',
+  {
+    key: text('key').primaryKey(),
+    project: text('project').notNull(),
+    summary: text('summary').notNull(),
+    type: text('type').notNull(),
+    status: text('status').notNull(),
+    priority: text('priority'),
+    labels: text('labels').array().notNull().default([]),
+    assigneeRaw: text('assignee_raw'),
+    reporterRaw: text('reporter_raw'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    linkedKeys: text('linked_keys').array().notNull().default([]),
+    statusChanges: jsonb('status_changes').notNull().default([]),
+    raw: jsonb('raw').notNull().default({}),
+  },
+  (table) => [
+    index('support_tickets_project_idx').on(table.project),
+    index('support_tickets_created_at_idx').on(table.createdAt),
+  ],
+);
 
 /** Persona canónica: agrupa nombres de Jira y logins de GitHub bajo una sola identidad. */
 export const people = pgTable('people', {

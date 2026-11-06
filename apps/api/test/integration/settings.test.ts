@@ -36,7 +36,13 @@ const FAKE_SETTINGS = {
   deployBranches: '^main$|hotfix',
   ciWorkflowRegex: '^CI',
   featureBase: 'develop',
+  supportProject: 'SUP',
+  supportTechStatus: 'Escalated',
+  supportSla: { High: { firstResponseHours: 4, resolutionHours: 24 } },
 };
+
+/** Captura el objeto pasado a `db.update(settings).set(...)`. */
+const updateSpy = vi.fn();
 
 vi.mock('../../src/domain/context.js', () => ({
   getMetricsContext: vi.fn().mockResolvedValue({ settings: FAKE_SETTINGS }),
@@ -50,7 +56,12 @@ vi.mock('../../src/modules/sync/register-sources.js', () => ({ registerRealSourc
 vi.mock('../../src/db/client.js', () => ({
   getPool: vi.fn(),
   getDb: vi.fn(() => ({
-    update: () => ({ set: () => ({ where: () => Promise.resolve([]) }) }),
+    update: () => ({
+      set: (values: unknown) => {
+        updateSpy(values);
+        return { where: () => Promise.resolve([]) };
+      },
+    }),
     select: () => ({ from: () => Promise.resolve([]) }),
   })),
   pingDb: vi.fn().mockResolvedValue(true),
@@ -150,5 +161,75 @@ describe('/api/settings — autenticación y validación', () => {
   it('GET /api/settings/discover sin sesión responde 401', async () => {
     const res = await request(baseUrl).get('/api/settings/discover');
     expect(res.status).toBe(401);
+  });
+});
+
+describe('/api/settings — tableros de Jira (principal/soporte)', () => {
+  async function tlAgent() {
+    const agent = request.agent(baseUrl);
+    await agent.post('/api/auth/login').send({ password: process.env.TL_PASSWORD });
+    return agent;
+  }
+
+  it('GET devuelve los campos de soporte', async () => {
+    const agent = await tlAgent();
+    const res = await agent.get('/api/settings');
+    expect(res.status).toBe(200);
+    expect(res.body.settings).toMatchObject({
+      supportProject: 'SUP',
+      supportTechStatus: 'Escalated',
+      supportSla: { High: { firstResponseHours: 4, resolutionHours: 24 } },
+    });
+  });
+
+  it('PUT supportProject " sup " se guarda normalizado como "SUP"', async () => {
+    updateSpy.mockClear();
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ supportProject: ' sup ' });
+    expect(res.status).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supportProject: 'SUP' }));
+  });
+
+  it('PUT supportProject "" se guarda como null', async () => {
+    updateSpy.mockClear();
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ supportProject: '', supportTechStatus: '' });
+    expect(res.status).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supportProject: null, supportTechStatus: null }));
+  });
+
+  it('PUT jiraProject " main " se normaliza a "MAIN"', async () => {
+    updateSpy.mockClear();
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ jiraProject: ' main ' });
+    expect(res.status).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ jiraProject: 'MAIN' }));
+  });
+
+  it('PUT supportProject con clave inválida responde 400', async () => {
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ supportProject: 's up!' });
+    expect(res.status).toBe(400);
+  });
+
+  it('PUT jiraProject con clave inválida responde 400', async () => {
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ jiraProject: '1abc' });
+    expect(res.status).toBe(400);
+  });
+
+  it('PUT supportSla con horas negativas responde 400', async () => {
+    const agent = await tlAgent();
+    const res = await agent.put('/api/settings').send({ supportSla: { High: { firstResponseHours: -1 } } });
+    expect(res.status).toBe(400);
+  });
+
+  it('PUT supportSla válido responde 200 y lo persiste', async () => {
+    updateSpy.mockClear();
+    const agent = await tlAgent();
+    const sla = { High: { firstResponseHours: 2, resolutionHours: 8 }, Low: { resolutionHours: 72 } };
+    const res = await agent.put('/api/settings').send({ supportSla: sla });
+    expect(res.status).toBe(200);
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ supportSla: sla }));
   });
 });

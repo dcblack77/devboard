@@ -57,9 +57,35 @@ const regexString = z.string().min(1).refine(
   { message: 'Regex inválida' },
 );
 
+/** Clave de proyecto Jira: se recorta y pasa a mayúsculas; `''` -> null. */
+const JIRA_KEY_RE = /^[A-Z][A-Z0-9_]{1,19}$/;
+const jiraProjectKey = z
+  .string()
+  .transform((v) => v.trim().toUpperCase())
+  .transform((v) => (v === '' ? null : v))
+  .refine((v) => v === null || JIRA_KEY_RE.test(v), { message: 'Clave de proyecto Jira inválida' })
+  .nullable()
+  .optional();
+
+/** Texto libre opcional: `''` (tras recortar) -> null. */
+const nullableText = z
+  .string()
+  .transform((v) => (v.trim() === '' ? null : v.trim()))
+  .nullable()
+  .optional();
+
+const supportSlaSchema = z.record(
+  z
+    .object({
+      firstResponseHours: z.number().positive().optional(),
+      resolutionHours: z.number().positive().optional(),
+    })
+    .strict(),
+);
+
 /** Validación de `PUT /api/settings`: todos los campos opcionales (actualización parcial). */
 const updateSettingsSchema = z.object({
-  jiraProject: z.string().nullable().optional(),
+  jiraProject: jiraProjectKey,
   sinceDate: z.string().nullable().optional(),
   syncMinutes: z.number().int().positive().optional(),
   attentionDays: z.number().int().positive().optional(),
@@ -75,6 +101,9 @@ const updateSettingsSchema = z.object({
   deployBranches: regexString.optional(),
   ciWorkflowRegex: regexString.optional(),
   featureBase: z.string().min(1).optional(),
+  supportProject: jiraProjectKey,
+  supportTechStatus: nullableText,
+  supportSla: supportSlaSchema.optional(),
 }) satisfies z.ZodType<UpdateSettingsRequest>;
 
 const createPersonSchema = z.object({

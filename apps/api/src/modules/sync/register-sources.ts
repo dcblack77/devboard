@@ -38,8 +38,10 @@ async function recordMissingCredentials(source: string): Promise<void> {
 
 async function buildJiraSync(): Promise<SourceSync | null> {
   const env = loadEnv();
-  if (!env.JIRA_BASE_URL || !env.JIRA_API_TOKEN || !env.JIRA_PROJECT) {
-    logger.warn('Jira: faltan credenciales (JIRA_BASE_URL/JIRA_API_TOKEN/JIRA_PROJECT), se omite');
+  // El tablero principal ya no es obligatorio al arrancar: se resuelve en cada run desde
+  // `settings.jiraProject` (Ajustes → Tableros de Jira) con fallback a JIRA_PROJECT.
+  if (!env.JIRA_BASE_URL || !env.JIRA_API_TOKEN) {
+    logger.warn('Jira: faltan credenciales (JIRA_BASE_URL/JIRA_API_TOKEN), se omite');
     await recordMissingCredentials('jira');
     return null;
   }
@@ -52,7 +54,6 @@ async function buildJiraSync(): Promise<SourceSync | null> {
   }
 
   const db = getDb();
-  const [row] = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
 
   return new JiraSync({
     config: {
@@ -61,12 +62,15 @@ async function buildJiraSync(): Promise<SourceSync | null> {
       apiToken: env.JIRA_API_TOKEN,
       authMode: env.JIRA_AUTH_MODE,
     },
-    settings: {
-      project: env.JIRA_PROJECT,
-      sinceDate: row?.sinceDate ?? env.SINCE_DATE ?? '2024-01-01',
-      statusAliases: (row?.statusAliases as StatusAliasMap) ?? {},
-      macroMap: (row?.macroMap as Record<string, string>) ?? {},
-      finalStatus: DEFAULT_FINAL_STATUS,
+    loadSettings: async () => {
+      const [row] = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+      return {
+        project: row?.jiraProject || env.JIRA_PROJECT || null,
+        sinceDate: row?.sinceDate ?? env.SINCE_DATE ?? '2024-01-01',
+        statusAliases: (row?.statusAliases as StatusAliasMap) ?? {},
+        macroMap: (row?.macroMap as Record<string, string>) ?? {},
+        finalStatus: DEFAULT_FINAL_STATUS,
+      };
     },
     repo: new DrizzleJiraRepo(db),
     logger,

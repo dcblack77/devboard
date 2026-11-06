@@ -33,9 +33,18 @@ export interface JiraSyncSettings {
   finalStatus: string;
 }
 
+/** Ajustes resueltos en cada run; `project` puede faltar si no hay tablero principal configurado. */
+export type JiraSyncRuntimeSettings = Omit<JiraSyncSettings, 'project'> & { project: string | null | undefined };
+
+/** Mensaje de error cuando no hay tablero principal ni en settings ni en env. */
+export const MISSING_MAIN_BOARD_ERROR = 'Jira: falta el tablero principal (Ajustes → Tableros de Jira)';
+
 export interface JiraSyncDeps {
   config: JiraConfig;
-  settings: JiraSyncSettings;
+  /** Ajustes estáticos (fijados al construir). Ignorados si se pasa `loadSettings`. */
+  settings?: JiraSyncSettings;
+  /** Cargador de ajustes evaluado al inicio de cada `run()` (p.ej. lee la fila `settings`). */
+  loadSettings?: () => Promise<JiraSyncRuntimeSettings>;
   repo: JiraRepo;
   client?: JiraClient;
   now?: Date;
@@ -45,25 +54,35 @@ export interface JiraSyncDeps {
 export class JiraSync implements SourceSync {
   readonly name = 'jira';
   private readonly client: JiraClient;
-  private readonly settings: JiraSyncSettings;
+  private readonly loadSettings: () => Promise<JiraSyncRuntimeSettings>;
   private readonly repo: JiraRepo;
   private readonly now?: Date;
   private readonly logger?: SyncLogger;
 
   constructor(deps: JiraSyncDeps) {
     this.client = deps.client ?? new JiraClient(deps.config);
-    this.settings = deps.settings;
+    const staticSettings = deps.settings;
+    if (deps.loadSettings) {
+      this.loadSettings = deps.loadSettings;
+    } else if (staticSettings) {
+      this.loadSettings = async () => staticSettings;
+    } else {
+      throw new Error('JiraSync: se requiere `settings` o `loadSettings`');
+    }
     this.repo = deps.repo;
     this.now = deps.now;
     this.logger = deps.logger;
   }
 
   async run(): Promise<{ counts: Record<string, number> }> {
-    const { project, sinceDate, statusAliases, macroMap, finalStatus } = this.settings;
-
     // Sonda de auth antes de nada: con token revocado Jira devuelve 200 y 0 issues
     // (acceso anónimo), lo que dejaría un run ok=true vacío. /myself sí falla (401).
     await this.client.whoAmI();
+
+    // El tablero se lee en cada run: cambiarlo en Ajustes no requiere reiniciar.
+    const { project: rawProject, sinceDate, statusAliases, macroMap, finalStatus } = await this.loadSettings();
+    const project = rawProject?.trim();
+    if (!project) throw new Error(MISSING_MAIN_BOARD_ERROR);
 
     const [windowIssues, epicIndex] = await Promise.all([
       this.client.fetchWindow(project, sinceDate),

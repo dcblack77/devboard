@@ -228,3 +228,49 @@ describe('JiraSync.run', () => {
     expect(client.fetchWindow).not.toHaveBeenCalled();
   });
 });
+
+describe('JiraSync.run — tablero principal desde settings (loadSettings)', () => {
+  it('lee el proyecto de loadSettings() en cada run y se lo pasa al cliente', async () => {
+    const repo = fakeRepo();
+    const client = fakeClient();
+    let project: string | null = 'MAIN';
+    const loadSettings = vi.fn(async () => ({
+      project,
+      sinceDate: '2026-01-01',
+      statusAliases: {},
+      macroMap: {},
+      finalStatus: 'Finalizada',
+    }));
+    const sync = new JiraSync({
+      config: { baseUrl: 'https://x.atlassian.net', email: 'a@b.com', apiToken: 't' },
+      loadSettings,
+      repo,
+      client,
+    });
+
+    await sync.run();
+    expect(client.whoAmI).toHaveBeenCalledTimes(1);
+    expect(client.fetchWindow).toHaveBeenCalledWith('MAIN', '2026-01-01');
+    expect(client.epicsWithChildren).toHaveBeenCalledWith('MAIN');
+
+    project = 'PROJ';
+    await sync.run();
+    expect(loadSettings).toHaveBeenCalledTimes(2);
+    expect(client.fetchWindow).toHaveBeenLastCalledWith('PROJ', '2026-01-01');
+  });
+
+  it('sin tablero principal configurado run() rechaza con un mensaje claro y no toca el repo', async () => {
+    const repo = fakeRepo();
+    const client = fakeClient();
+    const sync = new JiraSync({
+      config: { baseUrl: 'https://x.atlassian.net', email: 'a@b.com', apiToken: 't' },
+      loadSettings: async () => ({ project: null, sinceDate: '2026-01-01', statusAliases: {}, macroMap: {}, finalStatus: 'Finalizada' }),
+      repo,
+      client,
+    });
+
+    await expect(sync.run()).rejects.toThrow('Jira: falta el tablero principal (Ajustes → Tableros de Jira)');
+    expect(client.fetchWindow).not.toHaveBeenCalled();
+    expect(repo.calls.upsertIssues).toHaveLength(0);
+  });
+});

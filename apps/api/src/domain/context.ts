@@ -92,6 +92,9 @@ function toSettingsDto(row: typeof settingsTable.$inferSelect): SettingsDto {
     deployBranches: row.deployBranches,
     ciWorkflowRegex: row.ciWorkflowRegex,
     featureBase: row.featureBase,
+    supportProject: row.supportProject,
+    supportTechStatus: row.supportTechStatus,
+    supportSla: row.supportSla as SettingsDto['supportSla'],
   };
 }
 

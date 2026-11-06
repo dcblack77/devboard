@@ -50,6 +50,13 @@
       "when": 1793870395583,
       "tag": "0006_flimsy_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794003292274,
+      "tag": "0007_support",
+      "breakpoints": true
     }
   ]
 }

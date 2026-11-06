@@ -129,6 +129,15 @@ export type MacroMap = Record<string, MacroStatus>;
 /** Tipos de issue que cuentan para throughput/cycle (p.ej. Historia, Tarea, Error). */
 export type CountedTypes = string[];
 
+/** Objetivos de SLA de soporte para una prioridad (horas, positivas). */
+export interface SupportSlaTarget {
+  firstResponseHours?: number;
+  resolutionHours?: number;
+}
+
+/** SLA de soporte por nombre de prioridad de Jira. */
+export type SupportSla = Record<string, SupportSlaTarget>;
+
 /** Fila singleton `settings`. */
 export interface SettingsDto {
   id: number;
@@ -152,6 +161,12 @@ export interface SettingsDto {
   ciWorkflowRegex: string;
   /** Rama base cuyos PRs cuentan como "feature PR". */
   featureBase: string;
+  /** Clave Jira del tablero de soporte (null = sin soporte). */
+  supportProject: string | null;
+  /** Estado de soporte que significa "escalado al equipo técnico". */
+  supportTechStatus: string | null;
+  /** SLA de soporte por prioridad. */
+  supportSla: SupportSla;
 }
 
 export interface SnapshotDto {

@@ -3,7 +3,7 @@
  * iniciativas, descubrimiento de datos sin mapear y snapshots históricos.
  * Separado de `dto.ts` para no chocar con otro subagente que lo edita en paralelo.
  */
-import type { SettingsDto, Thresholds } from './dto.js';
+import type { SettingsDto, SupportSla, Thresholds } from './dto.js';
 import type { SnapshotKind } from './enums.js';
 
 /** Cuerpo de `PUT /api/settings`: todos los campos editables de `SettingsDto` menos `id`. */
@@ -24,6 +24,9 @@ export interface UpdateSettingsRequest {
   deployBranches?: string;
   ciWorkflowRegex?: string;
   featureBase?: string;
+  supportProject?: string | null;
+  supportTechStatus?: string | null;
+  supportSla?: SupportSla;
 }
 
 /** Respuesta de `GET/PUT /api/settings`. */
