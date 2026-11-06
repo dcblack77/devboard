@@ -390,9 +390,18 @@ main.cr .card { margin-top: 14px; min-width: 0; }
 .cr-chart-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .cr-chart-head h4 { margin: 0; }
 .cr-total { font-size: 12px; color: var(--muted); }
-.cr-chart-ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 10px; font-size: 12px; }
-.cr-chart-ctrl select, .cr-date input { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; color: var(--ink); background: #fff; }
-.cr-date { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.cr-chart-ctrl { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; justify-content: space-between; margin: var(--sp-3) 0 var(--sp-4); font-size: var(--fs-sm); }
+.cr-ctrl-left, .cr-ctrl-right { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.cr-chart-ctrl select, .cr-date input { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px 8px; font: inherit; font-size: var(--fs-sm); color: var(--ink); background: var(--field-bg); }
+.cr-date { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+/* Segmented control dentro de Code review: fondo --bg y opción activa como «pastilla». */
+main.cr .sys-seg { background: var(--bg); border-radius: var(--r-sm); padding: 2px; gap: 2px; }
+main.cr .sys-seg button { background: transparent; border-radius: 4px; font-size: var(--fs-sm); padding: 4px 12px; color: var(--ink-2); }
+main.cr .sys-seg button + button { border-left: 0; }
+main.cr .sys-seg button[aria-pressed='true'] { background: var(--card); color: var(--accent-ink); font-weight: 600; box-shadow: var(--shadow-sm); }
+.cr-chart-head h4 { font-size: var(--fs-md); }
+.cr-total { font-size: var(--fs-sm); color: var(--ink-2); }
+.ch.cr-ch { height: 320px; }
 
 /* Code review: layout ancho y fluido, cabecera de página con acción a la derecha. */
 main.cr { max-width: 1600px; padding: var(--sp-6) clamp(16px, 3vw, 48px); font-size: var(--fs-base); }
@@ -431,6 +440,7 @@ main.cr .card { border-radius: var(--r-md); box-shadow: var(--shadow-sm); }
   main.cr .card, main.cr .kpi { box-shadow: none; }
   main.cr .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   main.cr .kpi .v { font-size: 18px; }
+  .ch.cr-ch { height: 260px; }
   .kpi-delta { border: 1px solid currentColor; }
   .cr-sec > summary .chev { display: none; }
   .ft-scroll { overflow: visible; }

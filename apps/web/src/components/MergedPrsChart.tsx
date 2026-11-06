@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ChartOptions, Plugin } from 'chart.js';
 import { BarChart } from './charts/BarChart';
 import { LineChart } from './charts/LineChart';
 import {
@@ -59,6 +60,97 @@ export function loadChartPrefs(): MergedChartPrefs {
   }
 }
 
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const CURRENT: Record<Granularity, string> = {
+  day: 'día en curso',
+  week: 'semana en curso',
+  month: 'mes en curso',
+  year: 'año en curso',
+};
+/** Número aproximado de etiquetas visibles en el eje X. */
+const MAX_TICKS = 14;
+
+/** Año de la clave de un cubo (`2026-W05`, `2026-03`, `2026-03-06`, `2026`). */
+const keyYear = (key: string) => key.slice(0, 4);
+
+/** Etiqueta corta del eje X para la clave de un cubo (sin año). */
+export function shortTick(key: string, g: Granularity): string {
+  switch (g) {
+    case 'day': {
+      const [, m, d] = key.split('-');
+      return `${d} ${MONTHS[Number(m) - 1]}`;
+    }
+    case 'week':
+      return `S${key.slice(-2)}`;
+    case 'month':
+      return MONTHS[Number(key.slice(5, 7)) - 1]!;
+    case 'year':
+      return key;
+  }
+}
+
+/** Etiqueta completa para el tooltip (`mar 2026`, `2026-W05`, `06 nov 2026`, `2026`). */
+export function fullTick(key: string, g: Granularity): string {
+  if (g === 'month' || g === 'day') return `${shortTick(key, g)} ${keyYear(key)}`;
+  return key;
+}
+
+/**
+ * Etiquetas del eje X: una de cada `step` (horizontales), con el año en una segunda línea en la
+ * primera visible y cada vez que cambia. Las demás quedan vacías.
+ */
+export function axisTicks(keys: string[], g: Granularity, maxTicks = MAX_TICKS): (string | string[])[] {
+  const step = Math.max(1, Math.ceil(keys.length / maxTicks));
+  let lastYear = '';
+  return keys.map((key, i) => {
+    if (i % step !== 0) return '';
+    const short = shortTick(key, g);
+    if (g === 'year') return short;
+    const y = keyYear(key);
+    if (y !== lastYear) {
+      lastYear = y;
+      return [short, y];
+    }
+    return short;
+  });
+}
+
+/** Lee un token CSS de `:root` (con valor de reserva fuera del navegador). */
+function cssVar(name: string, fallback: string): string {
+  if (typeof window === 'undefined' || typeof getComputedStyle !== 'function') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/** `#rrggbb` → `rgba(r, g, b, a)`; si no es hex se devuelve tal cual. */
+function withAlpha(color: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(color);
+  if (!m) return color;
+  const n = parseInt(m[1]!, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/** Borde punteado alrededor de la barra del cubo en curso (Chart.js no tiene `borderDash` en barras). */
+function partialOutline(index: number, color: string): Plugin<'bar'> {
+  return {
+    id: 'crPartialOutline',
+    afterDatasetsDraw(chart) {
+      const el = chart.getDatasetMeta(0).data[index] as unknown as
+        | { x: number; y: number; base: number; width: number }
+        | undefined;
+      if (!el) return;
+      const { ctx } = chart;
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      const top = Math.min(el.y, el.base);
+      ctx.strokeRect(el.x - el.width / 2, top, el.width, Math.abs(el.base - el.y));
+      ctx.restore();
+    },
+  };
+}
+
 function Seg<T extends string>({
   options,
   value,
@@ -111,6 +203,45 @@ export function MergedPrsChart({ prs }: { prs: ReadonlyArray<{ merged: string | 
   const title = GRANULARITIES.find((g) => g.value === prefs.granularity)!.title;
   const labels = buckets.map((b) => b.label);
   const counts = buckets.map((b) => b.count);
+  const keys = buckets.map((b) => b.key);
+  // El último cubo está «en curso» (incompleto) si el rango termina hoy.
+  const partialIdx = range.to === ymd(new Date()) && buckets.length > 0 ? buckets.length - 1 : -1;
+
+  const accent = cssVar('--accent', '#2563eb');
+  const grid = withAlpha(cssVar('--line', '#e5e7eb'), 0.6);
+  const tickColor = cssVar('--ink-2', '#4b5563');
+  const ticks = axisTicks(keys, prefs.granularity);
+  const options = {
+    plugins: {
+      legend: { display: true, labels: { boxWidth: 12, color: tickColor, font: { size: 13 } } },
+      tooltip: {
+        callbacks: {
+          title: (items: { dataIndex: number }[]) => fullTick(keys[items[0]?.dataIndex ?? 0] ?? '', prefs.granularity),
+          label: (item: { dataIndex: number; parsed: { y: number | null } }) =>
+            `${item.parsed.y ?? 0} mergeadas${item.dataIndex === partialIdx ? ` (${CURRENT[prefs.granularity]})` : ''}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          autoSkip: false,
+          maxRotation: 0,
+          minRotation: 0,
+          color: tickColor,
+          font: { size: 12 },
+          callback: (_v: unknown, i: number) => ticks[i] ?? '',
+        },
+      },
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        grid: { color: grid },
+        ticks: { color: tickColor, font: { size: 12 }, precision: 0 },
+      },
+    },
+  };
 
   /** Al tocar una fecha se pasa a «Personalizado» partiendo del rango que se estaba viendo. */
   function setDate(which: 'from' | 'to', value: string) {
@@ -124,6 +255,7 @@ export function MergedPrsChart({ prs }: { prs: ReadonlyArray<{ merged: string | 
         <span className="cr-total">{total} mergeadas</span>
       </div>
       <div className="cr-chart-ctrl noprint">
+        <div className="cr-ctrl-left">
         <Seg
           label="Tipo de gráfica"
           options={[
@@ -134,6 +266,8 @@ export function MergedPrsChart({ prs }: { prs: ReadonlyArray<{ merged: string | 
           onChange={(type) => update({ type })}
         />
         <Seg label="Granularidad" options={GRANULARITIES} value={prefs.granularity} onChange={(granularity) => update({ granularity })} />
+        </div>
+        <div className="cr-ctrl-right">
         <select
           aria-label="Rango"
           value={prefs.preset}
@@ -156,28 +290,47 @@ export function MergedPrsChart({ prs }: { prs: ReadonlyArray<{ merged: string | 
           Hasta
           <input type="date" value={range.to ?? ''} min={range.from ?? undefined} max={ymd(new Date())} onChange={(e) => setDate('to', e.target.value)} />
         </label>
+        </div>
       </div>
       {buckets.length === 0 ? (
         <p className="muted">No hay PRs mergeadas en el rango elegido.</p>
       ) : prefs.type === 'line' ? (
         <LineChart
+          className="ch cr-ch"
+          options={options as ChartOptions<'line'>}
           data={{
             labels,
             datasets: [
               {
                 label: 'Mergeadas',
                 data: counts,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                borderColor: accent,
+                backgroundColor: withAlpha(accent, 0.12),
                 fill: true,
                 tension: 0.25,
                 pointRadius: buckets.length > 60 ? 0 : 3,
+                segment: { borderDash: (ctx) => (ctx.p1DataIndex === partialIdx ? [4, 4] : undefined) },
               },
             ],
           }}
         />
       ) : (
-        <BarChart data={{ labels, datasets: [{ label: 'Mergeadas', data: counts, backgroundColor: '#2563eb' }] }} />
+        <BarChart
+          className="ch cr-ch"
+          options={options as ChartOptions<'bar'>}
+          plugins={partialIdx >= 0 ? [partialOutline(partialIdx, accent)] : undefined}
+          data={{
+            labels,
+            datasets: [
+              {
+                label: 'Mergeadas',
+                data: counts,
+                backgroundColor: counts.map((_, i) => (i === partialIdx ? withAlpha(accent, 0.5) : accent)),
+                borderRadius: 3,
+              },
+            ],
+          }}
+        />
       )}
     </div>
   );

@@ -15,6 +15,7 @@ vi.mock('../src/components/charts/LineChart', () => ({
 
 import { Github, noApprovalEdge, prev4Delta } from '../src/pages/Github';
 import { Kpi } from '../src/components/Kpi';
+import { axisTicks, fullTick } from '../src/components/MergedPrsChart';
 
 const DAY = 86_400_000;
 const NOW = new Date('2026-11-06T12:00:00Z');
@@ -232,5 +233,27 @@ describe('KPIs de Code review (helpers)', () => {
     const d = container.querySelector('.kpi-delta')!;
     expect(d.className).toBe('kpi-delta down good');
     expect(d.textContent).toBe('▼ 56 %');
+  });
+});
+
+describe('Eje X de la gráfica de mergeadas', () => {
+  it('meses cortos con el año solo al empezar y al cambiar', () => {
+    expect(axisTicks(['2025-11', '2025-12', '2026-01', '2026-02'], 'month')).toEqual([
+      ['nov', '2025'],
+      'dic',
+      ['ene', '2026'],
+      'feb',
+    ]);
+  });
+
+  it('semanas S05 y salta etiquetas para no saturar', () => {
+    const keys = Array.from({ length: 6 }, (_, i) => `2026-W0${i + 1}`);
+    expect(axisTicks(keys, 'week', 3)).toEqual([['S01', '2026'], '', 'S03', '', 'S05', '']);
+  });
+
+  it('tooltip con etiqueta completa', () => {
+    expect(fullTick('2026-03', 'month')).toBe('mar 2026');
+    expect(fullTick('2026-11-06', 'day')).toBe('06 nov 2026');
+    expect(fullTick('2026-W05', 'week')).toBe('2026-W05');
   });
 });
