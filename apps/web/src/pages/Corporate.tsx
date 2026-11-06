@@ -4,6 +4,7 @@ import { Block } from '../components/Block';
 import { Kpi } from '../components/Kpi';
 import { Rag } from '../components/Rag';
 import { PrintButton } from '../components/PrintButton';
+import { SupportSummaryCards } from '../components/SupportSummaryCards';
 
 type ShortRag = 'r' | 'a' | 'g';
 
@@ -88,6 +89,8 @@ export function Corporate() {
         <Kpi value={numbers.bugs4w} label="Errores entregados" />
         <Kpi value={fmtHours(numbers.cycleMean)} label="Tiempo de ciclo medio" />
       </Block>
+
+      <SupportSummaryCards months={12} />
 
       <Block title="Riesgo" lead="Indicadores de bloqueo, sin detalle por persona.">
         <Kpi value={numbers.blocked} label="Tareas bloqueadas" rag={numbers.blocked > 0 ? 'red' : undefined} />

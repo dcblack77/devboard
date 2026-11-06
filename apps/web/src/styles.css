@@ -310,3 +310,7 @@ main.cr .card { margin-top: 14px; min-width: 0; }
   .cr-sec > summary .chev { display: none; }
   .ft-scroll { overflow: visible; }
 }
+
+/* Resumen de Incidencias en Inicio/Corporativo (SupportSummaryCards). */
+.ssc-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; margin: 6px 0 0; }
+.ssc-link { white-space: nowrap; }

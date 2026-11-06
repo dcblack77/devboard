@@ -6,6 +6,7 @@ import { Rag } from '../components/Rag';
 import { PrintButton } from '../components/PrintButton';
 import { SyncHealthBanner } from '../components/SyncHealthBanner';
 import { LineChart } from '../components/charts/LineChart';
+import { SupportSummaryCards } from '../components/SupportSummaryCards';
 
 /** Colores RAG cortos usados por el dominio de métricas ('r'|'a'|'g'). */
 type ShortRag = 'r' | 'a' | 'g';
@@ -124,6 +125,8 @@ export function Home() {
           />
         </div>
       ) : null}
+
+      <SupportSummaryCards months={3} />
 
       <Block title="Riesgo" lead="Trabajo bloqueado o parado que necesita atención.">
         <Kpi value={numbers.blocked} label="Bloqueadas" rag={numbers.blocked > 0 ? 'red' : undefined} />
