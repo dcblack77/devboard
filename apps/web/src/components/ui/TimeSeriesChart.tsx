@@ -116,7 +116,7 @@ export function axisTicks(keys: string[], g: Granularity, maxTicks = MAX_TICKS):
 }
 
 /** Lee un token CSS de `:root` (con valor de reserva fuera del navegador). */
-function cssVar(name: string, fallback: string): string {
+export function cssVar(name: string, fallback: string): string {
   if (typeof window === 'undefined' || typeof getComputedStyle !== 'function') return fallback;
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fallback;
