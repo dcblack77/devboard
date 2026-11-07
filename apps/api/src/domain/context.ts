@@ -38,6 +38,8 @@ import {
   type ReviewStats,
 } from './metrics/github.js';
 import { homeSummary, type HomeSummary } from './metrics/home.js';
+import { jiraBrowseBase } from '../integrations/jira/browse.js';
+import { loadEnv } from '../config/env.js';
 import { weekLabels } from './metrics/time.js';
 
 export interface PersonRow {
@@ -132,12 +134,17 @@ function buildEpicIndex(
       status: e.status,
       assigneeRaw: e.assigneeRaw,
       createdAt: e.createdAt,
+      startDate: e.startDate ?? null,
+      dueDate: e.dueDate ?? null,
+      resolvedAt: e.resolvedAt ?? null,
       children: (childrenByEpic.get(e.key) ?? []).map((c) => ({
         key: c.key,
         summary: c.summary,
         type: c.type,
         status: c.statusNorm,
         assigneeRaw: c.assigneeRaw,
+        dueDate: c.dueDate ?? null,
+        storyPoints: c.storyPoints ?? null,
       })),
     };
   }
@@ -242,7 +249,9 @@ export async function buildMetricsContext(now: Date = new Date()): Promise<Metri
     slug: i.slug,
     epics: initiativeEpicRows.filter((ie) => ie.initiativeId === i.id).map((ie) => ie.epicKey),
   }));
-  const initiativesList = initiativeStats(initiativeInputs, epicIndex, rows, weeks, now, issueSettings);
+  const initiativesList = initiativeStats(initiativeInputs, epicIndex, rows, weeks, now, issueSettings, {
+    jiraBrowseUrl: jiraBrowseBase(loadEnv().JIRA_BASE_URL),
+  });
 
   const windowedPrs = windowFilter(prRows, settingsDto.sinceDate);
   const windowedPrIds = new Set(windowedPrs.map((p) => p.id));

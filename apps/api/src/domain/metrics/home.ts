@@ -12,6 +12,7 @@ import type { DevStat } from './people.js';
 import { UNASSIGNED } from './people.js';
 import type { InitiativeStat, RagColor } from './initiatives.js';
 import { ragInitiative } from './initiatives.js';
+import type { Estimation, ScheduleStatus } from './schedule.js';
 import type { ReviewStats } from './github.js';
 
 function macroOf(status: string, settings: IssueMetricsSettings): MacroStatus | string {
@@ -167,6 +168,14 @@ export interface HomeRagEntry {
   pct: number;
   color: RagColor;
   reason: string;
+  startDate: string | null;
+  targetDate: string | null;
+  schedule: ScheduleStatus;
+  closedLate: boolean;
+  daysLeft: number | null;
+  jiraKey: string | null;
+  jiraUrl: string | null;
+  estimation: Estimation;
 }
 
 export interface HomeTrend {
@@ -198,7 +207,21 @@ export function homeSummary(rows: AnalyzedIssue[], dstats: DevStat[], ctx: HomeC
 
   const rag: HomeRagEntry[] = ctx.initiativesList.map((i) => {
     const r = ragInitiative(i);
-    return { name: i.name, slug: i.slug, pct: i.pctDone, color: r.color, reason: r.reason };
+    return {
+      name: i.name,
+      slug: i.slug,
+      pct: i.pctDone,
+      color: r.color,
+      reason: r.reason,
+      startDate: i.startDate,
+      targetDate: i.targetDate,
+      schedule: i.schedule,
+      closedLate: i.closedLate,
+      daysLeft: i.daysLeft,
+      jiraKey: i.jiraKey,
+      jiraUrl: i.jiraUrl,
+      estimation: i.estimation,
+    };
   });
   const ragCounts = {
     red: rag.filter((r) => r.color === 'r').length,

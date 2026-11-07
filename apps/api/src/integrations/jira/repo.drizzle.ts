@@ -49,6 +49,8 @@ export class DrizzleJiraRepo implements JiraRepo {
           resolvedAt: it.resolvedAt,
           updatedAt: it.updatedAt,
           raw: it.raw as object,
+          dueDate: it.dueDate,
+          storyPoints: it.storyPoints,
         })
         .onConflictDoUpdate({
           target: issues.key,
@@ -65,6 +67,8 @@ export class DrizzleJiraRepo implements JiraRepo {
             resolvedAt: it.resolvedAt,
             updatedAt: it.updatedAt,
             raw: it.raw as object,
+            dueDate: it.dueDate,
+            storyPoints: it.storyPoints,
           },
         });
     }
@@ -102,6 +106,9 @@ export class DrizzleJiraRepo implements JiraRepo {
           status: it.status,
           assigneeRaw: it.assigneeRaw,
           createdAt: it.createdAt,
+          startDate: it.startDate,
+          dueDate: it.dueDate,
+          resolvedAt: it.resolvedAt,
         })
         .onConflictDoUpdate({
           target: epics.key,
@@ -109,8 +116,17 @@ export class DrizzleJiraRepo implements JiraRepo {
             summary: it.summary,
             status: it.status,
             assigneeRaw: it.assigneeRaw,
+            startDate: it.startDate,
+            dueDate: it.dueDate,
+            resolvedAt: it.resolvedAt,
           },
         });
+    }
+  }
+
+  async updateIssueEstimates(items: Array<{ key: string; dueDate: string | null; storyPoints: number | null }>): Promise<void> {
+    for (const it of items) {
+      await this.db.update(issues).set({ dueDate: it.dueDate, storyPoints: it.storyPoints }).where(eq(issues.key, it.key));
     }
   }
 

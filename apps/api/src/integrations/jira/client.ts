@@ -3,6 +3,8 @@
  * esqueleto: usa fetch nativo (Node 22). Timeout, reintentos en 429/5xx con
  * Retry-After, y paginación completa (nextPageToken / startAt).
  */
+import { JIRA_FIELDS } from './fields.js';
+import { dateField, numberField } from './parse.js';
 import type {
   JiraConfig,
   JiraRawIssue,
@@ -181,11 +183,11 @@ export class JiraClient {
     const scope = projectScope(projects);
     const epics = await this.searchAll(
       `${scope} AND issuetype = Epic ORDER BY created ASC`,
-      ['summary', 'status', 'assignee', 'created'],
+      ['summary', 'status', 'assignee', 'created', JIRA_FIELDS.startDate, JIRA_FIELDS.dueDate, JIRA_FIELDS.resolutionDate],
     );
     const children = await this.searchAll(
       `${scope} AND issuetype != Epic AND parent is not EMPTY ORDER BY created ASC`,
-      ['summary', 'status', 'assignee', 'issuetype', 'parent', 'resolutiondate'],
+      ['summary', 'status', 'assignee', 'issuetype', 'parent', JIRA_FIELDS.resolutionDate, JIRA_FIELDS.dueDate, JIRA_FIELDS.storyPoints],
     );
 
     const idx = new Map<string, EpicWithChildren>();
@@ -197,6 +199,9 @@ export class JiraClient {
         assigneeRaw: e.fields.assignee?.displayName ?? null,
         createdAt: e.fields.created ? new Date(e.fields.created) : null,
         children: [],
+        startDate: dateField(e.fields[JIRA_FIELDS.startDate]),
+        dueDate: dateField(e.fields[JIRA_FIELDS.dueDate]),
+        resolvedAt: typeof e.fields[JIRA_FIELDS.resolutionDate] === 'string' ? new Date(e.fields[JIRA_FIELDS.resolutionDate] as string) : null,
       });
     }
     for (const c of children) {
@@ -210,6 +215,8 @@ export class JiraClient {
         type: c.fields.issuetype.name,
         status: c.fields.status.name,
         assigneeRaw: c.fields.assignee?.displayName ?? null,
+        dueDate: dateField(c.fields[JIRA_FIELDS.dueDate]),
+        storyPoints: numberField(c.fields[JIRA_FIELDS.storyPoints]),
       });
     }
     return [...idx.values()];
@@ -219,7 +226,7 @@ export class JiraClient {
   async fetchWindow(projects: string[], sinceDate: string): Promise<JiraRawIssue[]> {
     return this.searchAll(
       `${projectScope(projects)} AND updated >= "${sinceDate}" ORDER BY created ASC`,
-      ['summary', 'status', 'assignee', 'issuetype', 'created', 'resolutiondate', 'parent', 'priority'],
+      ['summary', 'status', 'assignee', 'issuetype', 'created', JIRA_FIELDS.resolutionDate, 'parent', 'priority', JIRA_FIELDS.dueDate, JIRA_FIELDS.storyPoints],
       { expand: 'changelog' },
     );
   }

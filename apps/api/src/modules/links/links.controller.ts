@@ -5,18 +5,10 @@ import { Role, type IssueLinksResponse, type LinkedPrDto } from '@devboard/share
 import { getDb } from '../../db/client.js';
 import { pullRequests } from '../../db/schema.js';
 import { loadEnv } from '../../config/env.js';
+import { jiraBrowseBase } from '../../integrations/jira/browse.js';
 import { requireRole } from '../../middleware/auth.middleware.js';
 
-/**
- * URL base para abrir issues en el navegador. Solo sitios `*.atlassian.net` (u otra URL de
- * sitio); el gateway `api.atlassian.com/ex/jira/<cloudId>` no sirve para navegar.
- */
-export function jiraBrowseBase(baseUrl: string | undefined): string | null {
-  if (!baseUrl) return null;
-  const clean = baseUrl.trim().replace(/\/+$/, '');
-  if (!/^https?:\/\//.test(clean) || clean.includes('api.atlassian.com')) return null;
-  return `${clean}/browse/`;
-}
+export { jiraBrowseBase };
 
 /** Estado legible de un PR a partir de sus fechas/flags. */
 export function prState(row: { state: string; mergedAt: Date | null; isDraft: boolean }): LinkedPrDto['state'] {

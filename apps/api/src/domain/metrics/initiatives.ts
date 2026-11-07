@@ -5,6 +5,15 @@
  */
 import { MacroStatus } from '@devboard/shared';
 import type { EpicWithChildren } from '../../integrations/jira/types.js';
+import {
+  aggregateEpicDates,
+  closedLate,
+  daysLeft,
+  estimationOf,
+  scheduleStatus,
+  type Estimation,
+  type ScheduleStatus,
+} from './schedule.js';
 import { mean, weekKey } from './time.js';
 import { daysByStateType, type DaysByStateType } from './status.js';
 import type { AnalyzedIssue, IssueMetricsSettings } from './issues.js';
@@ -30,6 +39,15 @@ export interface EpicSummaryForInitiative {
   childrenTotal: number;
   childrenByMacro: Record<string, number>;
   pctDone: number;
+  startDate: string | null;
+  targetDate: string | null;
+  /** ISO 8601 */
+  closedAt: string | null;
+  schedule: ScheduleStatus;
+  closedLate: boolean;
+  daysLeft: number | null;
+  jiraUrl: string | null;
+  estimation: Estimation;
 }
 
 export interface InitiativePersonStat {
@@ -46,6 +64,17 @@ export interface InitiativeStat {
   childrenTotal: number;
   childrenByMacro: Record<string, number>;
   pctDone: number;
+  startDate: string | null;
+  targetDate: string | null;
+  /** ISO 8601 */
+  closedAt: string | null;
+  schedule: ScheduleStatus;
+  closedLate: boolean;
+  daysLeft: number | null;
+  /** Clave y URL de la primera épica. */
+  jiraKey: string | null;
+  jiraUrl: string | null;
+  estimation: Estimation;
   inPeriod: number;
   open: number;
   done: number;
@@ -96,7 +125,26 @@ export function initiativeStats(
   weeks: string[],
   now: Date,
   settings: IssueMetricsSettings,
+  opts: { jiraBrowseUrl?: string | null } = {},
 ): InitiativeStat[] {
+  const browse = opts.jiraBrowseUrl ?? null;
+  const urlOf = (key: string): string | null => (browse ? browse + encodeURIComponent(key) : null);
+  const isDone = (status: string): boolean => {
+    const m = macroOf(status, settings);
+    return m === MacroStatus.Closed || m === MacroStatus.Delivered;
+  };
+  const estimationOfKids = (children: EpicWithChildren['children']): Estimation =>
+    estimationOf(
+      children
+        .filter((c) => c.type !== 'Subtarea')
+        .map((c) => ({ done: isDone(c.status), storyPoints: c.storyPoints, dueDate: c.dueDate })),
+    );
+  const epicDates = (e: EpicWithChildren) => ({
+    startDate: e.startDate ?? null,
+    targetDate: e.dueDate ?? null,
+    done: isDone(e.status),
+    resolvedAt: e.resolvedAt ?? null,
+  });
   const cutoff4w = new Date(now.getTime() - 4 * 7 * 86_400_000);
 
   return initiatives.map((initiative) => {
@@ -109,6 +157,10 @@ export function initiativeStats(
       byMacro[macro] = (byMacro[macro] ?? 0) + 1;
     }
     const total = kidsAll.length;
+    const agg = aggregateEpicDates(epics.map(epicDates));
+    const pct = total
+      ? Math.round((100 * ((byMacro[MacroStatus.Closed] ?? 0) + (byMacro[MacroStatus.Delivered] ?? 0))) / total)
+      : 0;
 
     const epicKeys = new Set(initiative.epics);
     const storyKeys = new Set(epics.flatMap((e) => e.children.map((c) => c.key)));
@@ -159,19 +211,39 @@ export function initiativeStats(
     return {
       name: initiative.name,
       slug: initiative.slug,
-      epics: epics.map((e) => ({
-        key: e.key,
-        summary: e.summary,
-        status: e.status,
-        childrenTotal: e.children.filter((c) => c.type !== 'Subtarea').length,
-        childrenByMacro: macroCount(e.children, settings),
-        pctDone: pctDone(e.children, settings),
-      })),
+      epics: epics.map((e) => {
+        const d = epicDates(e);
+        const own = aggregateEpicDates([d]);
+        const epicPct = pctDone(e.children, settings);
+        return {
+          key: e.key,
+          summary: e.summary,
+          status: e.status,
+          childrenTotal: e.children.filter((c) => c.type !== 'Subtarea').length,
+          childrenByMacro: macroCount(e.children, settings),
+          pctDone: epicPct,
+          startDate: d.startDate,
+          targetDate: d.targetDate,
+          closedAt: own.closed ? own.closedAt?.toISOString() ?? null : null,
+          schedule: scheduleStatus({ startDate: d.startDate, targetDate: d.targetDate, closed: own.closed, progressPct: epicPct }, now),
+          closedLate: own.closed && closedLate(own.closedAt, d.targetDate),
+          daysLeft: daysLeft(d.targetDate, now),
+          jiraUrl: urlOf(e.key),
+          estimation: estimationOfKids(e.children),
+        };
+      }),
       childrenTotal: total,
       childrenByMacro: byMacro,
-      pctDone: total
-        ? Math.round((100 * ((byMacro[MacroStatus.Closed] ?? 0) + (byMacro[MacroStatus.Delivered] ?? 0))) / total)
-        : 0,
+      pctDone: pct,
+      startDate: agg.startDate,
+      targetDate: agg.targetDate,
+      closedAt: agg.closedAt ? agg.closedAt.toISOString() : null,
+      schedule: scheduleStatus({ startDate: agg.startDate, targetDate: agg.targetDate, closed: agg.closed, progressPct: pct }, now),
+      closedLate: agg.closed && closedLate(agg.closedAt, agg.targetDate),
+      daysLeft: daysLeft(agg.targetDate, now),
+      jiraKey: epics[0]?.key ?? null,
+      jiraUrl: epics[0] ? urlOf(epics[0].key) : null,
+      estimation: estimationOfKids(epics.flatMap((e) => e.children)),
       inPeriod: rs.length,
       open: open.length,
       done: rs.length - open.length,

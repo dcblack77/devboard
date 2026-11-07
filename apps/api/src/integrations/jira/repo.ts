@@ -19,6 +19,8 @@ export interface IssueUpsertInput {
   resolvedAt: Date | null;
   updatedAt: Date;
   raw: unknown;
+  dueDate: string | null;
+  storyPoints: number | null;
 }
 
 export interface SegmentInput {
@@ -39,6 +41,9 @@ export interface EpicUpsertInput {
   status: string;
   assigneeRaw: string | null;
   createdAt: Date;
+  startDate: string | null;
+  dueDate: string | null;
+  resolvedAt: Date | null;
 }
 
 export interface InitiativeRow {
@@ -69,6 +74,8 @@ export interface JiraRepo {
   replaceAssigneeChanges(issueKey: string, changes: AssigneeChangeInput[]): Promise<void>;
   /** Inserta/actualiza épicas (upsert por `key`). */
   upsertEpics(epics: EpicUpsertInput[]): Promise<void>;
+  /** Solo UPDATE (sin insert) de fin y puntos de issues existentes, por key: backfill de hijos de épica. */
+  updateIssueEstimates(items: Array<{ key: string; dueDate: string | null; storyPoints: number | null }>): Promise<void>;
   /** Todas las iniciativas + sus filas de `initiative_epics` (para la reconciliación auto). */
   listInitiativesWithEpics(): Promise<{ initiatives: InitiativeRow[]; initiativeEpics: InitiativeEpicRow[] }>;
   /** Crea una iniciativa `source='auto'` y su fila en `initiative_epics`, en una transacción. */
@@ -97,6 +104,8 @@ export function toIssueUpsertInput(
     resolvedAt: parsed.resolvedAt,
     updatedAt: parsed.updatedAt ?? parsed.createdAt,
     raw: parsed,
+    dueDate: parsed.dueDate ?? null,
+    storyPoints: parsed.storyPoints ?? null,
   };
 }
 
@@ -107,5 +116,8 @@ export function toEpicUpsertInput(epic: EpicWithChildren): EpicUpsertInput {
     status: epic.status,
     assigneeRaw: epic.assigneeRaw,
     createdAt: epic.createdAt ?? new Date(0),
+    startDate: epic.startDate ?? null,
+    dueDate: epic.dueDate ?? null,
+    resolvedAt: epic.resolvedAt ?? null,
   };
 }

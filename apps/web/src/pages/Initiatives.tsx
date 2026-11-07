@@ -11,10 +11,11 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Avatar } from '../components/ui/cells';
 import { MODERN_TABLE } from '../components/ui/tables';
+import { DateCell, EstimationCell, JiraKeyLink, SchedulePill, TargetDate, type DateFields } from '../lib/schedule';
 
 type RagColorShort = 'r' | 'a' | 'g';
 
-interface InitiativeListItem {
+interface InitiativeListItem extends DateFields {
   name: string;
   slug: string;
   childrenTotal: number;
@@ -68,6 +69,7 @@ export function Initiatives() {
   const blocked = initiatives.reduce((n, i) => n + i.blockedNow, 0);
 
   const columns: Column<InitiativeListItem>[] = [
+    { key: 'jira', header: 'Clave', accessor: (r) => r.jiraKey ?? '', render: (r) => <JiraKeyLink jiraKey={r.jiraKey} jiraUrl={r.jiraUrl} /> },
     { key: 'name', header: 'Iniciativa', accessor: (r) => r.name, render: (r) => <Link to={`/initiatives/${r.slug}`}>{r.name}</Link> },
     {
       key: 'rag',
@@ -81,7 +83,16 @@ export function Initiatives() {
         </span>
       ),
     },
+    {
+      key: 'schedule',
+      header: 'Plazo',
+      accessor: (r) => r.schedule ?? '',
+      render: (r) => <SchedulePill schedule={r.schedule} closedLate={r.closedLate} />,
+    },
+    { key: 'start', header: 'Inicio', accessor: (r) => r.startDate ?? '', render: (r) => <DateCell date={r.startDate} /> },
+    { key: 'target', header: 'Fin estimado', accessor: (r) => r.targetDate ?? '', render: (r) => <TargetDate date={r.targetDate} daysLeft={r.daysLeft} /> },
     { key: 'pct', header: 'Avance', accessor: (r) => r.pctDone, numeric: true, render: (r) => <ProgressBar pct={r.pctDone} /> },
+    { key: 'estimation', header: 'Estimación', accessor: (r) => r.estimation?.pointsOpen ?? -1, render: (r) => <EstimationCell e={r.estimation} /> },
     { key: 'total', header: 'Elementos', accessor: (r) => r.childrenTotal, numeric: true },
     { key: 'open', header: 'Abiertos', accessor: (r) => r.open, numeric: true },
     { key: 'done', header: 'Entregados', accessor: (r) => r.done, numeric: true },

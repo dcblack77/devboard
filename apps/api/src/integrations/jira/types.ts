@@ -66,6 +66,9 @@ export interface JiraIssueFields {
   labels?: string[];
   reporter?: JiraUserRef | null;
   issuelinks?: JiraIssueLink[];
+  duedate?: string | null;
+  /** Campos personalizados (inicio, puntos…): ver `fields.ts`. */
+  [k: string]: unknown;
 }
 
 /** Enlace entre issues (`fields.issuelinks`): solo uno de outward/inward viene relleno. */
@@ -130,6 +133,8 @@ export interface ParsedIssue {
   statusChanges: StatusChange[];
   assigneeChanges: AssigneeChange[];
   segments: StatusSegment[];
+  dueDate: string | null;
+  storyPoints: number | null;
 }
 
 export interface EpicChildRef {
@@ -138,6 +143,8 @@ export interface EpicChildRef {
   type: string;
   status: string;
   assigneeRaw: string | null;
+  dueDate?: string | null;
+  storyPoints?: number | null;
 }
 
 export interface EpicWithChildren {
@@ -147,4 +154,7 @@ export interface EpicWithChildren {
   assigneeRaw: string | null;
   createdAt: Date | null;
   children: EpicChildRef[];
+  startDate?: string | null;
+  dueDate?: string | null;
+  resolvedAt?: Date | null;
 }

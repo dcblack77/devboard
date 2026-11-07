@@ -61,6 +61,9 @@ export interface AnalyzedIssue {
   ageHours: number;
   attention: string[];
   segments: AnalyzedSegment[];
+  /** Fecha de vencimiento de Jira (`YYYY-MM-DD`) y puntos de historia. */
+  dueDate: string | null;
+  storyPoints: number | null;
 }
 
 function macroOf(status: string, settings: IssueMetricsSettings): MacroStatus | string {
@@ -194,6 +197,8 @@ export function analyzeIssues(
       ageHours: hours(row.createdAt, now),
       attention,
       segments: closed,
+      dueDate: row.dueDate ?? null,
+      storyPoints: row.storyPoints ?? null,
     });
   }
   return out;

@@ -123,6 +123,13 @@ export class JiraSync implements SourceSync {
 
     await this.repo.upsertEpics(epicIndex.map(toEpicUpsertInput));
 
+    // Fin y puntos de TODOS los hijos de épica (también fuera de la ventana): backfill en el siguiente sync.
+    await this.repo.updateIssueEstimates(
+      epicIndex.flatMap((e) =>
+        e.children.map((c) => ({ key: c.key, dueDate: c.dueDate ?? null, storyPoints: c.storyPoints ?? null })),
+      ),
+    );
+
     // Iniciativas = épicas: una iniciativa `auto` por épica sin agrupar; las `auto` siguen
     // el summary de su épica. Ver domain/initiatives/auto-from-epics.ts.
     const { initiatives, initiativeEpics } = await this.repo.listInitiativesWithEpics();

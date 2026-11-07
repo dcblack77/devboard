@@ -1,4 +1,4 @@
-import { bigint, boolean, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core';
+import { bigint, boolean, date, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * Fila singleton de configuración del equipo. Se siembra al arrancar desde variables de
@@ -157,6 +157,10 @@ export const issues = pgTable(
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     raw: jsonb('raw').notNull().default({}),
+    /** Fecha de vencimiento (`duedate`). */
+    dueDate: date('due_date'),
+    /** Puntos de historia (1 punto = 1 día laborable). */
+    storyPoints: doublePrecision('story_points'),
   },
   (table) => [
     index('issues_person_id_idx').on(table.personId),
@@ -197,6 +201,12 @@ export const epics = pgTable('epics', {
   status: text('status').notNull(),
   assigneeRaw: text('assignee_raw'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  /** Fecha de inicio (Jira "Fecha de inicio"). */
+  startDate: date('start_date'),
+  /** Fin estimado (`duedate`). */
+  dueDate: date('due_date'),
+  /** Cierre real (`resolutiondate`). */
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 });
 
 /** Pull request de GitHub. `id` = `repo#number` para evitar colisiones entre repos. */

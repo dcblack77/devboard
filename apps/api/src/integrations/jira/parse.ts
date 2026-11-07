@@ -6,6 +6,7 @@
  *   sea el "estado final" configurado (p.ej. "Finalizada"/"Done").
  * - normalización de nombres de estado vía un mapa de alias recibido por parámetro.
  */
+import { JIRA_FIELDS } from './fields.js';
 import type { JiraRawIssue, ParsedIssue, StatusAliasMap, StatusChange, AssigneeChange, StatusSegment } from './types.js';
 
 /** Normaliza un nombre de estado crudo usando el alias map (identidad si no hay alias). */
@@ -21,6 +22,16 @@ export interface ParseOptions {
   finalStatus: string;
   /** Instante "ahora" para cerrar el segmento abierto (por defecto: new Date()). */
   now?: Date;
+}
+
+/** Fecha `YYYY-MM-DD` de Jira o null. */
+export function dateField(v: unknown): string | null {
+  return typeof v === 'string' && v ? v.slice(0, 10) : null;
+}
+
+/** Número de Jira (puntos) o null si falta / no es número. */
+export function numberField(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
 /**
@@ -89,6 +100,8 @@ export function parseIssue(issue: JiraRawIssue, opts: ParseOptions): ParsedIssue
     statusChanges,
     assigneeChanges,
     segments,
+    dueDate: dateField(f[JIRA_FIELDS.dueDate]),
+    storyPoints: numberField(f[JIRA_FIELDS.storyPoints]),
   };
 }
 

@@ -575,3 +575,13 @@ main.page table.ft-modern td.td-title { max-width: 32ch; }
   background: var(--field-bg); color: var(--ink);
 }
 .pager { color: var(--ink-2); }
+
+/* Plazos de iniciativas (Corporativo, Iniciativas, Iniciativa) */
+.init-schedule { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 0 0 14px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.init-schedule-item { display: inline-flex; align-items: baseline; gap: 6px; }
+.sched-days { margin-left: 6px; }
+.sched-late { margin-left: 4px; font-weight: 500; }
+.sched-late::before { content: "· "; }
+.sched-badge { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; color: var(--amber-ink); background: var(--amber-bg); white-space: nowrap; }
+.badge.badge-amber { color: var(--amber-ink); background: var(--amber-bg); display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
+@media print { .init-schedule { border-color: currentColor; } .sched-badge, .badge.badge-amber { border: 1px solid currentColor; } }

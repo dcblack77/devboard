@@ -18,10 +18,11 @@ import { TimeSeriesChart } from '../components/ui/TimeSeriesChart';
 import { toDelta, windowDelta } from '../lib/deltas';
 import { fmtHours } from '../lib/format';
 import { ProgressBar } from './Initiatives';
+import { DateCell, EstimationCell, JiraKeyLink, MissingDate, SchedulePill, TargetDate, fmtDayMonth, type DateFields } from '../lib/schedule';
 
 type RagColorShort = 'r' | 'a' | 'g';
 
-interface EpicSummary {
+interface EpicSummary extends DateFields {
   key: string;
   summary: string;
   status: string;
@@ -46,6 +47,8 @@ interface InitiativeIssue {
   counted: boolean;
   deliveredAt: string | null;
   inStatusHours: number | null;
+  storyPoints?: number | null;
+  dueDate?: string | null;
 }
 
 interface AttentionIssue extends InitiativeIssue {
@@ -59,7 +62,7 @@ interface PersonStat {
   done: number;
 }
 
-interface InitiativeDetail {
+interface InitiativeDetail extends DateFields {
   name: string;
   slug: string;
   epics: EpicSummary[];
@@ -111,11 +114,15 @@ export function Initiative() {
   const person = (name: string | null) => (name ? <Avatar name={name} /> : <span className="muted">{NONE}</span>);
 
   const epicColumns: Column<EpicSummary>[] = [
-    { key: 'key', header: 'Clave', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },
+    { key: 'key', header: 'Clave', accessor: (r) => r.key, render: (r) => <JiraKeyLink jiraKey={r.key} jiraUrl={r.jiraUrl} /> },
     { key: 'summary', header: 'Resumen', accessor: (r) => r.summary, cellClass: 'td-title', cellTitle: (r) => r.summary },
     { key: 'status', header: 'Estado', accessor: (r) => r.status, render: (r) => <StatusPill status={r.status} /> },
+    { key: 'schedule', header: 'Plazo', accessor: (r) => r.schedule ?? '', render: (r) => <SchedulePill schedule={r.schedule} closedLate={r.closedLate} /> },
+    { key: 'start', header: 'Inicio', accessor: (r) => r.startDate ?? '', render: (r) => <DateCell date={r.startDate} /> },
+    { key: 'target', header: 'Fin estimado', accessor: (r) => r.targetDate ?? '', render: (r) => <TargetDate date={r.targetDate} daysLeft={r.daysLeft} /> },
     { key: 'total', header: 'Elementos', accessor: (r) => r.childrenTotal, numeric: true },
     { key: 'pct', header: 'Avance', accessor: (r) => r.pctDone, numeric: true, render: (r) => <ProgressBar pct={r.pctDone} /> },
+    { key: 'estimation', header: 'Estimación', accessor: (r) => r.estimation?.pointsOpen ?? -1, render: (r) => <EstimationCell e={r.estimation} /> },
   ];
 
   const attentionColumns: Column<AttentionIssue>[] = [
@@ -142,6 +149,19 @@ export function Initiative() {
     { key: 'status', header: 'Estado', accessor: (r) => r.status, filterOptions: statuses, render: (r) => <StatusPill status={r.macro} label={r.status} /> },
     { key: 'person', header: 'Persona', accessor: (r) => r.assigneeRaw ?? NONE, filterOptions: assignees, cellClass: 'author-cell', render: (r) => person(r.assigneeRaw) },
     { key: 'age', header: 'En el estado', accessor: (r) => r.inStatusHours ?? -1, numeric: true, render: (r) => <AgeBadge hours={r.inStatusHours} /> },
+    {
+      key: 'estimation',
+      header: 'Estimación',
+      accessor: (r) => ((r.storyPoints ?? 0) > 0 ? (r.storyPoints as number) : -1),
+      render: (r) =>
+        (r.storyPoints ?? 0) > 0 ? (
+          <>{r.storyPoints} pts</>
+        ) : r.dueDate ? (
+          <>vence {fmtDayMonth(r.dueDate)}</>
+        ) : (
+          <span className="badge badge-amber">Sin estimar</span>
+        ),
+    },
   ];
 
   return (
@@ -150,6 +170,19 @@ export function Initiative() {
       lead={<Rag color={RAG_MAP[data.rag.color]} text={`${data.pctDone}% completado — ${data.rag.reason}`} />}
       actions={<Link to="/initiatives" className="btn sec">← Iniciativas</Link>}
     >
+      <div className="init-schedule">
+        <SchedulePill schedule={data.schedule} closedLate={data.closedLate} />
+        <span className="init-schedule-item">
+          <span className="muted">Inicio</span> {data.startDate ? <DateCell date={data.startDate} /> : <MissingDate />}
+        </span>
+        <span className="init-schedule-item">
+          <span className="muted">Fin estimado</span> <TargetDate date={data.targetDate} daysLeft={data.daysLeft} />
+        </span>
+        <span className="init-schedule-item">
+          <JiraKeyLink jiraKey={data.jiraKey} jiraUrl={data.jiraUrl} />
+        </span>
+      </div>
+
       <Block title="Resumen" plain>
         <KpiGroup label="Volumen">
           <Kpi value={data.childrenTotal} label="Elementos totales" />

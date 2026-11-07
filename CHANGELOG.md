@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Plazos y estimación de iniciativas**: inicio, fin estimado y cierre real desde Jira, estado de
+  plazo (En plazo / En riesgo / Vencida / Sin fecha / Cerrada) y estimación de los hijos abiertos
+  (1 punto = 1 día laborable). Nuevas columnas en Corporativo, Iniciativas e Iniciativa, y KPIs «Plazos».
+- API: `/api/initiatives`, `/api/initiatives/:slug` y `/api/home` añaden `startDate`, `targetDate`,
+  `schedule`, `daysLeft`, `estimation` y `jiraUrl`. Los ids de campo de Jira viven en
+  `apps/api/src/integrations/jira/fields.ts` (`JIRA_FIELDS`).
+- Migración `0009_initiative_dates` (solo columnas nullable); se rellena en el siguiente sync.
+
 ## 0.2.0 — 2026-11-04
 
 - **Mapa de skills** (`/skills`, Tech Lead): competencias, stack y dominio por persona con niveles
