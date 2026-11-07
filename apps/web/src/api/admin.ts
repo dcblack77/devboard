@@ -20,7 +20,7 @@ import type {
   UpdatePersonRequest,
   UpdateSettingsRequest,
   UpdateSkillRequest,
-} from '@devboard/shared';
+} from '@teampulse/shared';
 
 /** Error lanzado cuando la API responde con un código de error HTTP (copia de `client.ts`). */
 class AdminApiError extends Error {

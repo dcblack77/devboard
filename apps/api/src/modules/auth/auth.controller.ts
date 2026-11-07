@@ -1,6 +1,6 @@
 import { controller, Get, Post, body, request, response } from '@expressots/adapter-express';
 import type { Request, Response } from 'express';
-import { Role, type LoginRequest, type LoginResponse, type MeResponse } from '@devboard/shared';
+import { Role, type LoginRequest, type LoginResponse, type MeResponse } from '@teampulse/shared';
 import { loadEnv } from '../../config/env.js';
 import { createSessionCookieValue, SESSION_COOKIE_NAME, SESSION_MAX_AGE_MS } from './session.js';
 

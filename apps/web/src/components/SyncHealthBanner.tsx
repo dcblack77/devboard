@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SyncHealthDto, SyncSourceHealthDto } from '@devboard/shared';
+import type { SyncHealthDto, SyncSourceHealthDto } from '@teampulse/shared';
 import { api } from '../api/client';
 import { fmtDateTime } from '../lib/format';
 

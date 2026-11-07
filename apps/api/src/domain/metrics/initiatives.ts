@@ -3,7 +3,7 @@
  * Puerto 1:1 de `initiative_stats()`, `_macro_count()`, `_pct_done()` y
  * `rag_initiative()` del board Python de referencia.
  */
-import { MacroStatus } from '@devboard/shared';
+import { MacroStatus } from '@teampulse/shared';
 import type { EpicWithChildren } from '../../integrations/jira/types.js';
 import {
   aggregateEpicDates,

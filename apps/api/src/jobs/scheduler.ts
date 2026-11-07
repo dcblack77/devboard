@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { SnapshotKind } from '@devboard/shared';
+import { SnapshotKind } from '@teampulse/shared';
 import { loadEnv } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { SyncService } from '../modules/sync/sync.service.js';

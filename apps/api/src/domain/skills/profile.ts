@@ -4,7 +4,7 @@
  * contribución (umbrales idénticos al informe mensual del equipo), rol sugerido por reglas,
  * referencias, huecos frente al equipo y un resumen de una frase. Funciones puras.
  */
-import type { PersonProfileDto, PersonSkillDto, ProfileContribution, ProfileShape, SkillDto, SkillPersonDto } from '@devboard/shared';
+import type { PersonProfileDto, PersonSkillDto, ProfileContribution, ProfileShape, SkillDto, SkillPersonDto } from '@teampulse/shared';
 import type { ActivitySnapshot } from '../../modules/skills/skills.repo.js';
 
 export interface ProfileActivity {

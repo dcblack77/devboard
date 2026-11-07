@@ -8,7 +8,7 @@ import type {
   SkillLevel,
   SkillPersonDto,
   SkillsResponse,
-} from '@devboard/shared';
+} from '@teampulse/shared';
 import { api } from '../api/client';
 import { adminApi } from '../api/admin';
 import { Block } from '../components/Block';

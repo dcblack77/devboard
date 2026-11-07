@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import type { Role } from '@devboard/shared';
+import type { Role } from '@teampulse/shared';
 import { api } from './api/client';
 import { Nav } from './components/Nav';
 import { SyncButton } from './components/SyncButton';
@@ -57,7 +57,7 @@ function Layout({
   return (
     <>
       <header ref={headerRef}>
-        <h1>DevBoard</h1>
+        <h1>Team Pulse</h1>
         <span className="sub">Métricas del equipo</span>
         {FEATURES.teamShortcut ? (
           <Link to="/team" className="btn team-shortcut noprint">

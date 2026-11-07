@@ -7,7 +7,7 @@
 import { controller, Get, Post, param, response } from '@expressots/adapter-express';
 import type { Response } from 'express';
 import { desc, eq } from 'drizzle-orm';
-import { Role, SnapshotKind, type SnapshotDetailResponse, type SnapshotListResponse } from '@devboard/shared';
+import { Role, SnapshotKind, type SnapshotDetailResponse, type SnapshotListResponse } from '@teampulse/shared';
 import { getDb } from '../../db/client.js';
 import { snapshots } from '../../db/schema.js';
 import { getMetricsContext } from '../../domain/context.js';

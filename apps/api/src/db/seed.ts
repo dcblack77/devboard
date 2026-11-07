@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { DEFAULT_THRESHOLDS, MacroStatus, legacyBoards } from '@devboard/shared';
+import { DEFAULT_THRESHOLDS, MacroStatus, legacyBoards } from '@teampulse/shared';
 import { getDb } from './client.js';
 import { settings } from './schema.js';
 import { loadEnv } from '../config/env.js';

@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import type { Role } from '@devboard/shared';
+import type { Role } from '@teampulse/shared';
 
 vi.mock('../../src/components/charts/BarChart', () => ({
   BarChart: ({ data }: { data: { labels: string[]; datasets: Array<{ label: string }> } }) => (

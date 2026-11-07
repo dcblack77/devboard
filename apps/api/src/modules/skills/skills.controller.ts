@@ -15,7 +15,7 @@ import {
   type SetSeniorityRequest,
   type SkillItemResponse,
   type UpdateSkillRequest,
-} from '@devboard/shared';
+} from '@teampulse/shared';
 import { requireRole } from '../../middleware/auth.middleware.js';
 import { DrizzleSkillsRepo, type SkillsRepo } from './skills.repo.js';
 import { SkillsService } from './skills.service.js';

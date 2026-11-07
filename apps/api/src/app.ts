@@ -133,10 +133,10 @@ export class App extends AppExpress {
     new SyncService().runAll().catch((err) => {
       logger.error({ err }, 'Sync inicial al arrancar falló');
     });
-    logger.info('DevBoard API lista');
+    logger.info('Team Pulse API lista');
   }
 
   override async serverShutdown(): Promise<void> {
-    logger.info('DevBoard API deteniéndose');
+    logger.info('Team Pulse API deteniéndose');
   }
 }

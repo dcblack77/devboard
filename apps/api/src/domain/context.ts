@@ -9,7 +9,7 @@
  * terminar cada sync).
  */
 import { asc, eq } from 'drizzle-orm';
-import { MacroStatus, type SettingsDto } from '@devboard/shared';
+import { MacroStatus, type SettingsDto } from '@teampulse/shared';
 import { getDb } from '../db/client.js';
 import {
   epics,

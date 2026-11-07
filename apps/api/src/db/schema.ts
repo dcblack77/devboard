@@ -6,7 +6,7 @@ import { bigint, boolean, date, doublePrecision, index, integer, jsonb, pgTable,
  */
 export const settings = pgTable('settings', {
   id: integer('id').primaryKey().default(1),
-  /** Tableros de Jira `[{ key, kind: 'dev'|'support', name? }]` (ver `@devboard/shared` boards.ts). */
+  /** Tableros de Jira `[{ key, kind: 'dev'|'support', name? }]` (ver `@teampulse/shared` boards.ts). */
   jiraBoards: jsonb('jira_boards').notNull().default([]),
   sinceDate: text('since_date'),
   syncMinutes: integer('sync_minutes').notNull().default(30),

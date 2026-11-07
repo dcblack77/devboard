@@ -4,7 +4,7 @@
  * configurados. Sin acceso a BD: recibe los tickets ya cargados. Todas las duraciones en
  * horas naturales (calendario).
  */
-import { boardOf, type SupportBoardRowDto, type SupportResponse, type SupportSla, type SupportSummaryDto } from '@devboard/shared';
+import { boardOf, type SupportBoardRowDto, type SupportResponse, type SupportSla, type SupportSummaryDto } from '@teampulse/shared';
 import { quantile, type Window } from './system.js';
 import { hours, weekKey } from './time.js';
 

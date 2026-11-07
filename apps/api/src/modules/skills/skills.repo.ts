@@ -3,7 +3,7 @@
  * probar los controladores con una implementación en memoria (ver test/fixtures).
  */
 import { and, asc, eq, gte, isNotNull, sql } from 'drizzle-orm';
-import type { Seniority, SkillCategory, SkillSource } from '@devboard/shared';
+import type { Seniority, SkillCategory, SkillSource } from '@teampulse/shared';
 import { getDb } from '../../db/client.js';
 import { epics, issues, people, personSkills, prReviews, pullRequests, skills } from '../../db/schema.js';
 import { personActivityFromSnapshot, type PersonActivityRow } from '../../domain/skills/profile.js';

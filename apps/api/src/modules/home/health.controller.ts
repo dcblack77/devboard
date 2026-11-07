@@ -1,6 +1,6 @@
 import { controller, Get, response } from '@expressots/adapter-express';
 import type { Response } from 'express';
-import type { HealthResponse } from '@devboard/shared';
+import type { HealthResponse } from '@teampulse/shared';
 import { pingDb } from '../../db/client.js';
 import { getPackageVersion } from '../../utils/package-info.js';
 

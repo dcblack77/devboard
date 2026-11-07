@@ -1,4 +1,4 @@
-import type { JiraBoard } from '@devboard/shared';
+import type { JiraBoard } from '@teampulse/shared';
 
 /**
  * Claves de los tableros de desarrollo a sincronizar: las de `settings.jiraBoards` (kind dev);

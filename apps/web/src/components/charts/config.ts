@@ -4,7 +4,7 @@ import type { ChartOptions } from 'chart.js';
 ChartJS.register(...registerables);
 
 /**
- * Opciones por defecto compartidas por todos los gráficos de DevBoard: sin animación
+ * Opciones por defecto compartidas por todos los gráficos de Team Pulse: sin animación
  * (rendimiento e impresión estables) y responsive dentro de un contenedor de altura fija.
  */
 export const CHART_DEFAULTS: ChartOptions<'bar' | 'line' | 'scatter'> = {

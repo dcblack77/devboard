@@ -1,4 +1,4 @@
-# DevBoard
+# Team Pulse
 
 Panel autohosteado de métricas de un equipo de desarrollo a partir de **Jira** y **GitHub**:
 entrega, tiempos por estado, code review, iniciativas y vista por persona. Pensado para un

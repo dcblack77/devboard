@@ -20,7 +20,7 @@ import type {
   SyncStatusDto,
   TeamResponse,
   SystemResponse,
-} from '@devboard/shared';
+} from '@teampulse/shared';
 
 /** Error lanzado cuando la API responde con un código de error HTTP. */
 export class ApiError extends Error {
@@ -67,7 +67,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Cliente tipado del API de DevBoard, usado por todas las páginas. */
+/** Cliente tipado del API de Team Pulse, usado por todas las páginas. */
 export const api = {
   health: () => request<HealthResponse>('/health'),
   me: () => request<MeResponse>('/auth/me'),

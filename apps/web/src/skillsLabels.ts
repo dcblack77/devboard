@@ -1,4 +1,4 @@
-import type { ProfileContribution, ProfileShape } from '@devboard/shared';
+import type { ProfileContribution, ProfileShape } from '@teampulse/shared';
 
 /** Etiquetas en español de la forma del conocimiento (copia de la API; el web no importa código del api). */
 export const SHAPE_LABEL: Record<ProfileShape, string> = {

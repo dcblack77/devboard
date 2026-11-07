@@ -1,6 +1,6 @@
 import { controller, Get, request, response } from '@expressots/adapter-express';
 import type { Request, Response } from 'express';
-import { Role, type SystemResponse } from '@devboard/shared';
+import { Role, type SystemResponse } from '@teampulse/shared';
 import { getMetricsContext } from '../../domain/context.js';
 import { systemSummary } from '../../domain/metrics/system.js';
 import { requireRole } from '../../middleware/auth.middleware.js';

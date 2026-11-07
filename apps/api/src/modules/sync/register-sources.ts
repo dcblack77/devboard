@@ -23,7 +23,7 @@ import { JiraClient } from '../../integrations/jira/client.js';
 import { SupportSync } from '../../integrations/support/sync.js';
 import { DrizzleSupportRepo } from '../../integrations/support/repo.drizzle.js';
 import { devProjectKeys, supportProjectKeys } from '../../integrations/jira/boards.js';
-import type { JiraBoard } from '@devboard/shared';
+import type { JiraBoard } from '@teampulse/shared';
 
 const DEFAULT_FINAL_STATUS = 'Finalizada';
 

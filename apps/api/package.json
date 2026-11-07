@@ -1,5 +1,5 @@
 {
-  "name": "@devboard/api",
+  "name": "@teampulse/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "db:backfill-prs": "tsx src/db/backfill-prs.ts"
   },
   "dependencies": {
-    "@devboard/shared": "*",
+    "@teampulse/shared": "*",
     "@expressots/adapter-express": "^4.2.1",
     "@expressots/core": "^4.2.1",
     "cookie-parser": "^1.4.7",

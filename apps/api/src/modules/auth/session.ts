@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { loadEnv } from '../../config/env.js';
-import { Role } from '@devboard/shared';
+import { Role } from '@teampulse/shared';
 
 interface SessionPayload {
   role: Role;

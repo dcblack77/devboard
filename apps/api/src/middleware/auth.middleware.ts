@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { Role } from '@devboard/shared';
+import { Role } from '@teampulse/shared';
 import { loadEnv } from '../config/env.js';
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from '../modules/auth/session.js';
 

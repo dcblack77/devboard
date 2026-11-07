@@ -3,7 +3,7 @@
  * carga, throughput, ciclo/lead, épicas en las que participa y foco de
  * atención, para cada assignee (o "(sin asignar)").
  */
-import { MacroStatus } from '@devboard/shared';
+import { MacroStatus } from '@teampulse/shared';
 import type { EpicWithChildren } from '../../integrations/jira/types.js';
 import { mean, slugify, weekKey } from './time.js';
 import { daysByStateType, type DaysByStateType } from './status.js';

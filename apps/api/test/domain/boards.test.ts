@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { boardOf, devBoards, legacyBoards, supportBoards, type JiraBoard } from '@devboard/shared';
+import { boardOf, devBoards, legacyBoards, supportBoards, type JiraBoard } from '@teampulse/shared';
 
 const BOARDS: JiraBoard[] = [
   { key: 'MAIN', kind: 'dev', name: null },

@@ -2,7 +2,7 @@
  * Fixtures sintéticos de settings de Jira para los tests de métricas.
  * Datos ficticios, sin relación con ningún equipo/proyecto real.
  */
-import { MacroStatus } from '@devboard/shared';
+import { MacroStatus } from '@teampulse/shared';
 import type { IssueMetricsSettings } from '../../src/domain/metrics/issues.js';
 
 export const STATUS_FLOW = [

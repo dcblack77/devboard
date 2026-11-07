@@ -28,7 +28,7 @@ import {
   type UpdateInitiativeRequest,
   type UpdatePersonRequest,
   type UpdateSettingsRequest,
-} from '@devboard/shared';
+} from '@teampulse/shared';
 import { getDb } from '../../db/client.js';
 import { initiativeEpics, initiatives, people, pullRequests, epics, issues, settings } from '../../db/schema.js';
 import { getMetricsContext, invalidateMetricsContext } from '../../domain/context.js';

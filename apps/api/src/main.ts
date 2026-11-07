@@ -21,6 +21,6 @@ async function main() {
 
 main().catch((err) => {
   // eslint-disable-next-line no-console
-  console.error('Error fatal al arrancar DevBoard API:', err);
+  console.error('Error fatal al arrancar Team Pulse API:', err);
   process.exit(1);
 });

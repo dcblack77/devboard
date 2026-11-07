@@ -36,7 +36,7 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json* ./
 COPY packages/shared/package.json packages/shared/package.json
 COPY apps/api/package.json apps/api/package.json
-RUN npm install --omit=dev --workspace=@devboard/shared --workspace=@devboard/api
+RUN npm install --omit=dev --workspace=@teampulse/shared --workspace=@teampulse/api
 
 COPY --from=build-shared /repo/packages/shared/dist packages/shared/dist
 COPY --from=build-api /repo/apps/api/dist apps/api/dist

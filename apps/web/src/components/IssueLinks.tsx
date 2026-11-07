@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { IssueLinksResponse, LinkedPrDto } from '@devboard/shared';
+import type { IssueLinksResponse, LinkedPrDto } from '@teampulse/shared';
 import { api } from '../api/client';
 
 const EMPTY: IssueLinksResponse = { jiraBrowseUrl: null, prsByIssue: {} };

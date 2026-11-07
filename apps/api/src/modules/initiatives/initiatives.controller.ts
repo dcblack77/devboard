@@ -1,6 +1,6 @@
 import { controller, Get, param, response } from '@expressots/adapter-express';
 import type { Response } from 'express';
-import { Role, type InitiativesResponse } from '@devboard/shared';
+import { Role, type InitiativesResponse } from '@teampulse/shared';
 import { getMetricsContext } from '../../domain/context.js';
 import { ragInitiative } from '../../domain/metrics/initiatives.js';
 import { requireRole } from '../../middleware/auth.middleware.js';

@@ -1,6 +1,6 @@
 import { controller, Get, request, response } from '@expressots/adapter-express';
 import type { Request, Response } from 'express';
-import { ALL_BOARDS, Role, boardOf, devBoards, supportBoards, type SupportResponse } from '@devboard/shared';
+import { ALL_BOARDS, Role, boardOf, devBoards, supportBoards, type SupportResponse } from '@teampulse/shared';
 import { getMetricsContext } from '../../domain/context.js';
 import { supportByBoard, supportSummary, SUPPORT_NOT_CONFIGURED, type SupportInput } from '../../domain/metrics/support.js';
 import { requireRole } from '../../middleware/auth.middleware.js';

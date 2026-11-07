@@ -88,7 +88,7 @@ export class GithubClient {
           headers: {
             Authorization: `Bearer ${this.token}`,
             'Content-Type': 'application/json',
-            'User-Agent': 'devboard',
+            'User-Agent': 'team-pulse',
           },
           body: JSON.stringify({ query, variables }),
           signal: controller.signal,
@@ -140,7 +140,7 @@ export class GithubClient {
             Authorization: `Bearer ${this.token}`,
             Accept: 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': 'devboard',
+            'User-Agent': 'team-pulse',
           },
           signal: controller.signal,
         });

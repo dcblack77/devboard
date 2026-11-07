@@ -7,7 +7,7 @@
  * no acceden a la base de datos.
  */
 import type { pullRequests, prReviews, prReviewRequests } from '../../db/schema.js';
-import { boardOf, devBoards, type SettingsDto } from '@devboard/shared';
+import { boardOf, devBoards, type SettingsDto } from '@teampulse/shared';
 
 export type PullRequestRow = typeof pullRequests.$inferSelect;
 export type PrReviewRow = typeof prReviews.$inferSelect;

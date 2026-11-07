@@ -1,7 +1,7 @@
 import { controller, Get, response } from '@expressots/adapter-express';
 import type { Response } from 'express';
 import { sql } from 'drizzle-orm';
-import { Role, type IssueLinksResponse, type LinkedPrDto } from '@devboard/shared';
+import { Role, type IssueLinksResponse, type LinkedPrDto } from '@teampulse/shared';
 import { getDb } from '../../db/client.js';
 import { pullRequests } from '../../db/schema.js';
 import { loadEnv } from '../../config/env.js';

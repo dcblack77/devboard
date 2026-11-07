@@ -10,7 +10,7 @@ import type {
   SupportResponse,
   SupportSummaryDto,
   SupportTypeDto,
-} from '@devboard/shared';
+} from '@teampulse/shared';
 import { api } from '../api/client';
 import { Kpi } from '../components/Kpi';
 import { FilterTable } from '../components/FilterTable';

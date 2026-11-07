@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SystemResponse, DoraRepoDto, PracticeDto, KanbanStateDto, ClosureDayDto } from '@devboard/shared';
+import type { SystemResponse, DoraRepoDto, PracticeDto, KanbanStateDto, ClosureDayDto } from '@teampulse/shared';
 import { api } from '../api/client';
 import { Kpi } from '../components/Kpi';
 import { FilterTable } from '../components/FilterTable';

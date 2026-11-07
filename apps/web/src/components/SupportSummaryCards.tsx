@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
-import type { SupportResponse, SupportSummaryDto } from '@devboard/shared';
+import type { SupportResponse, SupportSummaryDto } from '@teampulse/shared';
 import { api } from '../api/client';
 import { Block } from './Block';
 import { Kpi } from './Kpi';

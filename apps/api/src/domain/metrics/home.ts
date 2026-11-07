@@ -5,7 +5,7 @@
  * Riesgo (bloqueadas, paradas, PRs esperando review) y Calidad (errores vs
  * funcionalidad, hotfix, PRs sin aprobación).
  */
-import { MacroStatus } from '@devboard/shared';
+import { MacroStatus } from '@teampulse/shared';
 import { mean } from './time.js';
 import type { AnalyzedIssue, IssueMetricsSettings } from './issues.js';
 import type { DevStat } from './people.js';

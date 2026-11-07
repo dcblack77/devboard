@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Role, SyncStateDto } from '@devboard/shared';
+import type { Role, SyncStateDto } from '@teampulse/shared';
 import { api, ApiError } from '../api/client';
 import { fmtAgo } from '../lib/format';
 

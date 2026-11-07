@@ -12,7 +12,7 @@ import {
   type PrReviewRequestRow,
   type GithubMetricsSettings,
 } from '../../../src/domain/metrics/github.js';
-import { DEFAULT_THRESHOLDS } from '@devboard/shared';
+import { DEFAULT_THRESHOLDS } from '@teampulse/shared';
 import fixture from '../../fixtures/github-prs.json' with { type: 'json' };
 
 function toDate(v: string | null): Date | null {

@@ -12,7 +12,7 @@
  * `settings.reviewStatus` si se define, o si no el primer estado normalizado
  * cuyo nombre en minúsculas contiene "review".
  */
-import { MacroStatus } from '@devboard/shared';
+import { MacroStatus } from '@teampulse/shared';
 import type { issues, issueStatusSegments } from '../../db/schema.js';
 import { hours, formatDays } from './time.js';
 

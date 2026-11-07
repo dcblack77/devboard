@@ -1,4 +1,4 @@
-# DevBoard UI kit
+# Team Pulse UI kit
 
 Shared building blocks extracted from the **Code review** page (`/github`, `pages/Github.tsx`),
 which is the reference design and the first consumer. Every page should look and behave like it.

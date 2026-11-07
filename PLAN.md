@@ -1,4 +1,4 @@
-# DevBoard — plan de implementación
+# Team Pulse — plan de implementación
 
 Sistema autohosteado de métricas de equipo de desarrollo (Jira + GitHub). Genérico: nada de
 nada específico de ninguna empresa en el código; toda la configuración por `.env` y por la UI de administración.

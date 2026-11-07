@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { closureBatches, systemSummary } from '../../../src/domain/metrics/system.js';
-import type { SystemResponse } from '@devboard/shared';
+import type { SystemResponse } from '@teampulse/shared';
 import { at, issue, seg } from '../../fixtures/system/system.js';
 
 const window = { from: at(0), to: at(24 * 30) };

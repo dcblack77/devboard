@@ -1,8 +1,8 @@
 {
-  "name": "devboard",
+  "name": "team-pulse",
   "private": true,
   "version": "0.1.0",
-  "description": "DevBoard — sistema autohosteado de métricas de equipo (Jira + GitHub)",
+  "description": "Team Pulse — sistema autohosteado de métricas de equipo (Jira + GitHub)",
   "workspaces": [
     "packages/*",
     "apps/*"

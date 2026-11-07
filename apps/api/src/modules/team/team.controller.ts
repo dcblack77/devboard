@@ -1,6 +1,6 @@
 import { controller, Get, param, response } from '@expressots/adapter-express';
 import type { Response } from 'express';
-import { Role, type PersonDetailResponse, type TeamResponse } from '@devboard/shared';
+import { Role, type PersonDetailResponse, type TeamResponse } from '@teampulse/shared';
 import { getMetricsContext } from '../../domain/context.js';
 import { personMetrics, personSummary, rankTable, teamMedians } from '../../domain/metrics/team.js';
 import { requireRole } from '../../middleware/auth.middleware.js';

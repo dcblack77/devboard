@@ -5,7 +5,7 @@ import { personMetrics, personSummary, rankTable, teamMedians } from '../../../s
 import { baseSettings } from '../../fixtures/jiraSettings.js';
 import { makeIssue } from '../../fixtures/jiraIssues.js';
 import { weekLabels } from '../../../src/domain/metrics/time.js';
-import { DEFAULT_THRESHOLDS } from '@devboard/shared';
+import { DEFAULT_THRESHOLDS } from '@teampulse/shared';
 import type { ReviewStats } from '../../../src/domain/metrics/github.js';
 
 const NOW = new Date('2026-02-01T00:00:00Z');

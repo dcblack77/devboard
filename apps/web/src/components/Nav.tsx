@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import type { Role } from '@devboard/shared';
+import type { Role } from '@teampulse/shared';
 
 interface NavLinkDef {
   to: string;

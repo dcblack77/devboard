@@ -3,7 +3,7 @@
  * solo cuentan personas activas. Riesgo: rojo si ≤ 1 persona con nivel ≥ 2, ámbar si 2,
  * verde si ≥ 3.
  */
-import type { SkillCoverageDto, SkillRisk } from '@devboard/shared';
+import type { SkillCoverageDto, SkillRisk } from '@teampulse/shared';
 
 export interface CoveragePerson {
   id: number;

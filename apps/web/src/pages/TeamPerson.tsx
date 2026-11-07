@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { PersonProfileDto, ProfileSkillRef, PersonSkillsResponse, SkillCategory, SkillLevel } from '@devboard/shared';
+import type { PersonProfileDto, ProfileSkillRef, PersonSkillsResponse, SkillCategory, SkillLevel } from '@teampulse/shared';
 import { api } from '../api/client';
 import { PersonDetail, type PersonDetailData } from '../components/PersonDetail';
 import { EmptyState } from '../components/ui/EmptyState';

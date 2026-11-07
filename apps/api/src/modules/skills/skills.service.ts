@@ -4,7 +4,7 @@
  * último año. El recálculo se expone vía `POST /api/skills/recompute` y se engancha al final
  * de cada sync.
  */
-import type { PersonProfileDto, PersonSkillsResponse, RecomputeSkillsResponse, SkillsResponse } from '@devboard/shared';
+import type { PersonProfileDto, PersonSkillsResponse, RecomputeSkillsResponse, SkillsResponse } from '@teampulse/shared';
 import { coverage, planAutoUpserts, soleOwnerSkills } from '../../domain/skills/coverage.js';
 import { buildPersonProfile, monthsBetween, type PersonActivityRow } from '../../domain/skills/profile.js';
 import { epicSkillName, suggestDomainLevels } from '../../domain/skills/suggest.js';

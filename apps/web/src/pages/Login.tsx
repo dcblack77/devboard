@@ -35,7 +35,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   return (
     <main>
       <div className="login-box">
-        <h1>DevBoard</h1>
+        <h1>Team Pulse</h1>
         <form onSubmit={handleSubmit}>
           <input
             type="password"

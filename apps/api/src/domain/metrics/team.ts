@@ -4,7 +4,7 @@
  * `render_v4.py`, como datos estructurados (sin HTML: eso es cosa de
  * `apps/web`).
  */
-import type { SettingsDto } from '@devboard/shared';
+import type { SettingsDto } from '@teampulse/shared';
 import type { DevStat } from './people.js';
 import type { PersonReviewStats, ReviewStats, SemaphoreColor } from './github.js';
 import { semaphore } from './github.js';

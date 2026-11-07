@@ -1,4 +1,4 @@
-import { SyncSource, type SyncHealthDto, type SyncSourceHealthDto, type SyncStateDto } from '@devboard/shared';
+import { SyncSource, type SyncHealthDto, type SyncSourceHealthDto, type SyncStateDto } from '@teampulse/shared';
 import { logger } from '../../config/logger.js';
 import { getRegisteredSources } from './registry.js';
 import { invalidateMetricsContext } from '../../domain/context.js';

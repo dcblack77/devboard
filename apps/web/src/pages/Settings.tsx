@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { InitiativeAdminDto, JiraBoard, JiraBoardKind, Seniority, SettingsDto, SkillDto, SkillPersonDto, SupportSla, SyncRunDto } from '@devboard/shared';
+import type { InitiativeAdminDto, JiraBoard, JiraBoardKind, Seniority, SettingsDto, SkillDto, SkillPersonDto, SupportSla, SyncRunDto } from '@teampulse/shared';
 import { adminApi } from '../api/admin';
 import { api } from '../api/client';
 import { Block } from '../components/Block';

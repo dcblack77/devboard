@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildPersonProfile, monthsBetween, personActivityFromSnapshot, type ProfileInput } from '../../../src/domain/skills/profile.js';
-import type { PersonSkillDto, SkillDto } from '@devboard/shared';
+import type { PersonSkillDto, SkillDto } from '@teampulse/shared';
 
 const skill = (id: number, name: string, category: SkillDto['category']): SkillDto => ({
   id,

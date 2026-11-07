@@ -1,6 +1,6 @@
 import { controller, Get, Post, request, response } from '@expressots/adapter-express';
 import type { Request, Response } from 'express';
-import { Role, type SyncRunDto, type SyncStateDto, type SyncStatusDto } from '@devboard/shared';
+import { Role, type SyncRunDto, type SyncStateDto, type SyncStatusDto } from '@teampulse/shared';
 import { SyncService, isSyncRunning } from './sync.service.js';
 import { requireRole } from '../../middleware/auth.middleware.js';
 
