@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { IS_STATIC, staticEnv } from './lib/staticMode';
 import type { Role } from '@teampulse/shared';
 import { api } from './api/client';
 import { Nav } from './components/Nav';
@@ -68,6 +69,7 @@ function Layout({
         <SyncButton role={role} onUpdated={onDataUpdated} />
         <Nav role={role} onLogout={onLogout} authDisabled={authDisabled} />
       </header>
+      {IS_STATIC ? <div className="static-banner">{STATIC_NOTE}</div> : null}
       {children}
     </>
   );
@@ -129,6 +131,12 @@ function AppRoutes({
   );
 }
 
+/** Note shown on top of every page of the static snapshot. */
+const STATIC_NOTE = `Snapshot estático del Team Pulse · datos a ${staticEnv('VITE_SNAPSHOT_AT')} · solo lectura`;
+
+/** Static builds are served from a sub-folder without SPA fallback: routes live in the hash. */
+const Router = IS_STATIC ? HashRouter : BrowserRouter;
+
 /** Raíz de la aplicación: comprueba la sesión y monta el router. */
 export default function App() {
   const [role, setRole] = useState<Role | null>(null);
@@ -149,8 +157,8 @@ export default function App() {
   if (!checked) return null;
 
   return (
-    <BrowserRouter>
+    <Router>
       <AppRoutes role={role} setRole={setRole} authDisabled={authDisabled} />
-    </BrowserRouter>
+    </Router>
   );
 }
