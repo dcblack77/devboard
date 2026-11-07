@@ -201,8 +201,21 @@ describe('Iniciativa (detalle) — diseño /github', () => {
     const sec = byTitle(container, 'Épicas');
     expect(sec.querySelector('.fbar-modern')).toBeTruthy();
     expect(within(sec).getByLabelText('Filas por página')).toBeTruthy();
-    expect([...sec.querySelectorAll('thead th')].map((t) => t.textContent)).toEqual(['Clave', 'Resumen', 'Estado', 'Elementos', 'Avance']);
-    const pills = [...sec.querySelectorAll('tbody .st-pill')].map((p) => [p.textContent, p.className]);
+    expect([...sec.querySelectorAll('thead th')].map((t) => t.textContent)).toEqual([
+      'Clave',
+      'Resumen',
+      'Estado',
+      'Plazo',
+      'Inicio',
+      'Fin estimado',
+      'Elementos',
+      'Avance',
+      'Estimación',
+    ]);
+    // Pill de la columna Estado (la de Plazo se prueba en InitiativeDates.ui.test.tsx).
+    const pills = [...sec.querySelectorAll('tbody tr')]
+      .map((r) => r.querySelectorAll('td')[2]!.querySelector('.st-pill')!)
+      .map((p) => [p.textContent, p.className]);
     expect(pills).toEqual([
       ['In Progress', 'st-pill st-accent'],
       ['Done', 'st-pill st-ok'],

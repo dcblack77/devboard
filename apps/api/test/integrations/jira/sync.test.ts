@@ -5,7 +5,7 @@ import type { JiraClient } from '../../../src/integrations/jira/client.js';
 import type { JiraRawIssue, EpicWithChildren } from '../../../src/integrations/jira/types.js';
 
 function fakeRepo(): JiraRepo & {
-  calls: { upsertIssues: unknown[]; replaceSegments: unknown[]; replaceAssigneeChanges: unknown[]; upsertEpics: unknown[] };
+  calls: { upsertIssues: unknown[]; replaceSegments: unknown[]; replaceAssigneeChanges: unknown[]; upsertEpics: unknown[]; updateIssueEstimates: unknown[] };
   initiatives: InitiativeRow[];
   initiativeEpics: InitiativeEpicRow[];
 } {
@@ -14,6 +14,7 @@ function fakeRepo(): JiraRepo & {
     replaceSegments: [] as unknown[],
     replaceAssigneeChanges: [] as unknown[],
     upsertEpics: [] as unknown[],
+    updateIssueEstimates: [] as unknown[],
   };
   const initiatives: InitiativeRow[] = [];
   const initiativeEpics: InitiativeEpicRow[] = [];
@@ -46,6 +47,9 @@ function fakeRepo(): JiraRepo & {
     },
     async upsertEpics(items) {
       calls.upsertEpics.push(items);
+    },
+    async updateIssueEstimates(items: unknown) {
+      calls.updateIssueEstimates.push(items);
     },
   };
 }
@@ -284,6 +288,75 @@ describe('JiraSync.run — tableros de desarrollo desde settings (loadSettings)'
     await expect(sync.run()).rejects.toThrow('Jira: falta un tablero de desarrollo (Ajustes → Tableros de Jira)');
     expect(client.fetchWindow).not.toHaveBeenCalled();
     expect(repo.calls.upsertIssues).toHaveLength(0);
+  });
+});
+
+describe('JiraSync.run — fechas y estimación (contrato initiative-dates)', () => {
+  const settings = { projects: ['MAIN'], sinceDate: '2026-01-01', statusAliases: {}, macroMap: {}, finalStatus: 'Finalizada' };
+  const win: JiraRawIssue[] = [
+    {
+      key: 'MAIN-10',
+      fields: {
+        summary: 'Con puntos',
+        status: { name: 'Por hacer' },
+        issuetype: { name: 'Historia' },
+        created: '2026-01-02T09:00:00.000+0100',
+        parent: { key: 'MAIN-1' },
+        duedate: '2026-03-20',
+        customfield_10015: 3,
+      } as JiraRawIssue['fields'],
+    },
+  ];
+  const epics = [
+    {
+      key: 'MAIN-1',
+      summary: 'Épica con fechas',
+      status: 'En curso',
+      assigneeRaw: null,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      startDate: '2026-01-15',
+      dueDate: '2026-04-30',
+      resolvedAt: null,
+      children: [
+        { key: 'MAIN-10', summary: 'Con puntos', type: 'Historia', status: 'Por hacer', assigneeRaw: null, dueDate: '2026-03-20', storyPoints: 3 },
+        { key: 'MAIN-11', summary: 'Antigua', type: 'Tarea', status: 'Por hacer', assigneeRaw: null, dueDate: null, storyPoints: null },
+      ],
+    },
+  ] as EpicWithChildren[];
+
+  function run() {
+    const repo = fakeRepo();
+    const client = {
+      whoAmI: vi.fn(async () => ({ accountId: 'acc-1' })),
+      fetchWindow: vi.fn(async () => win),
+      epicsWithChildren: vi.fn(async () => epics),
+    } as unknown as JiraClient;
+    const sync = new JiraSync({ config: { baseUrl: 'https://x.atlassian.net', email: 'a@b.com', apiToken: 't' }, settings, repo, client });
+    return { repo, done: sync.run() };
+  }
+
+  it('persiste fin y puntos de los issues de la ventana', async () => {
+    const { repo, done } = run();
+    await done;
+    const [batch] = repo.calls.upsertIssues as [Array<Record<string, unknown>>];
+    expect(batch[0]).toMatchObject({ key: 'MAIN-10', dueDate: '2026-03-20', storyPoints: 3 });
+  });
+
+  it('persiste inicio, fin y resolución de las épicas', async () => {
+    const { repo, done } = run();
+    await done;
+    const [batch] = repo.calls.upsertEpics as [Array<Record<string, unknown>>];
+    expect(batch[0]).toMatchObject({ key: 'MAIN-1', startDate: '2026-01-15', dueDate: '2026-04-30', resolvedAt: null });
+  });
+
+  it('actualiza fin y puntos de TODOS los hijos de épica (también fuera de la ventana: backfill en el siguiente sync)', async () => {
+    const { repo, done } = run();
+    await done;
+    expect(repo.calls.updateIssueEstimates).toHaveLength(1);
+    expect(repo.calls.updateIssueEstimates[0]).toEqual([
+      { key: 'MAIN-10', dueDate: '2026-03-20', storyPoints: 3 },
+      { key: 'MAIN-11', dueDate: null, storyPoints: null },
+    ]);
   });
 });
 

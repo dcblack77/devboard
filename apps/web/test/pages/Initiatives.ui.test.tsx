@@ -70,8 +70,9 @@ async function renderPage() {
 }
 
 const listSection = (c: HTMLElement) => c.querySelector('details')! as HTMLDetailsElement;
-const rowOf = (sec: Element, name: string) =>
-  [...sec.querySelectorAll('tbody tr')].find((r) => r.querySelector('td')!.textContent === name)!;
+/** Nombre de la iniciativa de una fila (enlace al detalle; la primera columna ahora es «Clave»). */
+const nameOf = (r: Element) => r.querySelector('a[href^="/initiatives/"]')!.textContent;
+const rowOf = (sec: Element, name: string) => [...sec.querySelectorAll('tbody tr')].find((r) => nameOf(r) === name)!;
 
 describe('Iniciativas — diseño /github', () => {
   beforeEach(() => {
@@ -140,9 +141,14 @@ describe('Iniciativas — diseño /github', () => {
     expect(sec.querySelector('.fbar-modern')).toBeTruthy();
     expect(within(sec).getByLabelText('Filas por página')).toBeTruthy();
     expect([...sec.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual([
+      'Clave',
       'Iniciativa',
       'Estado',
+      'Plazo',
+      'Inicio',
+      'Fin estimado',
       'Avance',
+      'Estimación',
       'Elementos',
       'Abiertos',
       'Entregados',
@@ -172,10 +178,10 @@ describe('Iniciativas — diseño /github', () => {
     const estado = within(sec).getByLabelText('Estado') as HTMLSelectElement;
     expect([...estado.options].map((o) => o.value)).toEqual(['', 'Verde', 'Ámbar', 'Rojo']);
     fireEvent.change(estado, { target: { value: 'Rojo' } });
-    expect([...sec.querySelectorAll('tbody tr')].map((r) => r.querySelector('td')!.textContent)).toEqual(['Migración']);
+    expect([...sec.querySelectorAll('tbody tr')].map(nameOf)).toEqual(['Migración']);
     fireEvent.change(estado, { target: { value: '' } });
     fireEvent.change(within(sec).getByLabelText('Buscar'), { target: { value: 'login' } });
-    expect([...sec.querySelectorAll('tbody tr')].map((r) => r.querySelector('td')!.textContent)).toEqual(['Login']);
+    expect([...sec.querySelectorAll('tbody tr')].map(nameOf)).toEqual(['Login']);
   });
 
   it('estado vacío', async () => {

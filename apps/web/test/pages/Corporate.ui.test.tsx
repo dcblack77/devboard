@@ -125,9 +125,9 @@ describe('Corporativo (UI /github, vista imprimible)', () => {
     expect(screen.getAllByRole('button', { name: 'Imprimir / PDF' })).toHaveLength(1);
   });
 
-  it('agrupa los KPIs en Iniciativas, Entrega y calidad y Riesgo', async () => {
+  it('agrupa los KPIs en Iniciativas, Plazos, Entrega y calidad y Riesgo', async () => {
     const { container } = await renderPage();
-    expect(groupLabels(container)).toEqual(['Iniciativas', 'Entrega y calidad', 'Riesgo']);
+    expect(groupLabels(container)).toEqual(['Iniciativas', 'Plazos', 'Entrega y calidad', 'Riesgo']);
     expect(groupKpis(container, 'Iniciativas')).toEqual(['En verde', 'En ámbar', 'En rojo']);
     expect(groupKpis(container, 'Entrega y calidad')).toEqual([
       'Entregado · 4 sem',
@@ -184,7 +184,7 @@ describe('Corporativo (UI /github, vista imprimible)', () => {
     const table = sec.querySelector('table.ft-modern')!;
     expect(table).toBeTruthy();
     const headers = [...table.querySelectorAll('thead th')].map((th) => th.textContent);
-    expect(headers).toEqual(['Iniciativa', 'Semáforo', 'Avance']);
+    expect(headers).toEqual(['Clave', 'Iniciativa', 'Estado', 'Plazo', 'Inicio', 'Fin estimado', 'Avance', 'Estimación']);
     expect(table.querySelectorAll('tbody tr')).toHaveLength(25);
     expect(within(sec).queryByLabelText('Filas por página')).toBeNull();
     expect(within(sec).queryByRole('searchbox')).toBeNull();
