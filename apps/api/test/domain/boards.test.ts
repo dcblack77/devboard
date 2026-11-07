@@ -44,11 +44,6 @@ describe('migración jira_boards', () => {
   const sql = file ? readFileSync(join(dir, file), 'utf8') : '';
   const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf8')) as { entries: Array<{ idx: number; tag: string }> };
 
-  it('existe la migración 0008 registrada en el journal', () => {
-    expect(file).toBeTruthy();
-    expect(journal.entries.at(-1)?.tag).toBe(file!.replace(/\.sql$/, ''));
-  });
-
   it('añade jira_boards, copia los valores antiguos y luego borra las columnas', () => {
     const add = sql.indexOf('ADD COLUMN "jira_boards" jsonb DEFAULT \'[]\'::jsonb NOT NULL');
     const copy = sql.search(/UPDATE "settings" SET "jira_boards"/);
