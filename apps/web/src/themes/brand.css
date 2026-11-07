@@ -1,0 +1,64 @@
+/*
+ * Corporate palette — loaded ONLY in the static snapshot build (VITE_STATIC=1 + VITE_THEME=brand).
+ * Values come from the company's public design tokens (Mantine theme on its website):
+ *   primary  #0F1C14 … #D6EDE1 (deep green)   secondary #034A22 … #E9FFF3 (bright green)
+ *   gray     #101818 … #FFFFFF                   cream     #F7F5EB
+ * The real DevBoard keeps its own palette; nothing here changes the app outside this build.
+ */
+:root,
+:root:has(main.cr, main.page) {
+  color-scheme: light;
+  --bg: #f7f5eb;            /* cream */
+  --card: #ffffff;
+  --ink: #0f1c14;           /* primary-9 */
+  --ink-2: #363e3c;         /* gray-7 (AA on white) */
+  --muted: #666d65;         /* gray-5 */
+  --line: #dbdddc;          /* gray-1 */
+  --accent: #098f43;        /* secondary-7: AA on white for text and links */
+  --ok: #0db353;            /* secondary-6 */
+  --amber: #c27c0e;
+  --warn: #c2412d;
+  --accent-bg: rgba(25, 245, 120, 0.14);  /* secondary-4 tint */
+  --ok-bg: rgba(13, 179, 83, 0.14);
+  --amber-bg: rgba(194, 124, 14, 0.14);
+  --warn-bg: rgba(194, 65, 45, 0.12);
+  --accent-ink: #066c32;    /* secondary-8 */
+  --ok-ink: #034a22;        /* secondary-9 */
+  --amber-ink: #7a4a05;
+  --warn-ink: #8f2a1c;
+  --th-bg: #eef3ee;
+  --field-bg: #ffffff;
+}
+
+/* The snapshot is light only (brand look is designed on cream/white). */
+@media (prefers-color-scheme: dark) {
+  :root,
+  :root:has(main.cr, main.page) {
+    color-scheme: light;
+    --bg: #f7f5eb; --card: #ffffff; --ink: #0f1c14; --ink-2: #363e3c; --muted: #666d65; --line: #dbdddc;
+    --accent: #098f43; --ok: #0db353; --amber: #c27c0e; --warn: #c2412d;
+    --accent-bg: rgba(25, 245, 120, 0.14); --ok-bg: rgba(13, 179, 83, 0.14);
+    --amber-bg: rgba(194, 124, 14, 0.14); --warn-bg: rgba(194, 65, 45, 0.12);
+    --accent-ink: #066c32; --ok-ink: #034a22; --amber-ink: #7a4a05; --warn-ink: #8f2a1c;
+    --th-bg: #eef3ee; --field-bg: #ffffff;
+  }
+}
+
+/* Header in the brand's deep green with the bright green as accent. */
+header { background: #0f1c14; border-bottom: 0; color: #e9fff3; }
+header h1 { color: #ffffff; letter-spacing: -0.01em; }
+header .sub { color: #a3ccaf; }
+nav.main-nav a { color: #c0fbdc; }
+nav.main-nav a:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
+nav.main-nav a.active { background: #19f578; color: #0f1c14; }
+header .sync-chip { background: rgba(255, 255, 255, 0.08); color: #c0fbdc; border-color: rgba(255, 255, 255, 0.14); }
+header .sync-chip .sync-name { color: #ffffff; }
+
+/* Primary buttons and focus ring in brand green. */
+.btn:not(.sec):not(.secondary) { background: #0f1c14; border-color: #0f1c14; color: #ffffff; }
+.btn.sec, .btn.secondary { color: #066c32; border-color: #a3ccaf; }
+:focus-visible { outline-color: #12d465; }
+
+/* Static snapshot banner. */
+.static-banner { background: #e9fff3; color: #034a22; border-bottom: 1px solid #c0fbdc; font-size: var(--fs-sm); padding: 6px clamp(16px, 3vw, 48px); }
+@media print { header { background: #fff; color: #000; } nav.main-nav a { color: #000; } .static-banner { display: none; } }

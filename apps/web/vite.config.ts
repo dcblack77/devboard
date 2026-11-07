@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Static snapshot (VITE_STATIC=1) is hosted in a sub-folder: relative asset URLs.
+  base: process.env.VITE_STATIC === '1' ? './' : '/',
   build: {
     outDir: 'dist',
   },

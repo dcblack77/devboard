@@ -16,6 +16,7 @@ import { MODERN_TABLE } from '../components/ui/tables';
 import { toDelta, windowDelta } from '../lib/deltas';
 import { fmtHours, fmtPct } from '../lib/format';
 import { noApprovalEdge } from './Github';
+import { cssVar } from '../components/ui/TimeSeriesChart';
 
 /** Colores RAG cortos usados por el dominio de métricas ('r'|'a'|'g'). */
 type ShortRag = 'r' | 'a' | 'g';
@@ -146,7 +147,7 @@ export function Home() {
             data={{
               labels: numbers.weekLabels,
               datasets: [
-                { label: 'Entregado', data: numbers.weekTotals, borderColor: '#2563eb', backgroundColor: '#2563eb' },
+                { label: 'Entregado', data: numbers.weekTotals, borderColor: cssVar('--accent', '#2563eb'), backgroundColor: cssVar('--accent', '#2563eb') },
               ],
             }}
           />
