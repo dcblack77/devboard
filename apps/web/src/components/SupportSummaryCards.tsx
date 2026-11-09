@@ -6,6 +6,7 @@ import { Block } from './Block';
 import { Kpi } from './Kpi';
 import type { RagColor } from './Rag';
 import { fmtHours } from '../lib/format';
+import { IS_STATIC } from '../lib/staticMode';
 
 /** Ratio 0–1 → "NN%"; '—' si no hay dato. */
 function fmtRatio(n: number | null | undefined): string {
@@ -34,7 +35,7 @@ function SupportLink() {
       {text}
     </Link>
   ) : (
-    <a href="/support" className="ssc-link noprint">
+    <a href={IS_STATIC ? '#/support' : '/support'} className="ssc-link noprint">
       {text}
     </a>
   );
