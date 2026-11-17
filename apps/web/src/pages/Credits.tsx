@@ -8,6 +8,8 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 interface Credit {
   name: string;
   role: string | null;
+  /** `false` when the person is no longer in the team: the card speaks in the past. */
+  active?: boolean;
   /** Kind of work: «Desarrollo», «Code review». */
   kinds: string[];
   initiatives: string[];
@@ -73,7 +75,7 @@ function CreditsView({ people: raw }: { people: Credit[] }) {
                     <h3>{p.name}</h3>
                   </div>
                   {p.role ? <p className="credit-role">{p.role}</p> : null}
-                  <Chips label="Aporta en" items={p.kinds} />
+                  <Chips label={p.active === false ? 'Aportó en' : 'Aporta en'} items={p.kinds} />
                   <Chips label="Iniciativas" items={p.initiatives} />
                   <Chips label="Repositorios" items={p.repos} />
                 </article>
