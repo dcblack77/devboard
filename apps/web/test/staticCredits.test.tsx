@@ -82,6 +82,23 @@ describe('Credits page (static /people)', () => {
   });
 });
 
+describe('people no longer in the team', () => {
+  it('says «Aportó en» for them and «Aporta en» for the rest', async () => {
+    stubFetch({
+      people: [
+        { name: 'Alice Doe', role: null, active: true, kinds: ['Desarrollo'], initiatives: [], repos: [] },
+        { name: 'Carol Poe', role: null, active: false, kinds: ['Code review'], initiatives: [], repos: [] },
+      ],
+    });
+    const { container } = render(<Credits />);
+    await screen.findByRole('heading', { level: 1, name: 'Personas' });
+    const [alice, carol] = [...container.querySelectorAll<HTMLElement>('.credit-card')];
+    expect(within(alice!).getByText('Aporta en')).toBeTruthy();
+    expect(within(carol!).getByText('Aportó en')).toBeTruthy();
+    expect(within(carol!).queryByText('Aporta en')).toBeNull();
+  });
+});
+
 describe('static navigation', () => {
   it('keeps Personas and drops Skills, Team and Ajustes even for a TL role', () => {
     render(
