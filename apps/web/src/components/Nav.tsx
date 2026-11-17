@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import type { Role } from '@teampulse/shared';
+import { IS_STATIC } from '../lib/staticMode';
 
 interface NavLinkDef {
   to: string;
@@ -36,7 +37,12 @@ export function Nav({
   onLogout?: () => void;
   authDisabled?: boolean;
 }) {
-  const links = role === 'tl' ? [...PUBLIC_LINKS, ...TL_LINKS] : PUBLIC_LINKS;
+  // Static snapshot: people are credited (Personas), not measured, so Skills and the TL views are left out.
+  const links = IS_STATIC
+    ? PUBLIC_LINKS.filter((l) => l.to !== '/skills')
+    : role === 'tl'
+      ? [...PUBLIC_LINKS, ...TL_LINKS]
+      : PUBLIC_LINKS;
   return (
     <nav className="main-nav">
       {links.map((link) => (

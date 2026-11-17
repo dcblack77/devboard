@@ -17,6 +17,7 @@ import { MODERN_TABLE } from '../components/ui/tables';
 import { TimeSeriesChart } from '../components/ui/TimeSeriesChart';
 import { toDelta, windowDelta } from '../lib/deltas';
 import { fmtHours } from '../lib/format';
+import { IS_STATIC } from '../lib/staticMode';
 import { ProgressBar } from './Initiatives';
 import { DateCell, EstimationCell, JiraKeyLink, MissingDate, SchedulePill, TargetDate, fmtDayMonth, type DateFields } from '../lib/schedule';
 
@@ -87,6 +88,18 @@ interface InitiativesData {
 
 const RAG_MAP: Record<RagColorShort, 'red' | 'amber' | 'green'> = { r: 'red', a: 'amber', g: 'green' };
 
+/** Columns of the people table. The static snapshot lists who took part, without counts. */
+export function initiativePeopleColumns(namesOnly: boolean): Column<PersonStat>[] {
+  const name: Column<PersonStat> = { key: 'dev', header: 'Persona', accessor: (r) => r.dev, cellClass: 'author-cell', render: (r) => <Avatar name={r.dev} /> };
+  if (namesOnly) return [name];
+  return [
+    name,
+    { key: 'total', header: 'Total', accessor: (r) => r.total, numeric: true },
+    { key: 'open', header: 'Abiertos', accessor: (r) => r.open, numeric: true },
+    { key: 'done', header: 'Entregados', accessor: (r) => r.done, numeric: true },
+  ];
+}
+
 /** Página Iniciativa: detalle de una iniciativa — épicas, issues del periodo, personas, atención y semanal. */
 export function Initiative() {
   const { slug } = useParams<{ slug: string }>();
@@ -135,12 +148,7 @@ export function Initiative() {
     { key: 'prs', header: 'PR', accessor: (r) => r.key, render: (r) => <IssuePrs issueKey={r.key} /> },
   ];
 
-  const peopleColumns: Column<PersonStat>[] = [
-    { key: 'dev', header: 'Persona', accessor: (r) => r.dev, cellClass: 'author-cell', render: (r) => <Avatar name={r.dev} /> },
-    { key: 'total', header: 'Total', accessor: (r) => r.total, numeric: true },
-    { key: 'open', header: 'Abiertos', accessor: (r) => r.open, numeric: true },
-    { key: 'done', header: 'Entregados', accessor: (r) => r.done, numeric: true },
-  ];
+  const peopleColumns = initiativePeopleColumns(IS_STATIC);
 
   const issueColumns: Column<InitiativeIssue>[] = [
     { key: 'key', header: 'Clave', accessor: (r) => r.key, render: (r) => <IssueKey issueKey={r.key} /> },

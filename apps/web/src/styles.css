@@ -585,3 +585,13 @@ main.page table.ft-modern td.td-title { max-width: 32ch; }
 .sched-badge { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; color: var(--amber-ink); background: var(--amber-bg); white-space: nowrap; }
 .badge.badge-amber { color: var(--amber-ink); background: var(--amber-bg); display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
 @media print { .init-schedule { border-color: currentColor; } .sched-badge, .badge.badge-amber { border: 1px solid currentColor; } }
+
+/* Credits (Personas in the static snapshot) */
+.credits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.credit-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.credit-head { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
+.credit-card h3 { margin: 0; font-size: 15px; }
+.credit-role { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+.credit-line { margin: 8px 0 0; line-height: 1.9; }
+.credit-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); line-height: 1.4; }
+.credit-line .chip { white-space: normal; overflow-wrap: anywhere; }
