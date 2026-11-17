@@ -19,6 +19,7 @@ import { Settings } from './pages/Settings';
 import { Jira } from './pages/Jira';
 import { Github } from './pages/Github';
 import { People } from './pages/People';
+import { Credits } from './pages/Credits';
 import { Skills } from './pages/Skills';
 import { Initiatives } from './pages/Initiatives';
 import { Initiative } from './pages/Initiative';
@@ -60,7 +61,7 @@ function Layout({
       <header ref={headerRef}>
         <h1>Team Pulse</h1>
         <span className="sub">Métricas del equipo</span>
-        {FEATURES.teamShortcut ? (
+        {FEATURES.teamShortcut && !IS_STATIC ? (
           <Link to="/team" className="btn team-shortcut noprint">
             Equipo
           </Link>
@@ -114,22 +115,29 @@ function AppRoutes({
         <Route path="/corporate" element={<Corporate />} />
         <Route path="/jira" element={<Jira />} />
         <Route path="/github" element={<Github />} />
-        <Route path="/people" element={<People />} />
-        <Route path="/skills" element={<Skills />} />
+        <Route path="/people" element={IS_STATIC ? <Credits /> : <People />} />
+        {IS_STATIC ? null : <Route path="/skills" element={<Skills />} />}
         <Route path="/initiatives" element={<Initiatives />} />
         <Route path="/initiatives/:slug" element={<Initiative />} />
         <Route path="/epics" element={<Epics />} />
         <Route path="/data" element={<Data />} />
-        <Route path="/team" element={<Team />} />
-        <Route path="/team/:slug" element={<TeamPerson />} />
-        <Route path="/me/:slug" element={<Me />} />
-        <Route path="/settings" element={<Settings />} />
+        {IS_STATIC ? null : (
+          <>
+            <Route path="/team" element={<Team />} />
+            <Route path="/team/:slug" element={<TeamPerson />} />
+            <Route path="/me/:slug" element={<Me />} />
+            <Route path="/settings" element={<Settings />} />
+          </>
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
     </LinksProvider>
   );
 }
+
+/** Routes left out of the static snapshot: it credits people, it does not measure them. */
+export const STATIC_HIDDEN_ROUTES = ['/skills', '/team', '/team/:slug', '/me/:slug', '/settings'] as const;
 
 /** Note shown on top of every page of the static snapshot. */
 const STATIC_NOTE = `Snapshot estático del Team Pulse · datos a ${staticEnv('VITE_SNAPSHOT_AT')} · solo lectura`;

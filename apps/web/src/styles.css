@@ -589,3 +589,12 @@ main.page table.ft-modern td.td-title { max-width: 32ch; }
 /* Long unbreakable titles (an epic named with underscores) must wrap instead of widening the page on phones. */
 .cr-head > div { min-width: 0; max-width: 100%; }
 .cr-head h1, :is(main.cr, main.page) h1, .cr-head .lead { overflow-wrap: anywhere; }
+/* Credits (Personas in the static snapshot) */
+.credits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.credit-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.credit-head { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
+.credit-card h3 { margin: 0; font-size: 15px; }
+.credit-role { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+.credit-line { margin: 8px 0 0; line-height: 1.9; }
+.credit-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); line-height: 1.4; }
+.credit-line .chip { white-space: normal; overflow-wrap: anywhere; }
