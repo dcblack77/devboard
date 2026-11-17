@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build the read-only static snapshot of the web app (for hosting on a static file server).
 #   VITE_THEME=brand  -> loads src/themes/brand.css (corporate palette) on top of the normal styles.
+#   VITE_BACK_URL / VITE_BACK_LABEL (optional) -> header link back to the site that hosts the snapshot.
 # Data is NOT produced here: copy the exported JSON files into <out>/data/ afterwards.
 # Usage: scripts/build-static.sh <out_dir> [theme]
 set -euo pipefail

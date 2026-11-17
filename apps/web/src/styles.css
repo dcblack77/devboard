@@ -598,3 +598,7 @@ main.page table.ft-modern td.td-title { max-width: 32ch; }
 .credit-line { margin: 8px 0 0; line-height: 1.9; }
 .credit-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); line-height: 1.4; }
 .credit-line .chip { white-space: normal; overflow-wrap: anywhere; }
+
+/* Back link to the host site (static snapshot) */
+header a.back-link { color: inherit; text-decoration: none; font-size: 12px; white-space: nowrap; padding: 3px 9px; border: 1px solid currentColor; border-radius: 6px; opacity: 0.8; }
+header a.back-link:hover { opacity: 1; }

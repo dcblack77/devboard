@@ -4,6 +4,7 @@ import { IS_STATIC, staticEnv } from './lib/staticMode';
 import type { Role } from '@teampulse/shared';
 import { api } from './api/client';
 import { Nav } from './components/Nav';
+import { BackLink } from './components/BackLink';
 import { SyncButton } from './components/SyncButton';
 import { LinksProvider } from './components/IssueLinks';
 import { FEATURES } from './config/features';
@@ -59,6 +60,7 @@ function Layout({
   return (
     <>
       <header ref={headerRef}>
+        {IS_STATIC ? <BackLink url={staticEnv('VITE_BACK_URL')} label={staticEnv('VITE_BACK_LABEL')} /> : null}
         <h1>Team Pulse</h1>
         <span className="sub">Métricas del equipo</span>
         {FEATURES.teamShortcut && !IS_STATIC ? (
