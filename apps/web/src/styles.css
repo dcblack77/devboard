@@ -585,3 +585,7 @@ main.page table.ft-modern td.td-title { max-width: 32ch; }
 .sched-badge { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; color: var(--amber-ink); background: var(--amber-bg); white-space: nowrap; }
 .badge.badge-amber { color: var(--amber-ink); background: var(--amber-bg); display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
 @media print { .init-schedule { border-color: currentColor; } .sched-badge, .badge.badge-amber { border: 1px solid currentColor; } }
+
+/* Long unbreakable titles (an epic named with underscores) must wrap instead of widening the page on phones. */
+.cr-head > div { min-width: 0; max-width: 100%; }
+.cr-head h1, :is(main.cr, main.page) h1, .cr-head .lead { overflow-wrap: anywhere; }
